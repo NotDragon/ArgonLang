@@ -1,0 +1,519 @@
+def i: i32; // int
+def f: f32; // float
+def arr: i32[10]; // int[10]
+def arr: vec<i32>[10]; // vector<int>(10)
+def arr: list<i32>[10]; // list<int>(10)
+
+const i: i32; // const int
+
+func factorial(n: i32) -> i32; // int factorial(int 32);
+
+func factorial(n: i32) -> i32 {
+	def returnVal: i32 = 1;
+
+	for(i: i32 -> 0 to n) {
+		returnVal *= i;
+	}
+
+	return returnVal;
+}
+
+func half(n: i32) -> i32 {
+	n /= 2;
+	return n;
+}
+def i = 10;
+half(i); // passes a copy
+print(i); // 10
+half(&i); // passes a reference
+print(i); // 5
+
+func half(n: &i32) -> i32 { // requires a reference
+	n /= 2;
+	return n;
+}
+
+try {
+    	riskyOperation();
+} catch (e: Exception) {
+    	print("Caught exception: ", e.message);
+} finally {
+    	print("Cleanup code here");
+}
+
+
+for(i: i32 -> arr) {
+}
+
+for(i: i32 -> 0 to 10) { 
+}
+
+def arr = 0 to 10; // arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+def arr = 0 to= 10; // arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+def arr = 0 to 10 | x: i32 -> x % 2 == 0; // arr = [0, 2, 4, 6, 8]
+def arr = 0 to 10 | (x: i32, i: i32) -> i % 2 == 0; // arr = [0, 2, 4, 6, 8], i being the index
+
+def arr = 0 to 10 & x -> x * 2; // arr = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+
+def arr = lazy 0 to 100; // lazy evaluation (creates a lazy range)
+def arr = null | i -> i % 2 == 0; // all even numbers (also a lazy range)
+def arr = 0 to null | i -> i % 2 == 0; // all even number from 0 to infinity
+def sum = 1 to= 10 ^ (e: i32, i: i32, p: i32) -> i * p; // reduce
+
+def images = arr & () -> {
+	def image = importImage();
+	if(!image) {
+		return null; // does not add an element
+	}
+	return image;
+};
+
+
+def arr = parallel 0 to 10; 
+
+def filtered = arr | x -> x > 10; // removes all that do not meet the condition
+
+func remove(n: i32) -> bool { 
+	return n != 10;
+}
+
+def filtered = arr | remove; // removes all that do not meet the condition
+
+// remove all even numbers, then double the values of the array
+def newArr = arr | i -> i % 2 == 0 & i -> i * 2;
+
+
+def first = arr[0];
+def firstAndThird = arr[0, 3];
+
+def sliced = arr[2:4]; // sliced is the 2nd and 3rd element of the arr
+
+
+// matching
+def day = match (dayNumber) {
+	1 -> "Monday",
+	2 -> "Tuesday",
+	_ -> "Unknown Day"
+};
+match (arr) {
+    [1, 2, _] -> println("Starts with 1, 2"),
+    _ -> println("Other pattern")
+}
+match (arr) {
+    [_, x, _] && x > 5 -> println("Middle element greater than 5"),
+    _ -> println("Other pattern")
+}
+
+
+
+// lamda
+func(num: i32) -> i32 {
+	// do stuff
+}
+// one-liner
+num -> num * num;
+
+
+Using is used to create a type alias
+Union is used to create a group of types.
+Enums are a type, not a number
+Type is used to state a pattern that the value of a variable of that type will follow
+
+// using (compile time)
+using Matrix = vec<vec<i32>>;
+def met: Matrix;
+
+// Union
+union Int = i32 | i64;
+def i: Int = 10; // Union: i can be either i32 or i64 (It can't change)
+
+// Enum
+enum ShapesEnum {
+	Circle,
+	Triangle
+}
+
+union Shape { 
+	Circle(radius: i32),
+ 	Rectangle(width: i32, height: i32)
+} // object union
+
+func area(shape: Shape) -> f32 {
+    return match (shape) {
+        Shape::Circle(radius) -> 3.14 * radius * radius,
+        Shape::Rectangle(width, height) -> width * height,
+    };
+}
+
+
+
+
+// type(filter) compile-time or runtime
+type Odd<x: i32> = x % 2;
+
+def i: Odd; // can only store odds
+
+type PositiveOdd<x: i32> = x > 0 && x % 2 != 0;
+def i: PositiveOdd; // Can only store positive odd integers
+
+type DivisibleBy<T: Number, n: i32> = T % n == 0;
+type DivisibleBy<T: Number>(n: T) = T % n == 0; // runtime
+
+func prime(n: i32) -> bool {
+	for(i: i32 -> 2 to n / 2) {
+        	if(num % i == 0) {
+            		return false;
+        }
+    }
+    return true;
+}
+
+eval func prime2(n: i32) -> bool {
+	for(i: i32 -> 2 to n / 2) {
+        	if(num % i == 0) {
+            		return false;
+        }
+    }
+    return true;
+}
+
+type Prime<x: i32> = prime;  // runtime
+type Prime<x: i32> = prime2;  // compiletime
+
+// templates
+func double<T: Number>(num: T) {
+	return num * 2;
+}
+
+func double<T: i32 | i64>(num: T) {
+	return num * 2;
+}
+
+type Odd<T: Number> = T % 2;
+
+def i: Odd<i32>;
+
+value is i32 // returns true / false;
+typeof(value) // returns type as string
+
+
+// classes (private by default)
+class Student(firstGrade: i32, secondGrade: i32, name: str) {
+ 	const name: str; // automatically assigns if the names are the same
+	const grade1: i32 = Student.firstGrade; // name of the class stores the input of the user (only accessible during initialization)
+	const grade2: i32 = Student.secondGrade;
+
+	def grade2: i32; // error, uninitialized variable in class
+
+	public func getAverage() {
+		return (grade1 + grade2) / 2;
+	}
+
+	public func Student() { // default constructor
+		print("Student Created");
+	}
+
+}
+
+def i: Student(87, 93, "George");
+
+
+def i: Student; // uninitialized object
+i.grade1 = 10; // error
+
+i = Student(18, 15, "Job"); // Initialized
+
+
+// multiple constructors
+class Student { 
+	def name: str = 0;
+	def grade1: i32 = 0;	
+	def grade2: i32 = 0;
+
+	def grade2: i32; // error, uninitialized variable in class
+
+	public func getAverage() {
+		return (grade1 + grade2) / 2;
+	}
+
+	public func Student(grade1: i32, grade2: i32, name: str) {	
+		this.grade1 = grade1;
+		this.grade2 = grade2;
+		this.name = name;
+	}
+	public func Student(grade1: i32, grade2: i32) {
+		this.grade1 = grade1;
+		this.grade2 = grade2;
+	}
+}
+
+impl public func getFirstGrade() -> i32 in Student; // declare function getFirstGrade in class Student
+
+func Student::getFirstGrade() -> i32 {  // define function getFirstGrade in class Student
+	return this.grade1;
+}
+
+impl public def phoneNumber: i32 = 0 in Student; // declare variable phoneNumber in class Student
+
+const class StudentConst { 
+	// ...
+}
+
+impl public func getFirstGrade() -> i32 in StudentConst; // error: can't use impl on const classes
+
+impl toString() -> str in i32 | f32; // adds it to both i32 and f32
+
+interface Drawable {
+    	func draw() -> void;
+}
+
+class Circle(radius: i32) implements Drawable {
+    	func draw() -> void {
+        	println("Drawing a circle with radius ", radius);
+    	}
+}
+
+
+def student = struct { age: i32, name = "George" }; // Inline object
+
+// Memory Management
+def uniquePtr: ~i32 = 42; // Unique ownership
+def sharedPtr: ref<i32> = uniquePtr; // Reference Counting
+def weakPtr: weak<i32> = sharedPtr; // Copy of ref without interfering in the lifecycle of sharedPtr
+def rawPtr: ptr<i32> = uniquePtr; // Safe pointer
+def cPtr: *i32 = uniquePtr; // C-style pointer
+def cPtrArr: *i32[5] = uniquePtr; // A pointer, with memory allocated for 5 integers
+
+// C-Style pointer
+*cPtr = 10; // dereference
+cPtr++; // points to next address
+
+delete cPtr;
+delete[] cPtrArr;
+
+// Unique ownership
+func add(a: i32, b: i32) {
+	return a + b;
+}
+
+func sub(a: ~i32, b: i32) { // requirs ownership
+	return a + b;
+}
+
+func main() {
+	def num: ~i32 = 10; // Owned by scope
+	add(num, 10); // passes a copy
+	add(&num, 10); // passes a reference (mutability depends on function declaration)
+	add(~num, 10); // transfers ownership
+}
+
+
+// async code
+parallel func x(num: i32) {
+	for(i: i32 -> 0 to 10)
+		print("Hello from #", num);
+}
+
+func main() {
+	x(1);
+	x(2);	
+}
+// The functions will run on different threads
+
+parallel func y(num: i32) {
+	return num * 2;
+}
+
+func main() {
+	def i = await y(1); // waits until the function returns something before continuing
+	def i = await y(2);	
+}
+
+
+parallel func z(num: i32) {
+	return num * num;
+}
+
+func main() {
+	def num1 = z(1); // will return a future
+	
+	when(num1 -> i: i32) { // will be run when the function returns something
+		print(i);
+	}
+}
+
+
+func w(num: i32) {
+	return num * num;
+}
+
+func main() {
+	parallel w(1);
+	parallel w(2);	
+}
+// will run code on different threads
+
+
+// Atomic operations
+def num: atomic<i32> = 0;
+func inc() {
+	for(i: i32 -> 0 to 1000000) {
+		num++;
+	}
+}
+
+func main() {
+	parallel inc();
+	inc();
+	print(num);
+}
+
+// Mutex
+def num: i32 = 0;
+func inc() {
+	lock num; // monad. Tt returns lock<i32> same as: def num2: lock<i32>(num);
+
+	// automatically deconstructed back to i32 at the end of scope
+}
+
+func main() {
+	parallel inc();
+	inc();
+	print(num);
+}
+
+// Yield
+parallel func fetchItems() {
+    	for (i: i32 -> 0 to 10) {
+        	yield i;
+        	sleep(100);
+    	}
+}
+
+func main() {
+    	for (item: i32 -> await fetchItems()) { // will wait for all the values to be calculated, and then will iterate over them
+        	print(item);
+    	}
+
+	def i = fetchItems(); // will be run along side main
+	i.onYield(func() { // items will be printed as they are computed
+		print(item);
+	});
+	await i; // will wait until i finishes before continuing
+
+	when(fetchItems() -> item: i32) { // items will be printed as they are computed
+		print(item);
+	}
+}
+
+func print();
+
+func main() {
+	def thread: Thread(print);
+	join thread; // monad, waits for thread to join (thread.join)
+}
+
+// Monads
+
+// Either
+func divide(num1: i32, num2: i32) -> either<i32, str> {
+	if(num2 == 0) {
+		return "Dividing by 0";
+	}
+	return num1 / num2;
+}
+// safeCompute is either<i32, str>
+def safeCompute = 10.call(x -> divide(x, 2)).map(x -> x * 10);
+
+print(safeCompute); // will print "Dividing by 0"
+
+// Maybe
+func divide(num1: i32, num2: i32) -> maybe<i32> {
+	if(num2 == 0) {
+		return null;
+	}
+	return num1 / num2;
+}
+// safeCompute is maybe<i32>
+def safeCompute = 10.call(x -> divide(x, 2)).map(x -> x * 10);
+
+print(safeCompute); // Error: safeCompute might be null
+if(safeCompute) {
+	print(safeCompute);
+}
+
+// try
+func divide(num1: i32, num2: i32) -> try<i32, err> {
+	if(num2 == 0) {
+		throw "Dividing by 0";
+	}
+	return num1 / num2;
+}
+// safeCompute is try<i32, err>
+def safeCompute = 10.call(x -> divide(x, 2)).map(x -> x * 10);
+
+print(safeCompute); // Error, safeCompute could be an error
+if(safeCompute.isOk()) {
+	print(safeCompute);
+}
+
+match(safeCompute) {
+	i32() -> print(safeCompute),
+	err() -> print(safeCompute.message)
+}
+
+safeCompute.realise(); // safeCompute will become i32 or this will throw an error
+
+
+func divide(num1: i32, num2: i32) -> i32 {
+	return num1 / num2;
+}
+
+def res = try divide(10, 0); // automatically wraps in catch, as try<i32, err>
+
+// Create Monads in a class
+class print<T: Printable>() {
+	public def data: T;
+	free monad printStr(text: str) -> print<str> { // free declares it outside of this scope, but called within the context of the class
+		return print(text);
+	}
+	public func print() {
+		cout(data);
+	}
+}
+
+printStr "Hello World" // return a newly initialized print<str> with value of "Hello World"
+print.printStr "Also Works!";
+
+// Creating global monads
+monad print<T: Printable>(data: T) {
+	cout(data);
+}
+
+print "Hello World";
+
+monad new<T: Pointable>(data: T) -> *T {
+	return malloc(sizeof(data)) as *T;
+}
+
+def i = new i32; // Pointer to int
+
+
+// Await
+def num = await someFunc(); // await is a monad, it looks like this
+
+monad await<T: future<T>>(exp: future<T>) -> T { // T: future<T>, means that T will be the value of the future
+	when(exp -> i: T) {
+		return i;
+	}
+
+	// with timeout
+	sleep 1000; // (Time out) sleep is a monad
+	throw "Took too long to process"
+
+	// without timeout
+	while(true) sleep 10;
+}
+
+
+
