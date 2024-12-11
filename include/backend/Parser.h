@@ -4,8 +4,19 @@
 #include "AST.h"
 #include <vector>
 #include <memory>
-#include "Tokenizer.h"
+#include "backend/Tokenizer.h"
+
 namespace ArgonLang {
+	template <typename Target, typename Source>
+	std::unique_ptr<Target> dynamic_unique_cast(std::unique_ptr<Source> source) {
+		auto* result = dynamic_cast<Target*>(source.get());
+		if (!result) {
+			throw std::runtime_error("Invalid cast");
+		}
+		source.release();
+		return std::unique_ptr<Target>(result);
+	}
+
 	class Parser {
 	private:
     	const std::vector<Token>& tokens;

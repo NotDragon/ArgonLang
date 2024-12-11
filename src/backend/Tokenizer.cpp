@@ -264,6 +264,10 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::KeywordUnion: return "KeywordUnion";
 		case Token::KeywordEval: return "KeywordEval";
 		case Token::KeywordType: return "KeywordType";
+		case Token::KeywordLazy: return "KeywordLazy";
+		case Token::KeywordYield: return "KeywordYield";
+		case Token::KeywordAwait: return "KeywordAwait";
+		case Token::KeywordStruct: return "KeywordStruct";
 
         case Token::IntegralLiteral: return "IntegralLiteral";
         case Token::FloatLiteral: return "FloatLiteral";
@@ -326,16 +330,13 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
         case Token::Hash: return "Hash";
         case Token::DoubleHash: return "DoubleHash";
 
-        case Token::End: return "End";
-
 		case Token::FilterAssign: return "FilterAssign";
 		case Token::MapAssign: return "MapAssign";
 		case Token::FilterRange: return "FilterRange";
 		case Token::MapRange: return "MapRange";
 		case Token::ReduceRange: return "ReduceRange";
-		case Token::KeywordLazy: return "KeywordLazy";
-		case Token::KeywordYield: return "KeywordYield";
-		case Token::KeywordAwait: return "KeywordAwait";
 		case Token::Ownership: return "Ownership";
+
+		case Token::End: return "End";
 	}
 }
