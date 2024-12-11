@@ -11,7 +11,7 @@ func factorial(n: i32) -> i32; // int factorial(int 32);
 func factorial(n: i32) -> i32 {
 	def returnVal: i32 = 1;
 
-	for(i: i32 -> 0 to n) {
+	for(i: i32 -> 1 to= n) {
 		returnVal *= i;
 	}
 
@@ -33,14 +33,12 @@ func half(n: &i32) -> i32 { // requires a reference
 	return n;
 }
 
-try {
-    	riskyOperation();
-} catch (e: Exception) {
-    	print("Caught exception: ", e.message);
-} finally {
-    	print("Cleanup code here");
+func closure() -> func -> i32 {
+	def count = 0;
+	return () -> ++count;
 }
 
+func add(a: Number, b: Number) -> a + b; 
 
 for(i: i32 -> arr) {
 }
@@ -59,6 +57,7 @@ def arr = lazy 0 to 100; // lazy evaluation (creates a lazy range)
 def arr = null | i -> i % 2 == 0; // all even numbers (also a lazy range)
 def arr = 0 to null | i -> i % 2 == 0; // all even number from 0 to infinity
 def sum = 1 to= 10 ^ (e: i32, i: i32, p: i32) -> i * p; // reduce
+1 to= 10 ^ print;
 
 def images = arr & () -> {
 	def image = importImage();
@@ -88,6 +87,11 @@ def firstAndThird = arr[0, 3];
 
 def sliced = arr[2:4]; // sliced is the 2nd and 3rd element of the arr
 
+// decontructoion
+
+def [first, second], rest = 0 to 10;
+def { y, x } = struct { x = 10, y = 5 }; // needs same names (order doesn't matter)
+
 
 // matching
 def day = match (dayNumber) {
@@ -105,19 +109,15 @@ match (arr) {
 }
 
 
-
 // lamda
 func(num: i32) -> i32 {
 	// do stuff
 }
 // one-liner
 num -> num * num;
+// lambda type
+func(i32, f64) -> i32; // expects an i32 and f64, and returns an i32
 
-
-Using is used to create a type alias
-Union is used to create a group of types.
-Enums are a type, not a number
-Type is used to state a pattern that the value of a variable of that type will follow
 
 // using (compile time)
 using Matrix = vec<vec<i32>>;
@@ -127,16 +127,21 @@ def met: Matrix;
 union Int = i32 | i64;
 def i: Int = 10; // Union: i can be either i32 or i64 (It can't change)
 
+union Int {
+	bit32: i32,
+	bit64: i64
+}
+
 // Enum
 enum ShapesEnum {
 	Circle,
 	Triangle
 }
 
-union Shape { 
+union Shape(ShapesEnum) { 
 	Circle(radius: i32),
  	Rectangle(width: i32, height: i32)
-} // object union
+} // tagged union
 
 func area(shape: Shape) -> f32 {
     return match (shape) {
@@ -146,39 +151,34 @@ func area(shape: Shape) -> f32 {
 }
 
 
+// contracts
+contract Odd<x: i32> where x % 2 == 0;
 
+def i: i32 & Odd; // can only store odds
 
-// type(filter) compile-time or runtime
-type Odd<x: i32> = x % 2;
+contract PositiveOdd<x: Number> where x > 0 && x % 2 != 0;
+def i: i32 & PositiveOdd; // Can only store positive odd integers
 
-def i: Odd; // can only store odds
+func someFunc() -> i32;
+func someOkFunc() -> i32 & PositiveOdd;
 
-type PositiveOdd<x: i32> = x > 0 && x % 2 != 0;
-def i: PositiveOdd; // Can only store positive odd integers
+i = someFunc(); // error: pisible contract violatio
+i = someFunc() as PositiveOdd; // Assumes that the function returns a PositiveOdd (throws a runtime error if it's doesn't)
 
-type DivisibleBy<T: Number, n: i32> = T % n == 0;
-type DivisibleBy<T: Number>(n: T) = T % n == 0; // runtime
+i = someOkFunc(); // Ok
 
-func prime(n: i32) -> bool {
-	for(i: i32 -> 2 to n / 2) {
-        	if(num % i == 0) {
-            		return false;
-        }
-    }
-    return true;
+contract DivisibleBy<T: Number>(n: i32) where T % n == 0;
+
+// function contracts with where
+func do_stuff<T: Number>(num: T) where (num > 10 && num % 2 == 0) -> i32 {
+
 }
 
-eval func prime2(n: i32) -> bool {
-	for(i: i32 -> 2 to n / 2) {
-        	if(num % i == 0) {
-            		return false;
-        }
-    }
-    return true;
+// function constracts with predifined contracts
+func do_stuf<T: Number & DivisibleBy(2)>(num: T) -> i32 {
+
 }
 
-type Prime<x: i32> = prime;  // runtime
-type Prime<x: i32> = prime2;  // compiletime
 
 // templates
 func double<T: Number>(num: T) {
@@ -302,7 +302,7 @@ func sub(a: ~i32, b: i32) { // requirs ownership
 
 func main() {
 	def num: ~i32 = 10; // Owned by scope
-	add(num, 10); // passes a copy
+	add(num, 10); // Error: Cannot pass copy of num
 	add(&num, 10); // passes a reference (mutability depends on function declaration)
 	add(~num, 10); // transfers ownership
 }
@@ -372,7 +372,7 @@ func main() {
 def num: i32 = 0;
 func inc() {
 	lock num; // monad. Tt returns lock<i32> same as: def num2: lock<i32>(num);
-
+	num++;
 	// automatically deconstructed back to i32 at the end of scope
 }
 
@@ -391,9 +391,9 @@ parallel func fetchItems() {
 }
 
 func main() {
-    	for (item: i32 -> await fetchItems()) { // will wait for all the values to be calculated, and then will iterate over them
-        	print(item);
-    	}
+    for (item: i32 -> await fetchItems()) { // will wait for all the values to be calculated, and then will iterate over them
+       	print(item);
+    }
 
 	def i = fetchItems(); // will be run along side main
 	i.onYield(func() { // items will be printed as they are computed
@@ -443,13 +443,13 @@ if(safeCompute) {
 }
 
 // try
-func divide(num1: i32, num2: i32) -> try<i32, err> {
+func divide(num1: i32, num2: i32) -> try<i32, str> {
 	if(num2 == 0) {
 		throw "Dividing by 0";
 	}
 	return num1 / num2;
 }
-// safeCompute is try<i32, err>
+// safeCompute is try<i32, str>
 def safeCompute = 10.call(x -> divide(x, 2)).map(x -> x * 10);
 
 print(safeCompute); // Error, safeCompute could be an error
@@ -459,7 +459,7 @@ if(safeCompute.isOk()) {
 
 match(safeCompute) {
 	i32() -> print(safeCompute),
-	err() -> print(safeCompute.message)
+	str() -> print(safeCompute)
 }
 
 safeCompute.realise(); // safeCompute will become i32 or this will throw an error
@@ -471,49 +471,195 @@ func divide(num1: i32, num2: i32) -> i32 {
 
 def res = try divide(10, 0); // automatically wraps in catch, as try<i32, err>
 
-// Create Monads in a class
-class print<T: Printable>() {
-	public def data: T;
-	free monad printStr(text: str) -> print<str> { // free declares it outside of this scope, but called within the context of the class
-		return print(text);
+// macros
+
+@ // pre-proccessor
+@def i = 10; // same as #define i 10 with scope
+@func add(a, b) -> a + b; // same as #define add(a, b) a + b
+@func createStruct(a, b) -> struct a { field: b };
+@func repeat(value: Function, count: Number) {
+	0 to count ^ value;
+}
+
+@repeat((e) -> { print(e) }, 10);
+
+@if(DEBUG == 1) {}
+@else if(DEBUG == 2) {}
+@else {}
+
+@func createClass(name: id, fields: { name: str, type: str }) {
+    class name {
+        fields.each(field -> def field.name = field.type);
+    }
+}
+@createClass(User, [struct{ name = "id", type = "i32" }, struct{ name = "name", type = "str" }]);
+
+
+// debugging
+#debug // Included at the start of the program to run as debug(can also be run through the commandline when compiled)
+
+// log
+#log("Hello"); // only print hello when running in debug
+
+func divide(a: i32, b: i32) {
+	if(b > 0) return a / b;
+	return 0;
+}
+
+#log(divide, 10, 2); // prints the following
+func divide(a: i32(10), b: i32(2)) {
+	-> if(b(2) > 0) return(5) a(10) / b(2);
+	x  return 0;
+}
+
+#log(divide, 10, 0); // prints the following
+func divide(a: i32(10), b: i32(2)) {
+	x  if(b(2) > 0) return a / b;
+	-> return(0) 0;
+}
+
+#log(divide); // prints the following
+func divide(a: i32, b: i32) {
+	if(b > 0) return a / b;
+	return 0;
+}
+// In the text above all code that runs has ->, infront and x if it doesnt. In the actual program it wil be collered green and red
+
+def x = 10;
+#log(x); // print "x: i32(10)"
+
+class Address {
+    public def city: str = "Unknown";
+    public def zip: i32 = 0;
+}
+
+class Person {
+    public def name: str = "";
+    public def age: i32 = 0;
+    public def address: Address = Address();
+}
+
+def george: Person("George", 32, Address("New York", 12345));
+#log(george); // prints the following
+class Person {
+    public def name: str = "" (initialized to "George");
+    public def age: i32 = 0 (initialized to 32);
+    public def address: Address {
+        public def city: str = "Unknown" (initialized to "New York");
+        public def zip: i32 = 0 (initialized to 12345);
+    }
+}
+
+#test divide(result) {
+	(10, 2) -> result == 5, // when inputing 10 and 2, it expects 5
+	(10, 0) -> result == 0,
+	(10, 9) -> result < 1
+}
+
+#test divide(result)[dividend = -100 to 100, divisor = -100 to 100] {
+	(dividend, divisor) -> result == dividend / divisor,
+	(dividend, 0) -> result == 0
+}
+
+
+func print(x: i32) {
+	for(i -> 0 to x) {
+		#breakpoint; // pauses execution
+		print(i);
 	}
-	public func print() {
-		cout(data);
-	}
 }
 
-printStr "Hello World" // return a newly initialized print<str> with value of "Hello World"
-print.printStr "Also Works!";
-
-// Creating global monads
-monad print<T: Printable>(data: T) {
-	cout(data);
+#watch data;
+func process() {
+    data = 42; // Logs: "data changed to 42"
+    data = 84; // Logs: "data changed to 84"
 }
 
-print "Hello World";
+#profile(process);
+Function process:
+    Calls: 100
+    Total Time: 2.34 ms
+    Average Time: 0.0234 ms
 
-monad new<T: Pointable>(data: T) -> *T {
-	return malloc(sizeof(data)) as *T;
+
+#trace divide;
+func divide(a: i32, b: i32) -> i32 {
+    if (b == 0) return 0;
+    return a / b;
 }
 
-def i = new i32; // Pointer to int
+Trace: Called divide(a = 10, b = 2)
+Trace: divide returned 5
 
 
-// Await
-def num = await someFunc(); // await is a monad, it looks like this
-
-monad await<T: future<T>>(exp: future<T>) -> T { // T: future<T>, means that T will be the value of the future
-	when(exp -> i: T) {
-		return i;
-	}
-
-	// with timeout
-	sleep 1000; // (Time out) sleep is a monad
-	throw "Took too long to process"
-
-	// without timeout
-	while(true) sleep 10;
+class Node {
+    def value: i32;
+    def left: Node = null;
+    def right: Node = null;
 }
 
+#visualize(Node); // Create a .dot file of a tree
 
 
+// timeline shows how many threads run and whet each thread does in a .dot file
+#timeline;
+
+func task1();
+func task2();
+
+func main() {
+	task1();
+	task2();
+	parallel task1();
+	parallel task2();
+	task2();
+	paralel task1();
+
+}
+
+// prints the following
+Thread 1: task1 -----task2 -----task2
+Thread 2:                  task1      task1
+Thread 3:                  -----task2
+
+#assert divide(10, 2) == 5;
+
+// Partial Function Application
+
+func add(a: i32, b: i32) -> a + b;
+def add10 = add(10, _); // add10 is a function
+
+def num = add10(10);
+
+// FFI
+
+@extern func printf(format: str, ...) -> i32; // imports printf
+
+@link("cmath") // add #include <cmath>
+@extern func sqrt(x: f64) -> f64;
+@extern sqrt; // also works because sqrt is known at compile time
+
+@cpp cout << "Hello";
+@asm mov eax, 1;
+
+@header; // included at top of files which then are compiled down to .h and .cpp files.
+// after turning it into a header file, you can use @link and @extern
+
+// Imporing
+
+// math.arg
+module math;
+
+const PI = 3.14;
+func add(a: i32, b: i32) -> a + b;
+func mult(a: i32, b: i32) -> a * b;
+
+export add, PI;
+
+// main.arg
+import "math.arg";
+
+func main() {
+	print(math::PI);
+	print(math::mult(1, 2)); // Error, mult is not exported
+}

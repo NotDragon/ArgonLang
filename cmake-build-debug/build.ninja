@@ -49,54 +49,54 @@ cmake_ninja_workdir = C$:/Workspace/lang-cmake/cmake-build-debug/
 
 build cmake_object_order_depends_target_lang_cmake: phony || CMakeFiles/lang_cmake.dir
 
-build CMakeFiles/lang_cmake.dir/main.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/main.cpp || cmake_object_order_depends_target_lang_cmake
-  DEP_FILE = CMakeFiles\lang_cmake.dir\main.cpp.obj.d
-  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always -Wall -Wextra -Wpedantic
+build CMakeFiles/lang_cmake.dir/src/backend/AST.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/src/backend/AST.cpp || cmake_object_order_depends_target_lang_cmake
+  DEP_FILE = CMakeFiles\lang_cmake.dir\src\backend\AST.cpp.obj.d
+  FLAGS = -g -std=c++23 -fdiagnostics-color=always
   INCLUDES = -IC:/Workspace/lang-cmake/include
   OBJECT_DIR = CMakeFiles\lang_cmake.dir
-  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir
+  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\src\backend
 
-build CMakeFiles/lang_cmake.dir/lib/AST.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/lib/AST.cpp || cmake_object_order_depends_target_lang_cmake
-  DEP_FILE = CMakeFiles\lang_cmake.dir\lib\AST.cpp.obj.d
-  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always -Wall -Wextra -Wpedantic
+build CMakeFiles/lang_cmake.dir/src/backend/Parser.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/src/backend/Parser.cpp || cmake_object_order_depends_target_lang_cmake
+  DEP_FILE = CMakeFiles\lang_cmake.dir\src\backend\Parser.cpp.obj.d
+  FLAGS = -g -std=c++23 -fdiagnostics-color=always
   INCLUDES = -IC:/Workspace/lang-cmake/include
   OBJECT_DIR = CMakeFiles\lang_cmake.dir
-  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\lib
+  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\src\backend
 
-build CMakeFiles/lang_cmake.dir/lib/Environment.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/lib/Environment.cpp || cmake_object_order_depends_target_lang_cmake
-  DEP_FILE = CMakeFiles\lang_cmake.dir\lib\Environment.cpp.obj.d
-  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always -Wall -Wextra -Wpedantic
+build CMakeFiles/lang_cmake.dir/src/backend/Tokenizer.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/src/backend/Tokenizer.cpp || cmake_object_order_depends_target_lang_cmake
+  DEP_FILE = CMakeFiles\lang_cmake.dir\src\backend\Tokenizer.cpp.obj.d
+  FLAGS = -g -std=c++23 -fdiagnostics-color=always
   INCLUDES = -IC:/Workspace/lang-cmake/include
   OBJECT_DIR = CMakeFiles\lang_cmake.dir
-  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\lib
+  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\src\backend
 
-build CMakeFiles/lang_cmake.dir/lib/Parser.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/lib/Parser.cpp || cmake_object_order_depends_target_lang_cmake
-  DEP_FILE = CMakeFiles\lang_cmake.dir\lib\Parser.cpp.obj.d
-  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always -Wall -Wextra -Wpedantic
+build CMakeFiles/lang_cmake.dir/src/frontend/Environment.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/src/frontend/Environment.cpp || cmake_object_order_depends_target_lang_cmake
+  DEP_FILE = CMakeFiles\lang_cmake.dir\src\frontend\Environment.cpp.obj.d
+  FLAGS = -g -std=c++23 -fdiagnostics-color=always
   INCLUDES = -IC:/Workspace/lang-cmake/include
   OBJECT_DIR = CMakeFiles\lang_cmake.dir
-  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\lib
+  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\src\frontend
 
-build CMakeFiles/lang_cmake.dir/lib/PrintVisitor.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/lib/PrintVisitor.cpp || cmake_object_order_depends_target_lang_cmake
-  DEP_FILE = CMakeFiles\lang_cmake.dir\lib\PrintVisitor.cpp.obj.d
-  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always -Wall -Wextra -Wpedantic
+build CMakeFiles/lang_cmake.dir/src/frontend/PrintVisitor.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/src/frontend/PrintVisitor.cpp || cmake_object_order_depends_target_lang_cmake
+  DEP_FILE = CMakeFiles\lang_cmake.dir\src\frontend\PrintVisitor.cpp.obj.d
+  FLAGS = -g -std=c++23 -fdiagnostics-color=always
   INCLUDES = -IC:/Workspace/lang-cmake/include
   OBJECT_DIR = CMakeFiles\lang_cmake.dir
-  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\lib
+  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\src\frontend
 
-build CMakeFiles/lang_cmake.dir/lib/Tokenizer.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/lib/Tokenizer.cpp || cmake_object_order_depends_target_lang_cmake
-  DEP_FILE = CMakeFiles\lang_cmake.dir\lib\Tokenizer.cpp.obj.d
-  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always -Wall -Wextra -Wpedantic
+build CMakeFiles/lang_cmake.dir/src/frontend/Value.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/src/frontend/Value.cpp || cmake_object_order_depends_target_lang_cmake
+  DEP_FILE = CMakeFiles\lang_cmake.dir\src\frontend\Value.cpp.obj.d
+  FLAGS = -g -std=c++23 -fdiagnostics-color=always
   INCLUDES = -IC:/Workspace/lang-cmake/include
   OBJECT_DIR = CMakeFiles\lang_cmake.dir
-  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\lib
+  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\src\frontend
 
-build CMakeFiles/lang_cmake.dir/lib/Value.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/lib/Value.cpp || cmake_object_order_depends_target_lang_cmake
-  DEP_FILE = CMakeFiles\lang_cmake.dir\lib\Value.cpp.obj.d
-  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always -Wall -Wextra -Wpedantic
+build CMakeFiles/lang_cmake.dir/src/main.cpp.obj: CXX_COMPILER__lang_cmake_unscanned_Debug C$:/Workspace/lang-cmake/src/main.cpp || cmake_object_order_depends_target_lang_cmake
+  DEP_FILE = CMakeFiles\lang_cmake.dir\src\main.cpp.obj.d
+  FLAGS = -g -std=c++23 -fdiagnostics-color=always
   INCLUDES = -IC:/Workspace/lang-cmake/include
   OBJECT_DIR = CMakeFiles\lang_cmake.dir
-  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\lib
+  OBJECT_FILE_DIR = CMakeFiles\lang_cmake.dir\src
 
 
 # =============================================================================
@@ -106,7 +106,7 @@ build CMakeFiles/lang_cmake.dir/lib/Value.cpp.obj: CXX_COMPILER__lang_cmake_unsc
 #############################################
 # Link the executable lang_cmake.exe
 
-build lang_cmake.exe: CXX_EXECUTABLE_LINKER__lang_cmake_Debug CMakeFiles/lang_cmake.dir/main.cpp.obj CMakeFiles/lang_cmake.dir/lib/AST.cpp.obj CMakeFiles/lang_cmake.dir/lib/Environment.cpp.obj CMakeFiles/lang_cmake.dir/lib/Parser.cpp.obj CMakeFiles/lang_cmake.dir/lib/PrintVisitor.cpp.obj CMakeFiles/lang_cmake.dir/lib/Tokenizer.cpp.obj CMakeFiles/lang_cmake.dir/lib/Value.cpp.obj
+build lang_cmake.exe: CXX_EXECUTABLE_LINKER__lang_cmake_Debug CMakeFiles/lang_cmake.dir/src/backend/AST.cpp.obj CMakeFiles/lang_cmake.dir/src/backend/Parser.cpp.obj CMakeFiles/lang_cmake.dir/src/backend/Tokenizer.cpp.obj CMakeFiles/lang_cmake.dir/src/frontend/Environment.cpp.obj CMakeFiles/lang_cmake.dir/src/frontend/PrintVisitor.cpp.obj CMakeFiles/lang_cmake.dir/src/frontend/Value.cpp.obj CMakeFiles/lang_cmake.dir/src/main.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\lang_cmake.dir

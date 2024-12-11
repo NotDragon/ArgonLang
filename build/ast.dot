@@ -1,0 +1,9 @@
+digraph AST {
+  node0 [label="Program"];
+  node1 [label="BinaryExpression()"];
+  node2 [label="IntegralLiteral: 1 (i32)"];
+  node1 -> node2;
+  node3 [label="IntegralLiteral: 4 (i32)"];
+  node1 -> node3;
+  node0 -> node1 [label="node"];
+}
