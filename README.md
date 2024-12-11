@@ -81,26 +81,26 @@ func closure() -> func -> i32 {
 
 #### To Expression
 ```argon
-   0 to 10
-   0 to= 10
+0 to 10
+0 to= 10
 ```
 Here the `0 to 10` will return an array of number 0 up 10, excluding 10.
 `0 to=10` will return an array of number 0 up 10, including 10.
 
 #### Filter Expression
 ```argon 
-   def newArr = arr | x: i32 -> x % 2 == 0;
+def newArr = arr | x: i32 -> x % 2 == 0;
 ```
 Here all values inside arr that do not meet the condition x % 2 == 0, will be filtered
 
 #### Map Expression
 ```argon 
-   def doubled = arr & x: i32 -> x * 2;
+def doubled = arr & x: i32 -> x * 2;
 ```
 
 #### Reduce Expression
 ```argon 
-   def sum = arr ^ (x, index, previous) -> i * p;
+def sum = arr ^ (x, index, previous) -> i * p;
 ```
 
 ### Control Flow
