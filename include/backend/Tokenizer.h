@@ -63,6 +63,7 @@ namespace ArgonLang {
 			ReduceAssign,
 			AccumulateAssign,
 			PipeAssign,
+			MapPipeAssign,
 
             Equal,
             NotEqual,
@@ -81,6 +82,7 @@ namespace ArgonLang {
 			AccumulateRange,
 			Ownership,
 			Pipe,
+			MapPipe,
 
             BitwiseAnd,
             BitwiseOr,

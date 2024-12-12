@@ -173,6 +173,14 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			}
 			tokens.emplace_back(Token::Pipe);
 			i += 2;
+		}   else if (c == '|' && input[i + 1] == '|' && input[i + 2] == '>') {
+			if(input[i + 3] == '=') {
+				tokens.emplace_back(Token::MapPipeAssign);
+				i += 4;
+				continue;
+			}
+			tokens.emplace_back(Token::MapPipe);
+			i += 3;
 		} else if (c == '^' && input[i + 1] == '^') {
 			if(input[i + 2] == '=') {
 				tokens.emplace_back(Token::AccumulateAssign);
