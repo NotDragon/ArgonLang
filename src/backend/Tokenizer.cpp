@@ -162,10 +162,26 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
         } else if (c == '|' && input[i + 1] == '=') {
 			tokens.emplace_back(Token::FilterAssign);
 			i += 2;
-        } else if (c == '^' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::XorAssign);
+		}  else if (c == '^' && input[i + 1] == '=') {
+			tokens.emplace_back(Token::ReduceAssign);
 			i += 2;
-        } else if (c == '-' && input[i + 1] == '>') {
+		}  else if (c == '|' && input[i + 1] == '>') {
+			if(input[i + 2] == '=') {
+				tokens.emplace_back(Token::PipeAssign);
+				i += 3;
+				continue;
+			}
+			tokens.emplace_back(Token::Pipe);
+			i += 2;
+		} else if (c == '^' && input[i + 1] == '^') {
+			if(input[i + 2] == '=') {
+				tokens.emplace_back(Token::AccumulateAssign);
+				i += 3;
+				continue;
+			}
+			tokens.emplace_back(Token::AccumulateRange);
+			i += 2;
+		} else if (c == '-' && input[i + 1] == '>') {
 			tokens.emplace_back(Token::Arrow);
 			i += 2;
         } else if (c == ':' && input[i + 1] == ':') {
@@ -176,7 +192,7 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			i += 2;
 		} else if (c == '*' && input[i + 1] == '&') {
 			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::AndAssign);
+				tokens.emplace_back(Token::BitwiseAndAssign);
 				i += 3;
 				continue;
 			}
@@ -184,7 +200,7 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			i += 2;
 		} else if (c == '*' && input[i + 1] == '|') {
 			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::OrAssign);
+				tokens.emplace_back(Token::BitwiseOrAssign);
 				i += 3;
 				continue;
 			}
@@ -192,7 +208,7 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			i += 2;
 		} else if (c == '*' && input[i + 1] == '^') {
 			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::XorAssign);
+				tokens.emplace_back(Token::BitwiseXorAssign);
 				i += 3;
 				continue;
 			}
@@ -307,9 +323,9 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
         case Token::BitwiseNot: return "BitwiseNot";
         case Token::LeftShift: return "LeftShift";
         case Token::RightShift: return "RightShift";
-        case Token::AndAssign: return "AndAssign";
-        case Token::OrAssign: return "OrAssign";
-        case Token::XorAssign: return "XorAssign";
+        case Token::BitwiseAndAssign: return "BitwiseAndAssign";
+        case Token::BitwiseOrAssign: return "BitwiseOrAssign";
+        case Token::BitwiseXorAssign: return "BitwiseXorAssign";
         case Token::LeftShiftAssign: return "LeftShiftAssign";
         case Token::RightShiftAssign: return "RightShiftAssign";
 
@@ -336,7 +352,13 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::MapRange: return "MapRange";
 		case Token::ReduceRange: return "ReduceRange";
 		case Token::Ownership: return "Ownership";
+		case Token::ReduceAssign: return "ReduceAssign";
+		case Token::AccumulateAssign: return "AccumulateAssign";
+		case Token::PipeAssign: return "PipeAssign";
+		case Token::AccumulateRange: return "AccumulateRange";
+		case Token::Pipe: return "Pipe";
 
 		case Token::End: return "End";
+
 	}
 }

@@ -9,12 +9,11 @@
 namespace ArgonLang {
 	template <typename Target, typename Source>
 	std::unique_ptr<Target> dynamic_unique_cast(std::unique_ptr<Source> source) {
-		auto* result = dynamic_cast<Target*>(source.get());
-		if (!result) {
-			throw std::runtime_error("Invalid cast");
+		if (auto* result = dynamic_cast<Target*>(source.get())) {
+			source.release();
+			return std::unique_ptr<Target>(result);
 		}
-		source.release();
-		return std::unique_ptr<Target>(result);
+		throw std::runtime_error("Invalid cast");
 	}
 
 	class Parser {

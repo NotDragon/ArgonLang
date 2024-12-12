@@ -60,6 +60,9 @@ namespace ArgonLang {
             ModuloAssign,
 			FilterAssign,
 			MapAssign,
+			ReduceAssign,
+			AccumulateAssign,
+			PipeAssign,
 
             Equal,
             NotEqual,
@@ -75,7 +78,9 @@ namespace ArgonLang {
 			FilterRange,
 			MapRange,
 			ReduceRange,
+			AccumulateRange,
 			Ownership,
+			Pipe,
 
             BitwiseAnd,
             BitwiseOr,
@@ -83,9 +88,9 @@ namespace ArgonLang {
             BitwiseNot,
             LeftShift,
             RightShift,
-            AndAssign,
-            OrAssign,
-            XorAssign,
+            BitwiseAndAssign,
+            BitwiseOrAssign,
+            BitwiseXorAssign,
             LeftShiftAssign,
             RightShiftAssign,
 
