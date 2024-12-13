@@ -241,4 +241,10 @@ void ArgonLang::StructExpressionNode::print() const {
     
 }
 
+void ArgonLang::StructField::print() const {
+
+}
+
+
+
 #endif

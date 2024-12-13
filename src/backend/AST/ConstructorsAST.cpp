@@ -119,4 +119,7 @@ ArgonLang::WhileStatementNode::WhileStatementNode(bool isDoWhile, std::unique_pt
 												  std::unique_ptr<StatementNode> elseBranch): condition(std::move(condition)), body(std::move(body)), elseBranch(std::move(elseBranch)), isDoWhile(isDoWhile) {}
 
 ArgonLang::StructExpressionNode::StructExpressionNode(
-		std::vector<std::tuple<std::string, std::unique_ptr<TypeNode>, std::unique_ptr<ExpressionNode>>> fields): fields(std::move(fields)) {}
+		std::vector<StructField> fields): fields(std::move(fields)) {}
+
+ArgonLang::StructField::StructField(std::string name, std::unique_ptr<TypeNode> type,
+									std::unique_ptr<ExpressionNode> value): name(std::move(name)), type(std::move(type)), value(std::move(value)) {}

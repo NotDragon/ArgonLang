@@ -368,7 +368,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStructExpression() {
 	advance();
 	expect(Token::LeftBrace, "Expected '{' after struct");
 
-	std::vector<std::tuple<std::string, std::unique_ptr<TypeNode>, std::unique_ptr<ExpressionNode>>> fields;
+	std::vector<StructField> fields;
 	while(peek().type != Token::RightBrace) {
 		Token name = expect(Token::Identifier, "Expected fields name");
 		Result<std::unique_ptr<TypeNode>> type;

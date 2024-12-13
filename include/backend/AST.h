@@ -288,11 +288,23 @@ namespace ArgonLang
     #endif
     };
 
+	class StructField {
+	public:
+		std::string name;
+		std::unique_ptr<TypeNode> type;
+		std::unique_ptr<ExpressionNode> value;
+		explicit StructField(std::string name, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value);
+#ifdef DEBUG
+		void print() const;
+		void toDot(std::ostream& os, int& nodeId) const;
+#endif
+	};
+
     class StructExpressionNode : public ExpressionNode {
     public:
-        std::vector<std::tuple<std::string, std::unique_ptr<TypeNode>, std::unique_ptr<ExpressionNode>>> fields;
+        std::vector<StructField> fields;
 
-        explicit StructExpressionNode(std::vector<std::tuple<std::string, std::unique_ptr<TypeNode>, std::unique_ptr<ExpressionNode>>> fields);
+        explicit StructExpressionNode(std::vector<StructField> fields);
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;

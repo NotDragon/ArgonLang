@@ -214,17 +214,9 @@ void ArgonLang::LazyExpressionNode::toDot(std::ostream &os, int &nodeId) const {
 void ArgonLang::StructExpressionNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"StructExpressionNode\"];\n";
-	for(const auto& [name, typeNode, expressionNode]: fields) {
+	for(const auto& filed: fields) {
 		int filedId = nodeId++;
-		os << " node" << filedId << " [label=\"Name: " << name << "\"];\n";
-
-		int typeId = nodeId;
-		typeNode->toDot(os, nodeId);
-		os << "  node" << filedId << " -> node" << typeId << " [label=\"Type\"];\n";
-		int expressionId = nodeId;
-		expressionNode->toDot(os, nodeId);
-		os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
-
+		filed.toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << filedId << ";\n";
 	}
 }
@@ -392,6 +384,18 @@ void ArgonLang::UnionTypeNode::toDot(std::ostream &os, int &nodeId) const {
 
 void ArgonLang::IdentifierTypeNode::toDot(std::ostream& os, int& nodeId) const {
 	os << "  node" << nodeId++ << " [label=\"PrimitiveType: " << typeName << "\"];\n";
+}
+
+void ArgonLang::StructField::toDot(std::ostream &os, int &nodeId) const {
+	int filedId = nodeId++;
+	os << " node" << filedId << " [label=\"Name: " << name << "\"];\n";
+
+	int typeId = nodeId;
+	type->toDot(os, nodeId);
+	os << "  node" << filedId << " -> node" << typeId << " [label=\"Type\"];\n";
+	int expressionId = nodeId;
+	value->toDot(os, nodeId);
+	os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
 }
 
 #endif
