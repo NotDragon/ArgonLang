@@ -4,7 +4,10 @@
 #include "backend/Tokenizer.h"
 
 int main(int argc, char** argv) {
-	if(argc < 3) return -1;
+	if(argc < 3) {
+		std::cerr << "Expected 2 arguments";
+		return EXIT_FAILURE;
+	}
 
     std::string str;
     std::ifstream file(argv[1]);
