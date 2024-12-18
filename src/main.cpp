@@ -6,7 +6,7 @@
 int main(int argc, char** argv) {
 	if(argc < 3) {
 		std::cerr << "Expected 2 arguments";
-		return EXIT_FAILURE;
+		return 1;
 	}
 
     std::string str;
@@ -19,12 +19,17 @@ int main(int argc, char** argv) {
 
 	auto tokens = ArgonLang::tokenize(str);
     ArgonLang::Parser parser(tokens);
-    std::unique_ptr<ArgonLang::ASTNode> program = parser.parse();
+	ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> program = parser.parse();
+
+	if(program.hasError()) {
+		std::cerr << "Parsing error occurred \n\t" << program.getErrorMsg();
+		return 1;
+	}
 
 	std::ofstream dotFile(argv[2]);
 	dotFile << "digraph AST {\n";
 	int nodeId = 0;
-	program->toDot(dotFile, nodeId);
+	program.getValue()->toDot(dotFile, nodeId);
 	dotFile << "}\n";
 
 	std::cout << "\nDOT file generated: ast.dot\n";

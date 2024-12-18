@@ -113,12 +113,15 @@ namespace ArgonLang {
             Hash,
 			DoubleHash,
 
-            End
-        };
+			End,
+			Error
+		};
         Type type;
         std::string value;
 
-        explicit Token(Type t, std::string val = "") : type(t), value(std::move(val)) {}
+		explicit Token(Type t, std::string val = "");
+		explicit Token() = default;
+
         static std::string getTypeAsString(Token::Type type);
     };
 

@@ -25,12 +25,12 @@ namespace ArgonLang {
 	public:
 		explicit Parser(const std::vector<Token>& tokens);
 
-		const Token& peek() const;
+		Token peek() const;
 		bool eos() const;
-		const Token& advance();
-		Token expect(Token::Type type, const std::string& errorMessage);
+		Result<Token> advance();
+		Result<Token> expect(Token::Type type, const std::string& errorMessage);
 		
-		std::unique_ptr<ProgramNode> parse();
+		Result<std::unique_ptr<ProgramNode>> parse();
 		Result<std::unique_ptr<ASTNode>> parseStatement();
 		Result<std::unique_ptr<ASTNode>> parseExpression();
 

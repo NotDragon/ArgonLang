@@ -370,3 +370,5 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 
 	}
 }
+
+ArgonLang::Token::Token(Type t, std::string val) : type(t), value(std::move(val)) {}
