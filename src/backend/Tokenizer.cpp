@@ -45,6 +45,10 @@ namespace ArgonLang {
 			{ "return", Token::KeywordReturn },
 			{ "impl", Token::KeywordImpl },
 			{ "struct", Token::KeywordStruct },
+			{ "pub", Token::KeywordPub },
+			{ "pri", Token::KeywordPri },
+			{ "pro", Token::KeywordPro },
+			{ "constructor", Token::KeywordConstructor },
 
 			{ "using", Token::KeywordUsing },
 			{ "type", Token::KeywordType },
@@ -368,6 +372,12 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 
 		case Token::End: return "End";
 
+		case Token::KeywordPub: return "KeywordPub";
+		case Token::KeywordPri: return "KeywordPri";
+		case Token::KeywordPro: return "KeywordPro";
+		case Token::MapPipeAssign: return "MapPipeAssign";
+		case Token::MapPipe: return "MapPipe";
+		case Token::KeywordConstructor: return "KeywordConstructor";
 	}
 }
 

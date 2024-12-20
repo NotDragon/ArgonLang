@@ -26,6 +26,8 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStatement() {
 			return { parseFunctionDeclaration() };
 		case Token::KeywordClass:
 			return { parseClassDeclaration() };
+		case Token::KeywordConstructor:
+			return { parseConstructorStatement() };
 		case Token::KeywordImpl:
 			return { parseImplStatement() };
 		case Token::KeywordUsing:
@@ -86,6 +88,36 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 													   std::move(identifier.value)) };
 }
 
+Result<std::unique_ptr<FunctionArgument>> Parser::parseFunctionArgument() {
+	Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
+	if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg() };
+
+	std::unique_ptr<TypeNode> type;
+	std::unique_ptr<ExpressionNode> value;
+
+	if(peek().type == Token::Colon) {
+		Result<Token> colon = advance();
+		if(colon.hasError()) return { colon.getErrorMsg() };
+
+		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
+		if(typeRes.hasError()) return { typeRes.getErrorMsg() };
+
+		type = typeRes.moveValue();
+	}
+
+	if(peek().type == Token::Assign) {
+		Result<Token> assign = advance();
+		if(assign.hasError()) return { assign.getErrorMsg() };
+
+		Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
+		if(valueRes.hasError()) return { valueRes.getErrorMsg() };
+
+		value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
+	}
+
+	return { std::make_unique<FunctionArgument>(std::move(type), std::move(value), std::move(argIdentifier.getValue().value)) };
+}
+
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<Token> token = advance();
 	if(token.hasError()) return { token.getErrorMsg() };
@@ -96,34 +128,17 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after function declaration");
 	if(leftParen.hasError()) return { leftParen.getErrorMsg() };
 
-	std::vector<FunctionArgument> args;
-	while(peek().type != Token::RightParen) {
-		Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
-		std::unique_ptr<TypeNode> type;
-		std::unique_ptr<ExpressionNode> value;
+	std::vector<std::unique_ptr<FunctionArgument>> args;
+	while(true) {
+		Result<std::unique_ptr<FunctionArgument>> arg = parseFunctionArgument();
+		if(arg.hasError()) return { arg.getErrorMsg() };
 
+		args.push_back(arg.moveValue());
 
-		if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg() };
-		if(peek().type == Token::Colon) {
-			Result<Token> colon = advance();
-			if(colon.hasError()) return { colon.getErrorMsg() };
+		if(peek().type == Token::RightParen) break;
 
-			Result<std::unique_ptr<TypeNode>> typeRes = parseType();
-			if(typeRes.hasError()) return { typeRes.getErrorMsg() };
-
-			type = typeRes.moveValue();
-		}
-
-		if(peek().type == Token::Assign) {
-			Result<Token> assign = advance();
-			if(assign.hasError()) return { assign.getErrorMsg() };
-
-			Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
-			if(valueRes.hasError()) return { valueRes.getErrorMsg() };
-
-			value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
-		}
-		args.emplace_back(std::move(type), std::move(value), std::move(argIdentifier.getValue().value));
+		Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
+		if(comma.hasError()) return { comma.getErrorMsg() };
 	}
 
 	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after function declaration");
@@ -146,6 +161,10 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 		if(expr.hasError()) return expr;
 
 		std::unique_ptr<ReturnStatementNode> body = std::make_unique<ReturnStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue()));
+
+		Result<Token> semiColon = expect(Token::Semicolon, "Expected ';' after inline function");
+		if(semiColon.hasError()) return { semiColon.getErrorMsg() };
+
 		return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), std::move(body), std::move(identifier.getValue().value)) };
 	}
 
@@ -262,7 +281,131 @@ Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
+	Result<Token> classKeyword = advance();
+	if(classKeyword.hasError()) return { classKeyword.getErrorMsg() };
+
+	Result<Token> className = advance();
+	if(className.hasError()) return { className.getErrorMsg() };
+
+	std::vector<ConstructorStatementNode> constructors;
+	std::vector<ClassDeclarationNode::ClassMember> members;
+
+//  TODO: in the very far future
+//	if(peek().type == Token::RightParen) {
+//
+//	}
+
+	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after class declaration");
+	if(leftBrace.hasError()) return { leftBrace.getErrorMsg() };
+
+	while(peek().type != Token::RightBrace) {
+		MemberVisibility visibility = MemberVisibility::PRI;
+
+		if(	peek().type == Token::KeywordPub ||
+			peek().type == Token::KeywordPri ||
+			peek().type == Token::KeywordPro) {
+			Result<Token> visKeyword = advance();
+			if(visKeyword.hasError()) return { visKeyword.getErrorMsg() };
+
+			visibility = 	visKeyword.getValue().type == Token::KeywordPub ? MemberVisibility::PUB :
+							visKeyword.getValue().type == Token::KeywordPri ? MemberVisibility::PRI :
+							MemberVisibility::PRO;
+
+		}
+
+		if(peek().type != Token::KeywordDef &&
+		   peek().type == Token::KeywordFunc &&
+		   peek().type != Token::KeywordConstructor) return { "Expected either function declaration, variable declaration or constructor declaration" };
+
+		Result<std::unique_ptr<ASTNode>> member = parseStatement();
+		if(member.hasError()) return member;
+
+		members.emplace_back(dynamic_unique_cast<StatementNode>(member.moveValue()), visibility);
+	}
+
+	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after class declaration");
+	if(rightBrace.hasError()) return { rightBrace.getErrorMsg() };
+
 	return std::unique_ptr<ASTNode>();
+}
+
+Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::parseConstructorArgument() {
+	Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
+	if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg() };
+
+	std::unique_ptr<TypeNode> type;
+	std::unique_ptr<ExpressionNode> value;
+	std::string initializes;
+
+	if(peek().type == Token::LeftParen) {
+		Result<Token> leftParen = expect(Token::LeftParen, "Expected '('");
+		if(leftParen.hasError()) return { leftParen.getErrorMsg() };
+
+		Result<Token> initIdentifier = expect(Token::Identifier, "Expected identifier");
+		if(initIdentifier.hasError()) return { initIdentifier.getErrorMsg() };
+		initializes = initIdentifier.getValue().value;
+
+		Result<Token> rightParen = expect(Token::RightParen, "Expected ')'");
+		if(rightParen.hasError()) return { rightParen.getErrorMsg() };
+	}
+
+	if(peek().type == Token::Colon) {
+		Result<Token> colon = advance();
+		if(colon.hasError()) return { colon.getErrorMsg() };
+
+		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
+		if(typeRes.hasError()) return { typeRes.getErrorMsg() };
+
+		type = typeRes.moveValue();
+	}
+
+	if(peek().type == Token::Assign) {
+		Result<Token> assign = advance();
+		if(assign.hasError()) return { assign.getErrorMsg() };
+
+		Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
+		if(valueRes.hasError()) return { valueRes.getErrorMsg() };
+
+		value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
+	}
+
+	return { std::make_unique<ConstructorStatementNode::ConstructorArgument>(argIdentifier.getValue().value, initializes, std::move(type), std::move(value)) };
+
+}
+
+Result<std::unique_ptr<ASTNode>> Parser::parseConstructorStatement() {
+	Result<Token> constructorKeyword = advance();
+	if(constructorKeyword.hasError()) return { constructorKeyword.getErrorMsg() };
+
+	std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args;
+
+	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after constructor");
+	if(leftParen.hasError()) return { leftParen.getErrorMsg() };
+
+	while(true) {
+		Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> arg = parseConstructorArgument();
+		if(arg.hasError()) return { arg.getErrorMsg() };
+
+		args.push_back(arg.moveValue());
+
+		if(peek().type == Token::RightParen) break;
+
+		Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
+		if(comma.hasError()) return { comma.getErrorMsg() };
+
+	}
+
+	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after constructor");
+	if(rightParen.hasError()) return { rightParen.getErrorMsg() };
+
+	if(peek().type == Token::Semicolon) {
+		return { std::make_unique<ConstructorStatementNode>(std::move(args), nullptr) };
+	}
+
+	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	if(body.hasError()) return body;
+
+	return { std::make_unique<ConstructorStatementNode>(std::move(args), body.moveValue()) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
@@ -284,7 +427,34 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
-	return std::unique_ptr<ASTNode>();
+	Result<Token> token = advance();
+	if(token.hasError()) return { token.getErrorMsg() };
+
+	Result<Token> className = expect(Token::Identifier, "Expected Class Name");
+	if(className.hasError()) return { className.getErrorMsg() };
+
+	Result<Token> keyword = advance();
+	if(keyword.hasError()) return { keyword.getErrorMsg() };
+
+	MemberVisibility visibility = MemberVisibility::PRI;
+	if(	keyword.getValue().type == Token::KeywordPub ||
+		keyword.getValue().type == Token::KeywordPri ||
+		keyword.getValue().type == Token::KeywordPro) {
+		visibility = 	keyword.getValue().type == Token::KeywordPub ? MemberVisibility::PUB :
+						keyword.getValue().type == Token::KeywordPri ? MemberVisibility::PRI :
+						MemberVisibility::PRO;
+
+		keyword = advance();
+		if(keyword.hasError()) return { keyword.getErrorMsg() };
+	}
+
+	if(keyword.getValue().type != Token::KeywordFunc && keyword.getValue().type != Token::KeywordDef) return { "Expected variable or function declaration" };
+
+	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	if(body.hasError()) return body;
+
+	return { std::make_unique<ImplStatementNode>(className.getValue().value,
+											   dynamic_unique_cast<StatementNode>(body.moveValue()), visibility) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseYieldStatement() {

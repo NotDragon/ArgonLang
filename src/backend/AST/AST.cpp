@@ -31,3 +31,7 @@ ArgonLang::PrimitiveType ArgonLang::determineFloatType(const std::string& value)
 
 	return PrimitiveType::FLOAT32;
 }
+
+
+
+

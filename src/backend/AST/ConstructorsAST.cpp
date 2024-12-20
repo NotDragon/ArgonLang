@@ -126,14 +126,25 @@ ArgonLang::StructField::StructField(std::string name, std::unique_ptr<TypeNode> 
 
 ArgonLang::FunctionArgument::FunctionArgument(std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value,
 											  std::string name): type(std::move(type)), value(std::move(value)), name(std::move(name)) {}
+ArgonLang::FunctionArgument::FunctionArgument(): type(), value(), name() {}
 
 
 ArgonLang::FunctionDeclarationNode::FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType,
-															std::vector<FunctionArgument> args,
+															std::vector<std::unique_ptr<FunctionArgument>> args,
 															std::unique_ptr<ASTNode> body, std::string name): returnType(std::move(returnType)), args(std::move(args)), body(std::move(body)), name(std::move(name)) {}
 
 ArgonLang::FunctionDefinitionNode::FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType,
-														  std::vector<FunctionArgument> args, std::string name): returnType(std::move(returnType)), args(std::move(args)), name(std::move(name)) {
+														  std::vector<std::unique_ptr<FunctionArgument>> args, std::string name): returnType(std::move(returnType)), args(std::move(args)), name(std::move(name)) { }
+ArgonLang::ImplStatementNode::ImplStatementNode(std::string className, std::unique_ptr<StatementNode> body,
+												ArgonLang::MemberVisibility visibility): className(std::move(className)), body(std::move(body)), visibility(visibility) { }
 
-}
+ArgonLang::ConstructorStatementNode::ConstructorArgument::ConstructorArgument(std::string name, std::string initializes,
+																			  std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value): name(std::move(name)), initializes(std::move(initializes)), type(std::move(type)), value(std::move(value)) { }
 
+ArgonLang::ConstructorStatementNode::ConstructorStatementNode(std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args,
+															  std::unique_ptr<ASTNode> body): args(std::move(args)), body(std::move(body)) { }
+
+ArgonLang::ClassDeclarationNode::ClassMember::ClassMember(std::unique_ptr<StatementNode> declaration,
+														  ArgonLang::MemberVisibility visibility): declaration(std::move(declaration)), visibility(visibility) { }
+
+ArgonLang::ClassDeclarationNode::ClassDeclarationNode(std::string className, std::vector<ClassMember> body): className(std::move(className)), body(std::move(body)) { }

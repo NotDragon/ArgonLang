@@ -38,6 +38,10 @@ namespace ArgonLang {
 			KeywordAwait,
 			KeywordWhen,
 			KeywordStruct,
+			KeywordPub,
+			KeywordPri,
+			KeywordPro,
+			KeywordConstructor,
 
             IntegralLiteral,
             FloatLiteral,
@@ -113,8 +117,7 @@ namespace ArgonLang {
             Hash,
 			DoubleHash,
 
-			End,
-			Error
+			End
 		};
         Type type;
         std::string value;

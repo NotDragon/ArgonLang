@@ -257,4 +257,24 @@ void ArgonLang::FunctionDefinitionNode::print() const {
 
 }
 
+void ArgonLang::ImplStatementNode::print() const {
+
+}
+
+void ArgonLang::ConstructorStatementNode::ConstructorArgument::print() const {
+
+}
+
+void ArgonLang::ConstructorStatementNode::print() const {
+
+}
+
+void ArgonLang::ClassDeclarationNode::ClassMember::ClassMember::print() const {
+
+}
+
+void ArgonLang::ClassDeclarationNode::print() const {
+
+}
+
 #endif

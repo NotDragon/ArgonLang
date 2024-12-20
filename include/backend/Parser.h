@@ -34,6 +34,9 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseStatement();
 		Result<std::unique_ptr<ASTNode>> parseExpression();
 
+		Result<std::unique_ptr<FunctionArgument>> parseFunctionArgument();
+		Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> parseConstructorArgument();
+
 		// Helper methods for parsing specific types of expressions
 		Result<std::unique_ptr<ASTNode>> parsePrimary();
 		Result<std::unique_ptr<ASTNode>> parseAdditiveExpression();
@@ -81,6 +84,7 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseBlock();
 		Result<std::unique_ptr<ASTNode>> parseImplStatement();
 		Result<std::unique_ptr<ASTNode>> parseYieldStatement();
+		Result<std::unique_ptr<ASTNode>> parseConstructorStatement();
 
 		// Methods for parsing types
 		Result<std::unique_ptr<TypeNode>> parseType();

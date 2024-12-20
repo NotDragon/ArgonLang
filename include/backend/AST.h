@@ -10,7 +10,7 @@
 #define DEBUG
 namespace ArgonLang
 {
-    enum PrimitiveType {
+	enum PrimitiveType {
         INT8 = 0,
         INT16,
         INT32,
@@ -19,7 +19,14 @@ namespace ArgonLang
         FLOAT32,
         FLOAT64,
         FLOAT128
-   };
+	};
+
+	enum class MemberVisibility {
+		PUB,
+		PRI,
+		PRO
+	};
+
 	std::string primitiveTypeToString(PrimitiveType type);
 	PrimitiveType determineIntegerType(const std::string& value);
 	PrimitiveType determineFloatType(const std::string& value);
@@ -366,6 +373,7 @@ namespace ArgonLang
 		std::string name;
 
 		explicit FunctionArgument(std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
+		explicit FunctionArgument();
 #ifdef DEBUG
 		void print() const;
 		void toDot(std::ostream& os, int& nodeId) const;
@@ -376,11 +384,11 @@ namespace ArgonLang
 	class FunctionDeclarationNode: public StatementNode {
 	public:
 		std::unique_ptr<TypeNode> returnType;
-		std::vector<FunctionArgument> args;
+		std::vector<std::unique_ptr<FunctionArgument>> args;
 		std::unique_ptr<ASTNode> body;
 		std::string name;
 
-		explicit FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType, std::vector<FunctionArgument> args, std::unique_ptr<ASTNode> body, std::string name);
+		explicit FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ASTNode> body, std::string name);
 #ifdef DEBUG
 		void print() const override;
 		void toDot(std::ostream& os, int& nodeId) const override;
@@ -390,10 +398,10 @@ namespace ArgonLang
 	class FunctionDefinitionNode: public StatementNode {
 	public:
 		std::unique_ptr<TypeNode> returnType;
-		std::vector<FunctionArgument> args;
+		std::vector<std::unique_ptr<FunctionArgument>> args;
 		std::string name;
 
-		explicit FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType, std::vector<FunctionArgument> args, std::string name);
+		explicit FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::string name);
 #ifdef DEBUG
 		void print() const override;
 		void toDot(std::ostream& os, int& nodeId) const override;
@@ -451,7 +459,74 @@ namespace ArgonLang
     #endif
     };
 
-    class YieldStatementNode : public StatementNode {
+	class ImplStatementNode : public StatementNode {
+	public:
+		std::string className;
+		std::unique_ptr<StatementNode> body;
+		MemberVisibility visibility;
+
+		explicit ImplStatementNode(std::string className, std::unique_ptr<StatementNode> body, MemberVisibility visibility);
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
+	class ConstructorStatementNode : public StatementNode{
+	public:
+		class ConstructorArgument {
+		public:
+			std::string name;
+			std::string initializes;
+			std::unique_ptr<TypeNode> type;
+			std::unique_ptr<ExpressionNode> value;
+
+			explicit ConstructorArgument(std::string name, std::string initializes, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value);
+
+#ifdef DEBUG
+			void print() const;
+			void toDot(std::ostream& os, int& nodeId) const;
+#endif
+		};
+
+		std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args;
+		std::unique_ptr<ASTNode> body;
+
+		explicit ConstructorStatementNode(std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args, std::unique_ptr<ASTNode> body);
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
+
+	class ClassDeclarationNode : public StatementNode {
+	public:
+		class ClassMember {
+		public:
+			std::unique_ptr<StatementNode> declaration;
+			MemberVisibility visibility;
+
+			explicit ClassMember(std::unique_ptr<StatementNode> declaration, MemberVisibility visibility);
+
+#ifdef DEBUG
+			void print() const;
+			void toDot(std::ostream& os, int& nodeId) const;
+#endif
+		};
+
+		std::string className;
+		std::vector<ClassMember> body;
+
+		explicit ClassDeclarationNode(std::string className, std::vector<ClassMember> body);
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
+
+	class YieldStatementNode : public StatementNode {
     public:
         std::unique_ptr<ExpressionNode> expressionNode;
 

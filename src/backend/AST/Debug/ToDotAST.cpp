@@ -444,4 +444,24 @@ void ArgonLang::FunctionDefinitionNode::toDot(std::ostream &os, int &nodeId) con
 	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
 }
 
+void ArgonLang::ImplStatementNode::toDot(std::ostream &os, int &nodeId) const {
+
+}
+
+void ArgonLang::ConstructorStatementNode::ConstructorArgument::toDot(std::ostream &os, int &nodeId) const {
+
+}
+
+void ArgonLang::ConstructorStatementNode::toDot(std::ostream &os, int &nodeId) const {
+
+}
+
+void ArgonLang::ClassDeclarationNode::ClassMember::toDot(std::ostream &os, int &nodeId) const {
+
+}
+
+void ArgonLang::ClassDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
+
+}
+
 #endif
