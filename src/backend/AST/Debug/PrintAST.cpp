@@ -245,6 +245,16 @@ void ArgonLang::StructField::print() const {
 
 }
 
+void ArgonLang::FunctionArgument::print() const {
 
+}
+
+void ArgonLang::FunctionDeclarationNode::print() const {
+
+}
+
+void ArgonLang::FunctionDefinitionNode::print() const {
+
+}
 
 #endif

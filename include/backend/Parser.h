@@ -69,7 +69,6 @@ namespace ArgonLang {
 		// Methods for parsing statements
 		Result<std::unique_ptr<ASTNode>> parseVariableDeclaration();
 		Result<std::unique_ptr<ASTNode>> parseFunctionDeclaration();
-		Result<std::unique_ptr<ASTNode>> parseFunctionDefinition();
 		Result<std::unique_ptr<ASTNode>> parseIfStatement();
 		Result<std::unique_ptr<ASTNode>> parseForStatement();
 		Result<std::unique_ptr<ASTNode>> parseWhileStatement();

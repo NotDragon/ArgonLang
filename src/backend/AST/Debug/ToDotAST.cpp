@@ -328,7 +328,6 @@ void ArgonLang::YieldStatementNode::toDot(std::ostream &os, int &nodeId) const {
 }
 
 void ArgonLang::WhileStatementNode::toDot(std::ostream &os, int &nodeId) const {
-
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"" << (isDoWhile? "Dowhile": "While") << "\"];\n";
 
@@ -396,6 +395,53 @@ void ArgonLang::StructField::toDot(std::ostream &os, int &nodeId) const {
 	int expressionId = nodeId;
 	value->toDot(os, nodeId);
 	os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
+}
+
+void ArgonLang::FunctionArgument::toDot(std::ostream &os, int &nodeId) const {
+	int filedId = nodeId++;
+	os << " node" << filedId << " [label=\"FunctionArgument: " << name << "\"];\n";
+
+	int typeId = nodeId;
+	type->toDot(os, nodeId);
+	os << "  node" << filedId << " -> node" << typeId << " [label=\"Type\"];\n";
+	int expressionId = nodeId;
+	value->toDot(os, nodeId);
+	os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
+}
+
+void ArgonLang::FunctionDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"" << "Function Declaration" << name << "\"];\n";
+
+	for(const auto & arg : args) {
+		int argId = nodeId;
+		arg.toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << argId << " [label=\"arg\"];\n";
+	}
+
+	int thenId = nodeId;
+	body->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << thenId << " [label=\"body\"];\n";
+
+
+	int typeId = nodeId;
+	returnType->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
+}
+
+void ArgonLang::FunctionDefinitionNode::toDot(std::ostream &os, int &nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"" << "Function Definition" << name << "\"];\n";
+
+	for(const auto & arg : args) {
+		int argId = nodeId;
+		arg.toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << argId << " [label=\"arg\"];\n";
+	}
+
+	int typeId = nodeId;
+	returnType->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
 }
 
 #endif

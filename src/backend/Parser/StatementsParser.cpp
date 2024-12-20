@@ -87,11 +87,72 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
-	return std::unique_ptr<ASTNode>();
-}
+	Result<Token> token = advance();
+	if(token.hasError()) return { token.getErrorMsg() };
 
-Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDefinition() {
-	return std::unique_ptr<ASTNode>();
+	Result<Token> identifier = expect(Token::Identifier, "Expected identifier after func declaration");
+	if(identifier.hasError()) return { identifier.getErrorMsg() };
+
+	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after function declaration");
+	if(leftParen.hasError()) return { leftParen.getErrorMsg() };
+
+	std::vector<FunctionArgument> args;
+	while(peek().type != Token::RightParen) {
+		Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
+		std::unique_ptr<TypeNode> type;
+		std::unique_ptr<ExpressionNode> value;
+
+
+		if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg() };
+		if(peek().type == Token::Colon) {
+			Result<Token> colon = advance();
+			if(colon.hasError()) return { colon.getErrorMsg() };
+
+			Result<std::unique_ptr<TypeNode>> typeRes = parseType();
+			if(typeRes.hasError()) return { typeRes.getErrorMsg() };
+
+			type = typeRes.moveValue();
+		}
+
+		if(peek().type == Token::Assign) {
+			Result<Token> assign = advance();
+			if(assign.hasError()) return { assign.getErrorMsg() };
+
+			Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
+			if(valueRes.hasError()) return { valueRes.getErrorMsg() };
+
+			value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
+		}
+		args.emplace_back(std::move(type), std::move(value), std::move(argIdentifier.getValue().value));
+	}
+
+	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after function declaration");
+	if(rightParen.hasError()) return { rightParen.getErrorMsg() };
+
+	Result<std::unique_ptr<TypeNode>> returnType = parseType();
+	if(returnType.hasError()) return { returnType.getErrorMsg() };
+
+	if(peek().type == Token::Semicolon) {
+		Result<Token> semicolon = advance();
+		if(semicolon.hasError()) return { semicolon.getErrorMsg() };
+		return { std::make_unique<FunctionDefinitionNode>(returnType.moveValue(), std::move(args), std::move(identifier.getValue().value)) };
+	}
+
+	if(peek().type == Token::Arrow) {
+		Result<Token> arrow = advance();
+		if(arrow.hasError()) return { arrow.getErrorMsg() };
+
+		Result<std::unique_ptr<ASTNode>> expr = parseExpression();
+		if(expr.hasError()) return expr;
+
+		std::unique_ptr<ReturnStatementNode> body = std::make_unique<ReturnStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue()));
+		return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), std::move(body), std::move(identifier.getValue().value)) };
+	}
+
+	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	if(body.hasError()) return body;
+
+	return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), body.moveValue(), std::move(identifier.getValue().value)) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
@@ -160,7 +221,16 @@ Result<std::unique_ptr<ASTNode>> Parser::parseWhileStatement() {
 
 
 Result<std::unique_ptr<ASTNode>> Parser::parseReturnStatement() {
-	return std::unique_ptr<ASTNode>();
+	Result<Token> token = advance();
+	if(token.hasError()) return { token.getErrorMsg() };
+
+	Result<std::unique_ptr<ASTNode>> expr = parseExpression();
+	if(expr.hasError()) return expr;
+
+	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
+	if(semiColon.hasError()) return { semiColon.getErrorMsg() };
+
+	return { std::make_unique<ReturnStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue())) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseBreakStatement() {
@@ -206,7 +276,10 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 
 		body.push_back(statement.moveValue());
 	}
-	expect(Token::RightBrace, "Expected '}' after opening '{'");
+
+	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after opening '{'");
+	if(rightBrace.hasError()) return { rightBrace.getErrorMsg() };
+
 	return { std::make_unique<BlockNode>(std::move(body)) };
 }
 
@@ -215,5 +288,14 @@ Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseYieldStatement() {
-	return std::unique_ptr<ASTNode>();
+	Result<Token> token = advance();
+	if(token.hasError()) return { token.getErrorMsg() };
+
+	Result<std::unique_ptr<ASTNode>> expr = parseExpression();
+	if(expr.hasError()) return expr;
+
+	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
+	if(semiColon.hasError()) return { semiColon.getErrorMsg() };
+
+	return { std::make_unique<YieldStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue())) };
 }

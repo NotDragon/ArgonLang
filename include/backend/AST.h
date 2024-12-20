@@ -169,9 +169,9 @@ namespace ArgonLang
     class LambdaExpressionNode : public ExpressionNode {
     public:
         std::unordered_map<std::string, Variable> parameters;
-        std::unique_ptr<StatementNode> body;
+        std::unique_ptr<ASTNode> body;
 
-        explicit LambdaExpressionNode(std::unordered_map<std::string, Variable> params, std::unique_ptr<StatementNode> bd);
+        explicit LambdaExpressionNode(std::unordered_map<std::string, Variable> params, std::unique_ptr<ASTNode> bd);
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;
@@ -220,9 +220,9 @@ namespace ArgonLang
     public:
         std::unique_ptr<ExpressionNode> pattern;
         std::unique_ptr<ExpressionNode> condition;
-        std::unique_ptr<ExpressionNode> body;
+        std::unique_ptr<ASTNode> body;
 
-        explicit MatchBranch(std::unique_ptr<ExpressionNode> pattern, std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ExpressionNode> body);
+        explicit MatchBranch(std::unique_ptr<ExpressionNode> pattern, std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ASTNode> body);
 #ifdef DEBUG
 		void print() const;
 		void toDot(std::ostream& os, int& nodeId) const;
@@ -359,13 +359,54 @@ namespace ArgonLang
     #endif
     };
 
+	class FunctionArgument {
+	public:
+		std::unique_ptr<TypeNode> type;
+		std::unique_ptr<ExpressionNode> value;
+		std::string name;
+
+		explicit FunctionArgument(std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
+#ifdef DEBUG
+		void print() const;
+		void toDot(std::ostream& os, int& nodeId) const;
+#endif
+
+	};
+
+	class FunctionDeclarationNode: public StatementNode {
+	public:
+		std::unique_ptr<TypeNode> returnType;
+		std::vector<FunctionArgument> args;
+		std::unique_ptr<ASTNode> body;
+		std::string name;
+
+		explicit FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType, std::vector<FunctionArgument> args, std::unique_ptr<ASTNode> body, std::string name);
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
+	class FunctionDefinitionNode: public StatementNode {
+	public:
+		std::unique_ptr<TypeNode> returnType;
+		std::vector<FunctionArgument> args;
+		std::string name;
+
+		explicit FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType, std::vector<FunctionArgument> args, std::string name);
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
     class IfStatementNode : public StatementNode {
     public:
         std::unique_ptr<ExpressionNode> condition;
-        std::unique_ptr<StatementNode> body;
+        std::unique_ptr<ASTNode> body;
         std::unique_ptr<StatementNode> elseBranch;
 
-        explicit IfStatementNode(std::unique_ptr<ExpressionNode> condition, std::unique_ptr<StatementNode> body, std::unique_ptr<StatementNode> elseBranch);
+        explicit IfStatementNode(std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ASTNode> body, std::unique_ptr<StatementNode> elseBranch);
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;
@@ -376,9 +417,9 @@ namespace ArgonLang
     public:
         std::string variableName;
         std::unique_ptr<ExpressionNode> iterator;
-        std::unique_ptr<StatementNode> body;
+        std::unique_ptr<ASTNode> body;
 
-        explicit ForStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<StatementNode> body);
+        explicit ForStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<ASTNode> body);
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;
@@ -401,9 +442,9 @@ namespace ArgonLang
     public:
         std::string variableName;
         std::unique_ptr<ExpressionNode> iterator;
-        std::unique_ptr<StatementNode> body;
+        std::unique_ptr<ASTNode> body;
 
-        explicit WhenStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<StatementNode> body);
+        explicit WhenStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<ASTNode> body);
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;
@@ -425,10 +466,10 @@ namespace ArgonLang
 	public:
 		bool isDoWhile;
 		std::unique_ptr<ExpressionNode> condition;
-		std::unique_ptr<StatementNode> body;
+		std::unique_ptr<ASTNode> body;
 		std::unique_ptr<StatementNode> elseBranch;
 		explicit WhileStatementNode(bool isDoWhile, std::unique_ptr<ExpressionNode> condition,
-									std::unique_ptr<StatementNode> body,
+									std::unique_ptr<ASTNode> body,
 									std::unique_ptr<StatementNode> elseBranch);
 #ifdef DEBUG
 		void print() const override;
