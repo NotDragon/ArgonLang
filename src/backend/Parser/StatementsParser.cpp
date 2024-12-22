@@ -122,8 +122,8 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<Token> token = advance();
 	if(token.hasError()) return { token.getErrorMsg() };
 
-	Result<Token> identifier = expect(Token::Identifier, "Expected identifier after func declaration");
-	if(identifier.hasError()) return { identifier.getErrorMsg() };
+	Result<std::unique_ptr<ASTNode>> identifier = parseExpression();
+	if(identifier.hasError()) return identifier;
 
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after function declaration");
 	if(leftParen.hasError()) return { leftParen.getErrorMsg() };
@@ -150,7 +150,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	if(peek().type == Token::Semicolon) {
 		Result<Token> semicolon = advance();
 		if(semicolon.hasError()) return { semicolon.getErrorMsg() };
-		return { std::make_unique<FunctionDefinitionNode>(returnType.moveValue(), std::move(args), std::move(identifier.getValue().value)) };
+		return { std::make_unique<FunctionDefinitionNode>(returnType.moveValue(), std::move(args), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
 	}
 
 	if(peek().type == Token::Arrow) {
@@ -165,13 +165,13 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 		Result<Token> semiColon = expect(Token::Semicolon, "Expected ';' after inline function");
 		if(semiColon.hasError()) return { semiColon.getErrorMsg() };
 
-		return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), std::move(body), std::move(identifier.getValue().value)) };
+		return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), std::move(body), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
 	}
 
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
 	if(body.hasError()) return body;
 
-	return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), body.moveValue(), std::move(identifier.getValue().value)) };
+	return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), body.moveValue(), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {

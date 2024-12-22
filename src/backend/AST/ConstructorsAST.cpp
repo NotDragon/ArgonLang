@@ -38,7 +38,7 @@ ArgonLang::FunctionCallExpressionNode::FunctionCallExpressionNode(std::unique_pt
 
 ArgonLang::ToExpressionNode::ToExpressionNode(std::unique_ptr<ExpressionNode> lowerBound, std::unique_ptr<ExpressionNode> upperBound, bool isInclusive): lowerBound(std::move(lowerBound)), upperBound(std::move(upperBound)), isInclusive(isInclusive) {}
 
-ArgonLang::LambdaExpressionNode::LambdaExpressionNode(std::unordered_map<std::string, Variable> params,
+ArgonLang::LambdaExpressionNode::LambdaExpressionNode(std::vector<std::unique_ptr<FunctionArgument>> params,
 													  std::unique_ptr<ASTNode> bd): parameters(std::move(params)), body(std::move(bd)) {}
 
 ArgonLang::ComparisonExpressionNode::ComparisonExpressionNode(std::unique_ptr<ExpressionNode> lhs,
@@ -131,10 +131,10 @@ ArgonLang::FunctionArgument::FunctionArgument(): type(), value(), name() {}
 
 ArgonLang::FunctionDeclarationNode::FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType,
 															std::vector<std::unique_ptr<FunctionArgument>> args,
-															std::unique_ptr<ASTNode> body, std::string name): returnType(std::move(returnType)), args(std::move(args)), body(std::move(body)), name(std::move(name)) {}
+															std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name): returnType(std::move(returnType)), args(std::move(args)), body(std::move(body)), name(std::move(name)) {}
 
 ArgonLang::FunctionDefinitionNode::FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType,
-														  std::vector<std::unique_ptr<FunctionArgument>> args, std::string name): returnType(std::move(returnType)), args(std::move(args)), name(std::move(name)) { }
+														  std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name): returnType(std::move(returnType)), args(std::move(args)), name(std::move(name)) { }
 ArgonLang::ImplStatementNode::ImplStatementNode(std::string className, std::unique_ptr<StatementNode> body,
 												ArgonLang::MemberVisibility visibility): className(std::move(className)), body(std::move(body)), visibility(visibility) { }
 

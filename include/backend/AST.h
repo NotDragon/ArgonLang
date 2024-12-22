@@ -175,10 +175,10 @@ namespace ArgonLang
 
     class LambdaExpressionNode : public ExpressionNode {
     public:
-        std::unordered_map<std::string, Variable> parameters;
+		std::vector<std::unique_ptr<FunctionArgument>> parameters;
         std::unique_ptr<ASTNode> body;
 
-        explicit LambdaExpressionNode(std::unordered_map<std::string, Variable> params, std::unique_ptr<ASTNode> bd);
+        explicit LambdaExpressionNode(std::vector<std::unique_ptr<FunctionArgument>> params, std::unique_ptr<ASTNode> bd);
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;
@@ -386,9 +386,9 @@ namespace ArgonLang
 		std::unique_ptr<TypeNode> returnType;
 		std::vector<std::unique_ptr<FunctionArgument>> args;
 		std::unique_ptr<ASTNode> body;
-		std::string name;
+		std::unique_ptr<ExpressionNode> name;
 
-		explicit FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ASTNode> body, std::string name);
+		explicit FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name);
 #ifdef DEBUG
 		void print() const override;
 		void toDot(std::ostream& os, int& nodeId) const override;
@@ -399,9 +399,9 @@ namespace ArgonLang
 	public:
 		std::unique_ptr<TypeNode> returnType;
 		std::vector<std::unique_ptr<FunctionArgument>> args;
-		std::string name;
+		std::unique_ptr<ExpressionNode> name;
 
-		explicit FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::string name);
+		explicit FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name);
 #ifdef DEBUG
 		void print() const override;
 		void toDot(std::ostream& os, int& nodeId) const override;
