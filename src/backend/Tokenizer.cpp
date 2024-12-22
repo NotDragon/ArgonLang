@@ -32,7 +32,6 @@ namespace ArgonLang {
 
 			{ "if", Token::KeywordIf },
 			{ "else", Token::KeywordElse },
-			{ "match", Token::KeywordMatch },
 			{ "while", Token::KeywordWhile },
 			{ "dowhile", Token::KeywordWhile },
 			{ "continue", Token::KeywordContinue },
@@ -185,7 +184,11 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			}
 			tokens.emplace_back(Token::MapPipe);
 			i += 3;
-		} else if (c == '^' && input[i + 1] == '^') {
+		} else if(c == '=' && input[i + 1] == '>') {
+			tokens.emplace_back(Token::MatchArrow);
+			i += 2;
+		}
+		else if (c == '^' && input[i + 1] == '^') {
 			if(input[i + 2] == '=') {
 				tokens.emplace_back(Token::AccumulateAssign);
 				i += 3;
@@ -286,7 +289,6 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::KeywordMut: return "KeywordMut";
 		case Token::KeywordTo: return "KeywordTo";
 		case Token::KeywordParallel: return "KeywordParallel";
-		case Token::KeywordMatch: return "KeywordMatch";
 		case Token::KeywordImpl: return "KeywordImpl";
 		case Token::KeywordUsing: return "KeywordUsing";
 		case Token::KeywordUnion: return "KeywordUnion";
@@ -353,6 +355,7 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
         case Token::Comma: return "Comma";
         case Token::Dot: return "Dot";
         case Token::Arrow: return "Arrow";
+		case Token::MatchArrow: return "MatchArrow";
         case Token::QuestionMark: return "QuestionMark";
 
         case Token::Hash: return "Hash";

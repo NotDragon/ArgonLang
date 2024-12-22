@@ -19,7 +19,6 @@ namespace ArgonLang {
 			KeywordParallel,
             KeywordIf,
             KeywordElse,
-			KeywordMatch,
             KeywordBreak,
             KeywordContinue,
             KeywordWhile,
@@ -112,6 +111,7 @@ namespace ArgonLang {
             Comma,
             Dot,
             Arrow,
+            MatchArrow,
             QuestionMark,
 
             Hash,
