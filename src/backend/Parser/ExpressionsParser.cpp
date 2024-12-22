@@ -493,21 +493,15 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStructExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseMatchExpression() {
-	if(peek().type != Token::KeywordMatch) return parseFilterExpression();
+	Result<std::unique_ptr<ASTNode>> value = parseFilterExpression();
+	if(value.hasError()) return value;
+	if(peek().type != Token::MatchArrow) return value;
+	
 	Result<Token> token = advance();
 	if(token.hasError()) return { token.getErrorMsg() };
 
-	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after match");
-	if(leftParen.hasError()) return { leftParen.getErrorMsg() };
-
-	Result<std::unique_ptr<ASTNode>> value = parseExpression();
-	if(value.hasError()) return value;
-
-	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after identifier");
-	if(leftParen.hasError()) return { rightParen.getErrorMsg() };
-
 	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after match expression");
-	if(leftParen.hasError()) return { leftBrace.getErrorMsg() };
+	if(leftBrace.hasError()) return { leftBrace.getErrorMsg() };
 
 	std::vector<std::unique_ptr<MatchBranch>> branches;
 	while(peek().type != Token::RightBrace) {
