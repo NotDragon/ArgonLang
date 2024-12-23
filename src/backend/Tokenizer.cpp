@@ -27,7 +27,6 @@ namespace ArgonLang {
 			{ "to", Token::KeywordTo },
 			{ "parallel", Token::KeywordParallel },
 			{ "lazy", Token::KeywordLazy },
-			{ "await", Token::KeywordAwait },
 			{ "yield", Token::KeywordYield },
 
 			{ "if", Token::KeywordIf },
@@ -279,7 +278,6 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
         case Token::KeywordBreak: return "KeywordBreak";
         case Token::KeywordContinue: return "KeywordContinue";
         case Token::KeywordWhile: return "KeywordWhile";
-        case Token::KeywordWhen: return "KeywordWhen";
         case Token::KeywordPass: return "KeywordPass";
         case Token::KeywordRepeat: return "KeywordRepeat";
         case Token::KeywordFor: return "KeywordFor";
@@ -296,7 +294,6 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::KeywordType: return "KeywordType";
 		case Token::KeywordLazy: return "KeywordLazy";
 		case Token::KeywordYield: return "KeywordYield";
-		case Token::KeywordAwait: return "KeywordAwait";
 		case Token::KeywordStruct: return "KeywordStruct";
 
         case Token::IntegralLiteral: return "IntegralLiteral";

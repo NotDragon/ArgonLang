@@ -173,6 +173,21 @@ namespace ArgonLang
     #endif
     };
 
+	class FunctionArgument {
+	public:
+		std::unique_ptr<TypeNode> type;
+		std::unique_ptr<ExpressionNode> value;
+		std::string name;
+
+		explicit FunctionArgument(std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
+		explicit FunctionArgument();
+#ifdef DEBUG
+		void print() const;
+		void toDot(std::ostream& os, int& nodeId) const;
+#endif
+
+	};
+
     class LambdaExpressionNode : public ExpressionNode {
     public:
 		std::vector<std::unique_ptr<FunctionArgument>> parameters;
@@ -366,21 +381,6 @@ namespace ArgonLang
     #endif
     };
 
-	class FunctionArgument {
-	public:
-		std::unique_ptr<TypeNode> type;
-		std::unique_ptr<ExpressionNode> value;
-		std::string name;
-
-		explicit FunctionArgument(std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
-		explicit FunctionArgument();
-#ifdef DEBUG
-		void print() const;
-		void toDot(std::ostream& os, int& nodeId) const;
-#endif
-
-	};
-
 	class FunctionDeclarationNode: public StatementNode {
 	public:
 		std::unique_ptr<TypeNode> returnType;
@@ -440,19 +440,6 @@ namespace ArgonLang
         std::vector<std::unique_ptr<TypeNode>> types;
 
         explicit UnionDeclarationNode(std::string unionName, std::vector<std::unique_ptr<TypeNode>> types);
-    #ifdef DEBUG
-        void print() const override;
-        void toDot(std::ostream& os, int& nodeId) const override;
-    #endif
-    };
-
-    class WhenStatementNode : public StatementNode {
-    public:
-        std::string variableName;
-        std::unique_ptr<ExpressionNode> iterator;
-        std::unique_ptr<ASTNode> body;
-
-        explicit WhenStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<ASTNode> body);
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;

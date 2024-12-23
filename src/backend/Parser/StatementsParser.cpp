@@ -34,8 +34,6 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStatement() {
 			return { parseTypeAlias() };
 		case Token::KeywordYield:
 			return { parseYieldStatement() };
-		case Token::KeywordWhen:
-			return { parseWhenStatement() };
 		case Token::KeywordParallel:
 			return { parseParallelExpression() };
 		case Token::KeywordBreak:
@@ -270,10 +268,6 @@ Result<std::unique_ptr<ASTNode>> Parser::parseContinueStatement() {
 	if(semiColon.hasError()) return { semiColon.getErrorMsg() };
 
 	return { std::make_unique<ContinueStatementNode>() };
-}
-
-Result<std::unique_ptr<ASTNode>> Parser::parseWhenStatement() {
-	return std::unique_ptr<ASTNode>();
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {

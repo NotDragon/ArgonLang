@@ -102,9 +102,6 @@ ArgonLang::RangeExpressionNode::RangeExpressionNode(std::vector<std::unique_ptr<
 
 ArgonLang::GenericTypeNode::GenericTypeNode(std::string name, std::vector<std::unique_ptr<TypeNode>> params) : name(std::move(name)), params(std::move(params)) {}
 
-ArgonLang::WhenStatementNode::WhenStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator,
-												std::unique_ptr<ASTNode> body): variableName(std::move(variableName)), iterator(std::move(iterator)), body(std::move(body)) {}
-
 ArgonLang::YieldStatementNode::YieldStatementNode(std::unique_ptr<ExpressionNode> expressionNode): expressionNode(std::move(expressionNode)) {}
 
 ArgonLang::ParallelExpressionNode::ParallelExpressionNode(std::unique_ptr<ASTNode> statementNode): statementNode(std::move(statementNode)) {}

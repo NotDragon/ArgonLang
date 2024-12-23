@@ -49,7 +49,6 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseShiftExpression();
 		Result<std::unique_ptr<ASTNode>> parseAssignmentExpression();
 		Result<std::unique_ptr<ASTNode>> parseParallelExpression();
-		Result<std::unique_ptr<ASTNode>> parseAwaitExpression();
 		Result<std::unique_ptr<ASTNode>> parseLazyExpression();
 		Result<std::unique_ptr<ASTNode>> parseStructExpression();
 		Result<std::unique_ptr<ASTNode>> parseMatchExpression();
@@ -78,7 +77,6 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseReturnStatement();
 		Result<std::unique_ptr<ASTNode>> parseBreakStatement();
 		Result<std::unique_ptr<ASTNode>> parseContinueStatement();
-		Result<std::unique_ptr<ASTNode>> parseWhenStatement();
 		Result<std::unique_ptr<ASTNode>> parseTypeAlias();
 		Result<std::unique_ptr<ASTNode>> parseClassDeclaration();
 		Result<std::unique_ptr<ASTNode>> parseBlock();

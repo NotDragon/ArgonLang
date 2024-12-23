@@ -203,10 +203,6 @@ void ArgonLang::RangeExpressionNode::print() const {
     
 }
 
-void ArgonLang::WhenStatementNode::print() const {
-    
-}
-
 void ArgonLang::YieldStatementNode::print() const {
     
 }
@@ -226,7 +222,7 @@ void ArgonLang::LazyExpressionNode::print() const {
 }
 
 void ArgonLang::WhileStatementNode::print() const {
-    
+
 }
 
 void ArgonLang::BreakStatementNode::print() const {

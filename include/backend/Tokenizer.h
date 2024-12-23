@@ -34,8 +34,6 @@ namespace ArgonLang {
 			KeywordEval,
 			KeywordType,
 			KeywordYield,
-			KeywordAwait,
-			KeywordWhen,
 			KeywordStruct,
 			KeywordPub,
 			KeywordPri,

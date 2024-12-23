@@ -318,11 +318,6 @@ void ArgonLang::GenericTypeNode::toDot(std::ostream& os, int& nodeId) const {
 	}
 }
 
-
-void ArgonLang::WhenStatementNode::toDot(std::ostream &os, int &nodeId) const {
-
-}
-
 void ArgonLang::YieldStatementNode::toDot(std::ostream &os, int &nodeId) const {
 
 }
@@ -415,7 +410,7 @@ void ArgonLang::FunctionDeclarationNode::toDot(std::ostream &os, int &nodeId) co
 
 	for(const auto & arg : args) {
 		int argId = nodeId;
-		arg.toDot(os, nodeId);
+		arg->toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << argId << " [label=\"arg\"];\n";
 	}
 
@@ -435,7 +430,7 @@ void ArgonLang::FunctionDefinitionNode::toDot(std::ostream &os, int &nodeId) con
 
 	for(const auto & arg : args) {
 		int argId = nodeId;
-		arg.toDot(os, nodeId);
+		arg->toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << argId << " [label=\"arg\"];\n";
 	}
 
