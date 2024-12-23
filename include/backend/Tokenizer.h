@@ -15,15 +15,12 @@ namespace ArgonLang {
 			KeywordDef,
 			KeywordMut,
 			KeywordTo,
-			KeywordLazy,
-			KeywordParallel,
+			KeywordPar,
             KeywordIf,
             KeywordElse,
             KeywordBreak,
             KeywordContinue,
             KeywordWhile,
-            KeywordPass,
-            KeywordRepeat,
             KeywordFor,
 			KeywordReturn,
 			KeywordFunc,
@@ -31,14 +28,22 @@ namespace ArgonLang {
 			KeywordImpl,
 			KeywordUsing,
 			KeywordUnion,
-			KeywordEval,
-			KeywordType,
+			KeywordEnum,
 			KeywordYield,
 			KeywordStruct,
 			KeywordPub,
 			KeywordPri,
 			KeywordPro,
 			KeywordConstructor,
+			KeywordTypeconst,
+			KeywordExtends,
+			KeywordImplements,
+			KeywordInter,
+			KeywordIs,
+			KeywordThrow,
+			KeywordThrows,
+			KeywordTry,
+			KeywordCatch,
 
             IntegralLiteral,
             FloatLiteral,
@@ -116,8 +121,7 @@ namespace ArgonLang {
 			DoubleHash,
 
 			End
-		};
-        Type type;
+		} type;
         std::string value;
 
 		explicit Token(Type t, std::string val = "");

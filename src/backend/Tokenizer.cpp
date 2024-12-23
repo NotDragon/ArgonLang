@@ -25,8 +25,6 @@ namespace ArgonLang {
 			{ "chr", Token::PrimitiveType },
 
 			{ "to", Token::KeywordTo },
-			{ "parallel", Token::KeywordParallel },
-			{ "lazy", Token::KeywordLazy },
 			{ "yield", Token::KeywordYield },
 
 			{ "if", Token::KeywordIf },
@@ -35,7 +33,6 @@ namespace ArgonLang {
 			{ "dowhile", Token::KeywordWhile },
 			{ "continue", Token::KeywordContinue },
 			{ "break", Token::KeywordBreak },
-			{ "repeat", Token::KeywordRepeat },
 			{ "for", Token::KeywordFor },
 
 			{ "func", Token::KeywordFunc },
@@ -49,10 +46,18 @@ namespace ArgonLang {
 			{ "constructor", Token::KeywordConstructor },
 
 			{ "using", Token::KeywordUsing },
-			{ "type", Token::KeywordType },
 			{ "union", Token::KeywordUnion },
 
-			{ "eval", Token::KeywordEval },
+			{ "enum", Token::KeywordEnum },
+			{ "typeconst", Token::KeywordTypeconst },
+			{ "extends", Token::KeywordExtends },
+			{ "implements", Token::KeywordImplements },
+			{ "inter", Token::KeywordInter },
+			{ "is", Token::KeywordIs },
+			{ "throw", Token::KeywordThrow },
+			{ "throws", Token::KeywordThrows },
+			{ "try", Token::KeywordTry },
+			{ "catch", Token::KeywordCatch },
     };
 }
 std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
@@ -186,8 +191,7 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 		} else if(c == '=' && input[i + 1] == '>') {
 			tokens.emplace_back(Token::MatchArrow);
 			i += 2;
-		}
-		else if (c == '^' && input[i + 1] == '^') {
+		} else if (c == '^' && input[i + 1] == '^') {
 			if(input[i + 2] == '=') {
 				tokens.emplace_back(Token::AccumulateAssign);
 				i += 3;
@@ -269,7 +273,6 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 }
 
 std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
-
     switch (type) {
 		case Token::Identifier: return "Identifier";
 		case Token::KeywordDef: return "KeywordDef";
@@ -278,23 +281,29 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
         case Token::KeywordBreak: return "KeywordBreak";
         case Token::KeywordContinue: return "KeywordContinue";
         case Token::KeywordWhile: return "KeywordWhile";
-        case Token::KeywordPass: return "KeywordPass";
-        case Token::KeywordRepeat: return "KeywordRepeat";
         case Token::KeywordFor: return "KeywordFor";
         case Token::KeywordReturn: return "KeywordReturn";
         case Token::KeywordFunc: return "KeywordFunc";
         case Token::KeywordClass: return "KeywordClass";
 		case Token::KeywordMut: return "KeywordMut";
 		case Token::KeywordTo: return "KeywordTo";
-		case Token::KeywordParallel: return "KeywordParallel";
+		case Token::KeywordPar: return "KeywordPar";
 		case Token::KeywordImpl: return "KeywordImpl";
 		case Token::KeywordUsing: return "KeywordUsing";
 		case Token::KeywordUnion: return "KeywordUnion";
-		case Token::KeywordEval: return "KeywordEval";
-		case Token::KeywordType: return "KeywordType";
-		case Token::KeywordLazy: return "KeywordLazy";
 		case Token::KeywordYield: return "KeywordYield";
 		case Token::KeywordStruct: return "KeywordStruct";
+		case Token::KeywordConstructor: return "KeywordConstructor";
+		case Token::KeywordEnum: return "KeywordEnum";
+		case Token::KeywordTypeconst: return "KeywordTypeconst";
+		case Token::KeywordExtends: return "KeywordExtends";
+		case Token::KeywordImplements: return "KeywordImplements";
+		case Token::KeywordInter: return "KeywordInter";
+		case Token::KeywordIs: return "KeywordIs";
+		case Token::KeywordThrow: return "KeywordThrow";
+		case Token::KeywordThrows: return "KeywordThrows";
+		case Token::KeywordTry: return "KeywordTry";
+		case Token::KeywordCatch: return "KeywordCatch";
 
         case Token::IntegralLiteral: return "IntegralLiteral";
         case Token::FloatLiteral: return "FloatLiteral";
@@ -377,8 +386,9 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::KeywordPro: return "KeywordPro";
 		case Token::MapPipeAssign: return "MapPipeAssign";
 		case Token::MapPipe: return "MapPipe";
-		case Token::KeywordConstructor: return "KeywordConstructor";
 	}
+
+	return "";
 }
 
 ArgonLang::Token::Token(Type t, std::string val) : type(t), value(std::move(val)) {}

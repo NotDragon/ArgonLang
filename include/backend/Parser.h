@@ -49,7 +49,6 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseShiftExpression();
 		Result<std::unique_ptr<ASTNode>> parseAssignmentExpression();
 		Result<std::unique_ptr<ASTNode>> parseParallelExpression();
-		Result<std::unique_ptr<ASTNode>> parseLazyExpression();
 		Result<std::unique_ptr<ASTNode>> parseStructExpression();
 		Result<std::unique_ptr<ASTNode>> parseMatchExpression();
 		Result<std::unique_ptr<ASTNode>> parseToExpression();

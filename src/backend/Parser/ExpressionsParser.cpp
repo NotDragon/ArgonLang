@@ -410,7 +410,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBitwiseNotExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseParallelExpression() {
-	if(peek().type != Token::KeywordParallel) return parseLazyExpression();
+	if(peek().type != Token::KeywordPar) return parseStructExpression();
 
 	Result<Token> token = advance();
 	if(token.hasError()) return { token.getErrorMsg() };
@@ -419,18 +419,6 @@ Result<std::unique_ptr<ASTNode>> Parser::parseParallelExpression() {
 	if(left.hasError()) return left;
 
 	return { std::make_unique<ParallelExpressionNode>(left.moveValue()) };
-}
-
-Result<std::unique_ptr<ASTNode>> Parser::parseLazyExpression() {
-	if(peek().type != Token::KeywordLazy) return parseStructExpression();
-
-	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg() };
-
-	Result<std::unique_ptr<ASTNode>> left = parseStatement();
-	if(left.hasError()) return left;
-
-	return { std::make_unique<LazyExpressionNode>(dynamic_unique_cast<ExpressionNode>(left.moveValue())) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseStructExpression() {

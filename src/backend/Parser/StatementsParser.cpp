@@ -34,7 +34,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStatement() {
 			return { parseTypeAlias() };
 		case Token::KeywordYield:
 			return { parseYieldStatement() };
-		case Token::KeywordParallel:
+		case Token::KeywordPar:
 			return { parseParallelExpression() };
 		case Token::KeywordBreak:
 			return { parseBreakStatement() };
