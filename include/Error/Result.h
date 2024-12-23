@@ -6,6 +6,7 @@
 #define LANG_CMAKE_RESULT_H
 #include <memory>
 #include <type_traits>
+#include <stack>
 
 namespace ArgonLang {
 
@@ -13,6 +14,7 @@ namespace ArgonLang {
 	class Result {
 		T value;
 		std::string errorMsg;
+		std::stack<std::string> trace;
 
 		template <typename U>
 		struct is_unique_ptr : std::false_type {};
@@ -58,7 +60,16 @@ namespace ArgonLang {
 
 		Result& operator=(T newValue) {
 			this->value = std::move(newValue);
-			return *this;
+			return this;
+		}
+
+		Result& addToTrace(const std::string& str) {
+			trace.push(str);
+			return this;
+		}
+
+		std::stack<std::string> getTrace() {
+			return trace;
 		}
 
 		Result(T value): value(std::move(value)), errorMsg("") { }
