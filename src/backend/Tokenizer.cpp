@@ -76,10 +76,10 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
         if (std::isdigit(c)) {
 			size_t start = i;
 			bool isDecimal = false;
-			while (i < length && (std::isdigit(input[i]) || input[i] == '.')) {
+			while (i < length && (std::isdigit(input[i]) || input[i] == '.' || input[i] == '`')) {
 				if (input[i] == '.') {
 					if (isDecimal) {
-					throw std::runtime_error("Invalid numeric literal: multiple decimal points");
+						throw std::runtime_error("Invalid numeric literal: multiple decimal points");
 					}
 					isDecimal = true;
 				}
@@ -87,12 +87,14 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			}
 
 			std::string numLiteral = input.substr(start, i - start);
+			numLiteral.erase(std::remove(numLiteral.begin(), numLiteral.end(), '`'), numLiteral.end());
 
 			if (isDecimal) {
 				tokens.emplace_back(Token::FloatLiteral, numLiteral);
 			} else {
 				tokens.emplace_back(Token::IntegralLiteral, numLiteral);
 			}
+
 			continue;
         } else if (std::isalpha(c) || c == '_') {
 			size_t start = i;
