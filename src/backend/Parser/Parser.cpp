@@ -15,13 +15,26 @@ Result<Token> Parser::advance() {
     if (current < tokens.size()) {
         return tokens[current++];
     }
-	return { "Unexpected end of input", Token() };
+	return { "Unexpected end of input", peek() };
+}
+
+Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) {
+    if (current > tokens.size() || tokens[current].type != type) {
+		current--;
+        return { errorMessage, peek() };
+    }
+	return advance();
+}
+
+int Parser::getMainCounter() {
+	return mainCounter;
 }
 
 Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 	std::vector<std::unique_ptr<ASTNode>> statements;
 	while(!eos()) {
 		Result<std::unique_ptr<ASTNode>> statement;
+		size_t start = current;
 		switch (peek().type) {
 			case Token::KeywordDef:
 				statement = parseVariableDeclaration();
@@ -33,20 +46,28 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 				return { "Only Function and Variable declarations are allowed in the outer scope" };
 		}
 
-		if(statement.hasError()) return { statement.getErrorMsg(), statement.getStackTrace() };
+		if(statement.hasError()) {
+			synchronize();
+
+			return {statement.getErrorMsg(), statement.getStackTrace() };
+		}
 
 		statements.push_back(statement.moveValue());
 	}
 	return std::make_unique<ProgramNode>(std::move(statements));
 }
 
-Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) {
-    if (current >= tokens.size() || tokens[current].type != type) {
-        return { errorMessage, Token() };
-    }
-	return advance();
-}
+void Parser::synchronize() {
+	while (!eos()) {
+		Token currentType = peek();
 
-int Parser::getMainCounter() {
-	return mainCounter;
+		if (currentType.type == Token::Semicolon ||
+			currentType.type == Token::KeywordDef ||
+			currentType.type == Token::KeywordFunc ||
+			currentType.type == Token::KeywordClass) {
+			advance();
+			return;
+		}
+		advance();
+	}
 }

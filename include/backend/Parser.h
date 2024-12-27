@@ -38,9 +38,10 @@ namespace ArgonLang {
 		int getMainCounter();
 		Token peek() const;
 		bool eos() const;
+		void synchronize();
 		Result<Token> advance();
 		Result<Token> expect(Token::Type type, const std::string& errorMessage);
-		
+
 		Result<std::unique_ptr<ProgramNode>> parse();
 		Result<std::unique_ptr<ASTNode>> parseStatement();
 		Result<std::unique_ptr<ASTNode>> parseExpression();

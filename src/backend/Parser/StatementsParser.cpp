@@ -49,11 +49,11 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStatement() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 	Result<Token> keywordError = advance();
-	if(keywordError.hasError()) return { keywordError.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration) };
+	if(keywordError.hasError()) return { keywordError.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration, keywordError.getValue().position) };
 	Token keyword = keywordError.getValue();
 
 	Result<Token> identifierError = expect(Token::Identifier, "Expected identifier after declaration");
-	if(identifierError.hasError()) return { identifierError.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration) };
+	if(identifierError.hasError()) return { identifierError.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration, identifierError.getValue().position) };
 	Token identifier = identifierError.getValue();
 
 	Result<std::unique_ptr<TypeNode>> type;
@@ -61,21 +61,22 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 
 	if(peek().type == Token::Colon) {
 		Result<Token> token = advance();
-		if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration) };
-
+		if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration, token.getValue().position) };
+		
 		type = parseType();
+		if(type.hasError()) return { std::move(type), Trace("", ASTNodeType::VariableDeclaration, keyword.position) };
 	}
 
 	if(peek().type == Token::Assign) {
 		Result<Token> token = advance();
-		if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration) };
+		if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration, token.getValue().position) };
 
 		value = parseExpression();
-		if(value.hasError()) return { std::move(value), Trace("", ASTNodeType::VariableDeclaration) };
+		if(value.hasError()) return { std::move(value), Trace("", ASTNodeType::VariableDeclaration, keyword.position) };
 	}
 
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration) };
+	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::VariableDeclaration, semiColon.getValue().position) };
 
 	if(type.isNull() && value.isNull()) {
 //		return { "Expected either value or type, in variable declaration" };
@@ -88,27 +89,27 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 
 Result<std::unique_ptr<FunctionArgument>> Parser::parseFunctionArgument() {
 	Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
-	if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg(), Trace("", ASTNodeType::FunctionArgument) };
+	if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg(), Trace("", ASTNodeType::FunctionArgument, argIdentifier.getValue().position) };
 
 	std::unique_ptr<TypeNode> type;
 	std::unique_ptr<ExpressionNode> value;
 
 	if(peek().type == Token::Colon) {
 		Result<Token> colon = advance();
-		if(colon.hasError()) return { colon.getErrorMsg(), Trace("", ASTNodeType::FunctionArgument) };
+		if(colon.hasError()) return { colon.getErrorMsg(), Trace("", ASTNodeType::FunctionArgument, colon.getValue().position) };
 
 		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
-		if(typeRes.hasError()) return { typeRes.getErrorMsg(), Trace("", ASTNodeType::FunctionArgument) };
+		if(typeRes.hasError()) return { typeRes.getErrorMsg(), Trace("", ASTNodeType::FunctionArgument, argIdentifier.getValue().position) };
 
 		type = typeRes.moveValue();
 	}
 
 	if(peek().type == Token::Assign) {
 		Result<Token> assign = advance();
-		if(assign.hasError()) return { assign.getErrorMsg(), Trace("", ASTNodeType::FunctionArgument) };
-
+		if(assign.hasError()) return { assign.getErrorMsg(), Trace("", ASTNodeType::FunctionArgument, assign.getValue().position) };
+		
 		Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
-		if(valueRes.hasError()) return { std::move(valueRes), Trace("", ASTNodeType::FunctionArgument) };
+		if(valueRes.hasError()) return { std::move(valueRes), Trace("", ASTNodeType::FunctionArgument, argIdentifier.getValue().position) };
 
 		value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
 	}
@@ -118,10 +119,11 @@ Result<std::unique_ptr<FunctionArgument>> Parser::parseFunctionArgument() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition) };
+	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition, token.getValue().position) };
 
+	
 	Result<std::unique_ptr<ASTNode>> identifier = parseMemberAccessExpression();
-	if(identifier.hasError()) return { std::move(identifier), Trace("", ASTNodeType::FunctionDefinition) };
+	if(identifier.hasError()) return { std::move(identifier), Trace("", ASTNodeType::FunctionDefinition, token.getValue().position) };
 
 	if(!identifier.isNull() && identifier.getValue()->getNodeType() == ASTNodeType::Identifier) {
 		auto tempIdentifier = dynamic_cast<IdentifierNode*>(identifier.getValue().get());
@@ -129,53 +131,56 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	}
 
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after function declaration");
-	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition) };
+	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition, leftParen.getValue().position) };
 
 	std::vector<std::unique_ptr<FunctionArgument>> args;
 	while(peek().type != Token::RightParen) {
+		Token::Position argPos = peek().position;
 		Result<std::unique_ptr<FunctionArgument>> arg = parseFunctionArgument();
-		if(arg.hasError()) return { std::move(arg), Trace("", ASTNodeType::FunctionDefinition) };
+		if(arg.hasError()) return { std::move(arg), Trace("", ASTNodeType::FunctionDefinition, argPos) };
 
 		args.push_back(arg.moveValue());
 
 		if(peek().type == Token::RightParen) break;
 
 		Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
-		if(comma.hasError()) return { comma.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition) };
+		if(comma.hasError()) return { comma.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition, comma.getValue().position) };
 	}
 
 	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after function declaration");
-	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition) };
+	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition, rightParen.getValue().position) };
 
 	Result<std::unique_ptr<TypeNode>> returnType;
 	if(peek().type != Token::LeftBrace) {
+		Token::Position typePos = peek().position;
 		returnType = parseType();
-		if (returnType.hasError()) return { std::move(returnType), Trace("", ASTNodeType::FunctionDefinition) };
+		if (returnType.hasError()) return { std::move(returnType), Trace("", ASTNodeType::FunctionDefinition, typePos) };
 	}
 
 	if(peek().type == Token::Semicolon) {
 		Result<Token> semicolon = advance();
-		if(semicolon.hasError()) return { semicolon.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition) };
+		if(semicolon.hasError()) return { semicolon.getErrorMsg(), Trace("", ASTNodeType::FunctionDefinition, semicolon.getValue().position) };
 		return { std::make_unique<FunctionDefinitionNode>(returnType.moveValue(), std::move(args), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
 	}
 
 	if(peek().type == Token::Arrow) {
 		Result<Token> arrow = advance();
-		if(arrow.hasError()) return { arrow.getErrorMsg(), Trace("", ASTNodeType::FunctionDeclaration) };
+		if(arrow.hasError()) return { arrow.getErrorMsg(), Trace("", ASTNodeType::FunctionDeclaration, arrow.getValue().position) };
 
+		Token::Position exprPos = peek().position;
 		Result<std::unique_ptr<ASTNode>> expr = parseExpression();
-		if(expr.hasError()) return { std::move(expr), Trace("", ASTNodeType::FunctionDeclaration) };
+		if(expr.hasError()) return { std::move(expr), Trace("", ASTNodeType::FunctionDeclaration, exprPos) };
 
 		std::unique_ptr<ReturnStatementNode> body = std::make_unique<ReturnStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue()));
 
 		Result<Token> semiColon = expect(Token::Semicolon, "Expected ';' after inline function");
-		if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::FunctionDeclaration) };
+		if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::FunctionDeclaration, semiColon.getValue().position) };
 
 		return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), std::move(body), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
 	}
 
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
-	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::FunctionDeclaration) };
+	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::FunctionDeclaration, token.getValue().position) };
 
 	return { std::make_unique<FunctionDeclarationNode>(
 			returnType.isNull()? nullptr :returnType.moveValue(),
@@ -187,28 +192,31 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
 	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::IfStatement) };
+	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::IfStatement, token.getValue().position) };
 
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after while statement");
-	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::IfStatement) };
+	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::IfStatement, leftParen.getValue().position) };
 
+	Token::Position conditionPos = peek().position;
 	Result<std::unique_ptr<ASTNode>> condition = parseExpression();
-	if(condition.hasError()) return { std::move(condition), Trace("", ASTNodeType::IfStatement) };
+	if(condition.hasError()) return { std::move(condition), Trace("", ASTNodeType::IfStatement, conditionPos) };
 
 	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after condition");
-	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::IfStatement) };
+	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::IfStatement, rightParen.getValue().position) };
 
+	Token::Position bodyPos = peek().position;
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
-	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::IfStatement) };
+	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::IfStatement, bodyPos) };
 
 	Result<std::unique_ptr<ASTNode>> elseStatement;
 
 	if(peek().type == Token::KeywordElse) {
 		Result<Token> token1 = advance();
-		if(token1.hasError()) return { token1.getErrorMsg(), Trace("", ASTNodeType::IfStatement) };
+		if(token1.hasError()) return { token1.getErrorMsg(), Trace("", ASTNodeType::IfStatement, token.getValue().position) };
+
 
 		elseStatement = parseStatement();
-		if(elseStatement.hasError()) return { std::move(elseStatement), Trace("", ASTNodeType::IfStatement) };
+		if(elseStatement.hasError()) return { std::move(elseStatement), Trace("", ASTNodeType::IfStatement, token1.getValue().position) };
 	}
 	return { std::make_unique<IfStatementNode>(dynamic_unique_cast<ExpressionNode>(condition.moveValue()),
 	        dynamic_unique_cast<StatementNode>(body.moveValue()),
@@ -217,34 +225,34 @@ Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseForStatement() {
 	Result<Token> keyword = advance();
-	if(keyword.hasError()) return { keyword.getErrorMsg() };
+	if(keyword.hasError()) return { keyword.getErrorMsg(), Trace("", ASTNodeType::ForStatement, keyword.getValue().position) };
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after for statement");
-	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::ForStatement) };
+	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::ForStatement, leftParen.getValue().position) };
 
 	Result<Token> identifierRes = expect(Token::Identifier, "Expected identifier");
-	if(identifierRes.hasError()) return { identifierRes.getErrorMsg(), Trace("", ASTNodeType::ForStatement) };
+	if(identifierRes.hasError()) return { identifierRes.getErrorMsg(), Trace("", ASTNodeType::ForStatement, identifierRes.getValue().position) };
 
 	std::unique_ptr<TypeNode> type;
 	if(peek().type == Token::Colon) {
 		Result<Token> colon = advance();
-		if(colon.hasError()) return { colon.getErrorMsg(), Trace("", ASTNodeType::ForStatement) };
+		if(colon.hasError()) return { colon.getErrorMsg(), Trace("", ASTNodeType::ForStatement, colon.getValue().position) };
 
 		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
-		if(typeRes.hasError()) return { typeRes.getErrorMsg(), Trace("", ASTNodeType::ForStatement) };
+		if(typeRes.hasError()) return { typeRes.getErrorMsg(), Trace("", ASTNodeType::ForStatement, keyword.getValue().position) };
 		type = typeRes.moveValue();
 	}
 
 	Result<Token> arrow = expect(Token::Arrow, "Expected '->' after variable");
-	if(arrow.hasError()) return { arrow.getErrorMsg(), Trace("", ASTNodeType::ForStatement) };
+	if(arrow.hasError()) return { arrow.getErrorMsg(), Trace("", ASTNodeType::ForStatement, arrow.getValue().position) };
 
 	Result<std::unique_ptr<ASTNode>> iterator = parseExpression();
 	if(iterator.hasError()) return iterator;
 
 	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after expression");
-	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::ForStatement) };
+	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::ForStatement, rightParen.getValue().position) };
 
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
-	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::ForStatement) };
+	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::ForStatement, keyword.getValue().position) };
 
 	return { std::make_unique<ForStatementNode>(
 			identifierRes.getValue().value,
@@ -256,29 +264,31 @@ Result<std::unique_ptr<ASTNode>> Parser::parseForStatement() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseWhileStatement() {
 	Result<Token> keywordRes = advance();
-	if(keywordRes.hasError()) return {keywordRes.getErrorMsg(), Trace("", ASTNodeType::WhileStatement) };
+	if(keywordRes.hasError()) return {keywordRes.getErrorMsg(), Trace("", ASTNodeType::WhileStatement, keywordRes.getValue().position) };
 	Token keyword = keywordRes.getValue();
 
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after while statement");
-	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::WhileStatement) };
+	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::WhileStatement, leftParen.getValue().position) };
 
+	Token::Position conditionPos = peek().position;
 	Result<std::unique_ptr<ASTNode>> condition = parseExpression();
-	if(condition.hasError()) return { std::move(condition), Trace("", ASTNodeType::WhileStatement) };
+	if(condition.hasError()) return { std::move(condition), Trace("", ASTNodeType::WhileStatement, conditionPos) };
 
 	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after condition");
-	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::WhileStatement) };
+	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::WhileStatement, rightParen.getValue().position) };
 
+	Token::Position bodyPos = peek().position;
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
-	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::WhileStatement) };
+	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::WhileStatement, bodyPos) };
 
 	Result<std::unique_ptr<ASTNode>> elseStatement;
 
 	if(peek().type == Token::KeywordElse) {
 		Result<Token> token = advance();
-		if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::WhileStatement) };
+		if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::WhileStatement, token.getValue().position) };
 
 		elseStatement = parseStatement();
-		if(elseStatement.hasError()) return { std::move(elseStatement), Trace("", ASTNodeType::WhileStatement) };
+		if(elseStatement.hasError()) return { std::move(elseStatement), Trace("", ASTNodeType::WhileStatement, token.getValue().position) };
 	}
 	return { std::make_unique<WhileStatementNode>(keyword.value == "dowhile",
 												  dynamic_unique_cast<ExpressionNode>(condition.moveValue()),
@@ -289,33 +299,33 @@ Result<std::unique_ptr<ASTNode>> Parser::parseWhileStatement() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseReturnStatement() {
 	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::ReturnStatement) };
+	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::ReturnStatement, token.getValue().position) };
 
 	Result<std::unique_ptr<ASTNode>> expr = parseExpression();
-	if(expr.hasError()) return { std::move(expr), Trace("", ASTNodeType::ReturnStatement) };
+	if(expr.hasError()) return { std::move(expr), Trace("", ASTNodeType::ReturnStatement, token.getValue().position) };
 
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::ReturnStatement) };
+	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::ReturnStatement, semiColon.getValue().position) };
 
 	return { std::make_unique<ReturnStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue())) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseBreakStatement() {
 	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::BreakStatement) };
+	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::BreakStatement, token.getValue().position) };
 
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::BreakStatement) };
+	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::BreakStatement, semiColon.getValue().position) };
 
 	return { std::make_unique<BreakStatementNode>() };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseContinueStatement() {
 	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::ContinueStatement) };
+	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::ContinueStatement, token.getValue().position) };
 
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::ContinueStatement) };
+	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::ContinueStatement, semiColon.getValue().position) };
 
 	return { std::make_unique<ContinueStatementNode>() };
 }
@@ -326,10 +336,10 @@ Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 	Result<Token> classKeyword = advance();
-	if(classKeyword.hasError()) return { classKeyword.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+	if(classKeyword.hasError()) return { classKeyword.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, classKeyword.getValue().position) };
 
 	Result<Token> className = advance();
-	if(className.hasError()) return { className.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+	if(className.hasError()) return { className.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, className.getValue().position) };
 
 	std::vector<ConstructorStatementNode> constructors;
 	std::vector<ClassDeclarationNode::ClassMember> members;
@@ -340,7 +350,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 //	}
 
 	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after class declaration");
-	if(leftBrace.hasError()) return { leftBrace.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+	if(leftBrace.hasError()) return { leftBrace.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, leftBrace.getValue().position) };
 
 	while(peek().type != Token::RightBrace) {
 		MemberVisibility visibility = MemberVisibility::PRI;
@@ -362,20 +372,20 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 		   peek().type != Token::KeywordConstructor) return { "Expected either function declaration, variable declaration or constructor declaration" };
 
 		Result<std::unique_ptr<ASTNode>> member = parseStatement();
-		if(member.hasError()) return { std::move(member), Trace("", ASTNodeType::ClassDeclaration) };
+		if(member.hasError()) return { std::move(member), Trace("", ASTNodeType::ClassDeclaration, classKeyword.getValue().position) };
 
 		members.emplace_back(dynamic_unique_cast<StatementNode>(member.moveValue()), visibility);
 	}
 
 	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after class declaration");
-	if(rightBrace.hasError()) return { rightBrace.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+	if(rightBrace.hasError()) return { rightBrace.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, rightBrace.getValue().position) };
 
 	return std::unique_ptr<ASTNode>();
 }
 
 Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::parseConstructorArgument() {
 	Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
-	if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+	if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, argIdentifier.getValue().position) };
 
 	std::unique_ptr<TypeNode> type;
 	std::unique_ptr<ExpressionNode> value;
@@ -383,32 +393,34 @@ Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::p
 
 	if(peek().type == Token::LeftParen) {
 		Result<Token> leftParen = expect(Token::LeftParen, "Expected '('");
-		if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+		if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, leftParen.getValue().position) };
 
 		Result<Token> initIdentifier = expect(Token::Identifier, "Expected identifier");
-		if(initIdentifier.hasError()) return { initIdentifier.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+		if(initIdentifier.hasError()) return { initIdentifier.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, initIdentifier.getValue().position) };
 		initializes = initIdentifier.getValue().value;
 
 		Result<Token> rightParen = expect(Token::RightParen, "Expected ')'");
-		if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+		if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, rightParen.getValue().position) };
 	}
 
 	if(peek().type == Token::Colon) {
 		Result<Token> colon = advance();
-		if(colon.hasError()) return { colon.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+		if(colon.hasError()) return { colon.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, colon.getValue().position) };
 
+		
 		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
-		if(typeRes.hasError()) return { typeRes.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+		if(typeRes.hasError()) return { typeRes.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, argIdentifier.getValue().position) };
 
 		type = typeRes.moveValue();
 	}
 
 	if(peek().type == Token::Assign) {
 		Result<Token> assign = advance();
-		if(assign.hasError()) return { assign.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+		if(assign.hasError()) return { assign.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, assign.getValue().position) };
 
+		
 		Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
-		if(valueRes.hasError()) return { valueRes.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration) };
+		if(valueRes.hasError()) return { valueRes.getErrorMsg(), Trace("", ASTNodeType::ClassDeclaration, argIdentifier.getValue().position) };
 
 		value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
 	}
@@ -419,53 +431,56 @@ Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::p
 
 Result<std::unique_ptr<ASTNode>> Parser::parseConstructorStatement() {
 	Result<Token> constructorKeyword = advance();
-	if(constructorKeyword.hasError()) return { constructorKeyword.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement) };
+	if(constructorKeyword.hasError()) return { constructorKeyword.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement, constructorKeyword.getValue().position) };
 
 	std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args;
 
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after constructor");
-	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement) };
+	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement, leftParen.getValue().position) };
 
 	while(true) {
+		
 		Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> arg = parseConstructorArgument();
-		if(arg.hasError()) return { arg.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement) };
+		if(arg.hasError()) return { arg.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement, constructorKeyword.getValue().position) };
 
 		args.push_back(arg.moveValue());
 
 		if(peek().type == Token::RightParen) break;
 
 		Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
-		if(comma.hasError()) return { comma.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement) };
+		if(comma.hasError()) return { comma.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement, comma.getValue().position) };
 
 	}
 
 	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after constructor");
-	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement) };
+	if(rightParen.hasError()) return { rightParen.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement, rightParen.getValue().position) };
 
 	if(peek().type == Token::Semicolon) {
 		return { std::make_unique<ConstructorStatementNode>(std::move(args), nullptr) };
 	}
 
+	
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
-	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::ConstructorStatement) };
+	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::ConstructorStatement, constructorKeyword.getValue().position) };
 
 	return { std::make_unique<ConstructorStatementNode>(std::move(args), body.moveValue()) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::Block) };
+	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::Block, token.getValue().position) };
 
 	std::vector<std::unique_ptr<ASTNode>> body;
 	while(peek().type != Token::RightBrace) {
 		Result<std::unique_ptr<ASTNode>> statement = parseStatement();
-		if(statement.hasError()) return { std::move(statement), Trace("", ASTNodeType::Block) };
+		if(statement.hasError()) return { std::move(statement), Trace("", ASTNodeType::Block, token.getValue().position) };
 
 		if(statement.getValue()->getNodeGroup() == ASTNodeGroup::Expression) {
 			Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
 			if(semiColon.hasError()) {
-				semiColon.addToTrace(Trace("", statement.getValue()->getNodeType()));
-				return { semiColon, Trace("", ASTNodeType::Block) };
+				Token::Position exprPos = peek().position;
+				semiColon.addToTrace(Trace("", statement.getValue()->getNodeType(), exprPos));
+				return { semiColon, Trace("", ASTNodeType::Block, semiColon.getValue().position) };
 			}
 		}
 
@@ -473,20 +488,20 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 	}
 
 	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after opening '{'");
-	if(rightBrace.hasError()) return { rightBrace.getErrorMsg(), Trace("", ASTNodeType::Block) };
+	if(rightBrace.hasError()) return { rightBrace.getErrorMsg(), Trace("", ASTNodeType::Block, rightBrace.getValue().position) };
 
 	return { std::make_unique<BlockNode>(std::move(body)) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
 	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::ImplStatement) };
+	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::ImplStatement, token.getValue().position) };
 
 	Result<Token> className = expect(Token::Identifier, "Expected Class Name");
-	if(className.hasError()) return { className.getErrorMsg(), Trace("", ASTNodeType::ImplStatement) };
+	if(className.hasError()) return { className.getErrorMsg(), Trace("", ASTNodeType::ImplStatement, className.getValue().position) };
 
 	Result<Token> keyword = advance();
-	if(keyword.hasError()) return { keyword.getErrorMsg(), Trace("", ASTNodeType::ImplStatement) };
+	if(keyword.hasError()) return { keyword.getErrorMsg(), Trace("", ASTNodeType::ImplStatement, keyword.getValue().position) };
 
 	MemberVisibility visibility = MemberVisibility::PRI;
 	if(	keyword.getValue().type == Token::KeywordPub ||
@@ -497,13 +512,16 @@ Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
 						MemberVisibility::PRO;
 
 		keyword = advance();
-		if(keyword.hasError()) return { keyword.getErrorMsg(), Trace("", ASTNodeType::ImplStatement) };
+		if(keyword.hasError()) return { keyword.getErrorMsg(), Trace("", ASTNodeType::ImplStatement, keyword.getValue().position) };
 	}
 
-	if(keyword.getValue().type != Token::KeywordFunc && keyword.getValue().type != Token::KeywordDef) return { "Expected variable or function declaration", Trace("", ASTNodeType::ImplStatement) };
+	
+	if(keyword.getValue().type != Token::KeywordFunc && keyword.getValue().type != Token::KeywordDef)
+		return { "Expected variable or function declaration", Trace("", ASTNodeType::ImplStatement, token.getValue().position) };
 
+	Token::Position bodyPos = peek().position;
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
-	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::ImplStatement)};
+	if(body.hasError()) return { std::move(body), Trace("", ASTNodeType::ImplStatement, bodyPos)};
 
 	return { std::make_unique<ImplStatementNode>(className.getValue().value,
 											   dynamic_unique_cast<StatementNode>(body.moveValue()), visibility) };
@@ -511,13 +529,14 @@ Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseYieldStatement() {
 	Result<Token> token = advance();
-	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::YieldStatement) };
+	if(token.hasError()) return { token.getErrorMsg(), Trace("", ASTNodeType::YieldStatement, token.getValue().position) };
 
+	
 	Result<std::unique_ptr<ASTNode>> expr = parseExpression();
-	if(expr.hasError()) return { std::move(expr), Trace("", ASTNodeType::YieldStatement) };
+	if(expr.hasError()) return { std::move(expr), Trace("", ASTNodeType::YieldStatement, token.getValue().position) };
 
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::YieldStatement) };
+	if(semiColon.hasError()) return { semiColon.getErrorMsg(), Trace("", ASTNodeType::YieldStatement, semiColon.getValue().position) };
 
 	return { std::make_unique<YieldStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue())) };
 }

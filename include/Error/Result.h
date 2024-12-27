@@ -9,12 +9,15 @@
 #include <stack>
 #include <utility>
 #include "backend/AST.h"
+#include "backend/Tokenizer.h"
 
 namespace ArgonLang {
-
 	struct Trace {
 		std::string text;
 		ASTNodeType type;
+		Token::Position position;
+		Trace();
+		Trace(std::string  text, ASTNodeType type, Token::Position position);
 	};
 
 	template<typename T>
@@ -45,10 +48,6 @@ namespace ArgonLang {
 		}
 
 		T& getValue() {
-			if(hasError()) {
-				throw std::runtime_error("Attempting to access value when there is an error: " + errorMsg);
-			}
-
 			if (isNull()) {
 				throw std::runtime_error("Attempting to access value when there is no value.");
 			}

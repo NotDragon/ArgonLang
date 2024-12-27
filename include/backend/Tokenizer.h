@@ -124,7 +124,12 @@ namespace ArgonLang {
 		} type;
         std::string value;
 
-		explicit Token(Type t, std::string val = "");
+		struct Position {
+			size_t line;
+			size_t column;
+		} position;
+
+		explicit Token(Type t, std::string val, size_t line, size_t column);
 		explicit Token() = default;
 
         static std::string getTypeAsString(Token::Type type);

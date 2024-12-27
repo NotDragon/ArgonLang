@@ -65,10 +65,20 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
     size_t length = input.size();
     size_t i = 0;
 
+	size_t currentLine = 1;
+	size_t currentColumn = 1;
+
     while (i < length) {
         char c = input[i];
+		if(c == '\n') {
+			currentLine++;
+			currentColumn = 1;
+			i++;
+			continue;
+		}
 
         if (std::isspace(c)) {
+			currentColumn++;
 			i++;
 			continue;
         }
@@ -91,9 +101,9 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			std::erase(numLiteral, '`');
 
 			if (isDecimal) {
-				tokens.emplace_back(Token::FloatLiteral, numLiteral);
+				tokens.emplace_back(Token::FloatLiteral, numLiteral, currentLine, currentColumn);
 			} else {
-				tokens.emplace_back(Token::IntegralLiteral, numLiteral);
+				tokens.emplace_back(Token::IntegralLiteral, numLiteral, currentLine, currentColumn);
 			}
 
 			continue;
@@ -101,177 +111,216 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			size_t start = i;
 			while (i < length && (std::isalnum(input[i]) || input[i] == '_' || input[i] == '-')) {
 				i++;
+				currentColumn++;
 			}
 			std::string identifier = input.substr(start, i - start);
 			auto it = keywords.find(identifier);
 			if (it != keywords.end()) {
-				tokens.emplace_back(it->second, it->first);
+				tokens.emplace_back(it->second, it->first, currentLine, currentColumn);
 				continue;
 			}
-			tokens.emplace_back(Token::Identifier, identifier);
+			tokens.emplace_back(Token::Identifier, identifier, currentLine, currentColumn);
         } else if (c == '=' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::Equal);
+			tokens.emplace_back(Token::Equal, "==", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '!' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::NotEqual);
+			tokens.emplace_back(Token::NotEqual, "!=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '+' && input[i + 1] == '+') {
-			tokens.emplace_back(Token::Increment);
+			tokens.emplace_back(Token::Increment, "++", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '-' && input[i + 1] == '-') {
-			tokens.emplace_back(Token::Decrement);
+			tokens.emplace_back(Token::Decrement, "--", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '+' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::PlusAssign);
+			tokens.emplace_back(Token::PlusAssign, "+=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '-' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::MinusAssign);
+			tokens.emplace_back(Token::MinusAssign, "-=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '*' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::MultiplyAssign);
+			tokens.emplace_back(Token::MultiplyAssign, "*=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '/' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::DivideAssign);
+			tokens.emplace_back(Token::DivideAssign, "/=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '%' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::ModuloAssign);
+			tokens.emplace_back(Token::ModuloAssign, "%=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '&' && input[i + 1] == '&') {
-			tokens.emplace_back(Token::LogicalAnd);
+			tokens.emplace_back(Token::LogicalAnd, "&&", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '|' && input[i + 1] == '|') {
-			tokens.emplace_back(Token::LogicalOr);
+			tokens.emplace_back(Token::LogicalOr, "||", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '<' && input[i + 1] == '<') {
 			if (input[i + 2] == '=') {
-				tokens.emplace_back(Token::LeftShiftAssign);
+				tokens.emplace_back(Token::LeftShiftAssign, "<<=", currentLine, currentColumn);
 				i += 3;
+				currentColumn += 3;
 				continue;
 			}
 
-			tokens.emplace_back(Token::LeftShift);
+			tokens.emplace_back(Token::LeftShift, "<<", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '>' && input[i + 1] == '>') {
 			if (input[i + 2] == '=') {
-				tokens.emplace_back(Token::RightShiftAssign);
+				tokens.emplace_back(Token::RightShiftAssign, ">>=", currentLine, currentColumn);
 				i += 3;
+				currentColumn += 3;
 				continue;
 			}
 
-			tokens.emplace_back(Token::RightShift);
+			tokens.emplace_back(Token::RightShift, ">>", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '<' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::LessEqual);
+			tokens.emplace_back(Token::LessEqual, "<=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '>' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::GreaterEqual);
+			tokens.emplace_back(Token::GreaterEqual, ">=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '&' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::MapAssign);
+			tokens.emplace_back(Token::MapAssign, "&=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == '|' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::FilterAssign);
+			tokens.emplace_back(Token::FilterAssign, "|=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		}  else if (c == '^' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::ReduceAssign);
+			tokens.emplace_back(Token::ReduceAssign, "^=", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		}  else if (c == '|' && input[i + 1] == '>') {
 			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::PipeAssign);
+				tokens.emplace_back(Token::PipeAssign, "|>=", currentLine, currentColumn);
 				i += 3;
+				currentColumn += 3;
 				continue;
 			}
-			tokens.emplace_back(Token::Pipe);
+			tokens.emplace_back(Token::Pipe, "|>", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		}   else if (c == '|' && input[i + 1] == '|' && input[i + 2] == '>') {
 			if(input[i + 3] == '=') {
-				tokens.emplace_back(Token::MapPipeAssign);
+				tokens.emplace_back(Token::MapPipeAssign, "||>=", currentLine, currentColumn);
 				i += 4;
+				currentColumn += 4;
 				continue;
 			}
-			tokens.emplace_back(Token::MapPipe);
+			tokens.emplace_back(Token::MapPipe, "||>", currentLine, currentColumn);
 			i += 3;
+			currentColumn += 3;
 		} else if(c == '=' && input[i + 1] == '>') {
-			tokens.emplace_back(Token::MatchArrow);
+			tokens.emplace_back(Token::MatchArrow, "=+", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		} else if (c == '^' && input[i + 1] == '^') {
 			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::AccumulateAssign);
+				tokens.emplace_back(Token::AccumulateAssign, "^^=", currentLine, currentColumn);
 				i += 3;
+				currentColumn += 3;
 				continue;
 			}
-			tokens.emplace_back(Token::AccumulateRange);
+			tokens.emplace_back(Token::AccumulateRange, "^^", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		} else if (c == '-' && input[i + 1] == '>') {
-			tokens.emplace_back(Token::Arrow);
+			tokens.emplace_back(Token::Arrow, "->", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
         } else if (c == ':' && input[i + 1] == ':') {
-			tokens.emplace_back(Token::DoubleColon);
+			tokens.emplace_back(Token::DoubleColon, "::", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		} else if (c == '#' && input[i + 1] == '#') {
-			tokens.emplace_back(Token::DoubleHash);
+			tokens.emplace_back(Token::DoubleHash, "##", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		} else if (c == '*' && input[i + 1] == '&') {
 			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::BitwiseAndAssign);
+				tokens.emplace_back(Token::BitwiseAndAssign, "*&=", currentLine, currentColumn);
 				i += 3;
+				currentColumn += 3;
 				continue;
 			}
-			tokens.emplace_back(Token::BitwiseAnd);
+			tokens.emplace_back(Token::BitwiseAnd, "*&", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		} else if (c == '*' && input[i + 1] == '|') {
 			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::BitwiseOrAssign);
+				tokens.emplace_back(Token::BitwiseOrAssign, "*|=", currentLine, currentColumn);
 				i += 3;
+				currentColumn += 3;
 				continue;
 			}
-			tokens.emplace_back(Token::BitwiseOr);
+			tokens.emplace_back(Token::BitwiseOr, "*|", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		} else if (c == '*' && input[i + 1] == '^') {
 			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::BitwiseXorAssign);
+				tokens.emplace_back(Token::BitwiseXorAssign, "*^=", currentLine, currentColumn);
 				i += 3;
+				currentColumn += 3;
 				continue;
 			}
-			tokens.emplace_back(Token::BitwiseXor);
+			tokens.emplace_back(Token::BitwiseXor, "*^", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		}  else if (c == '*' && input[i + 1] == '~') {
-			tokens.emplace_back(Token::BitwiseNot);
+			tokens.emplace_back(Token::BitwiseNot, "*~", currentLine, currentColumn);
 			i += 2;
+			currentColumn += 2;
 		} else {
 			 switch (c) {
-				case '+': tokens.emplace_back(Token::Plus); break;
-				case '-': tokens.emplace_back(Token::Minus); break;
-				case '*': tokens.emplace_back(Token::Multiply); break;
-				case '/': tokens.emplace_back(Token::Divide); break;
-				case '%': tokens.emplace_back(Token::Modulo); break;
-				case '=': tokens.emplace_back(Token::Assign); break;
-				case '<': tokens.emplace_back(Token::Less); break;
-				case '>': tokens.emplace_back(Token::Greater); break;
-				case '!': tokens.emplace_back(Token::LogicalNot); break;
-				case '&': tokens.emplace_back(Token::MapRange); break;
-				case '|': tokens.emplace_back(Token::FilterRange); break;
-				case '^': tokens.emplace_back(Token::ReduceRange); break;
-				case '~': tokens.emplace_back(Token::Ownership); break;
-				case '(': tokens.emplace_back(Token::LeftParen); break;
-				case ')': tokens.emplace_back(Token::RightParen); break;
-				case '{': tokens.emplace_back(Token::LeftBrace); break;
-				case '}': tokens.emplace_back(Token::RightBrace); break;
-				case '[': tokens.emplace_back(Token::LeftBracket); break;
-				case ']': tokens.emplace_back(Token::RightBracket); break;
-				case ';': tokens.emplace_back(Token::Semicolon); break;
-				case ':': tokens.emplace_back(Token::Colon); break;
-				case ',': tokens.emplace_back(Token::Comma); break;
-				case '.': tokens.emplace_back(Token::Dot); break;
-				case '?': tokens.emplace_back(Token::QuestionMark); break;
-				case '#': tokens.emplace_back(Token::Hash); break;
+				case '+': tokens.emplace_back(Token::Plus, "+", currentLine, currentColumn); break;
+				case '-': tokens.emplace_back(Token::Minus, "-", currentLine, currentColumn); break;
+				case '*': tokens.emplace_back(Token::Multiply, "*", currentLine, currentColumn); break;
+				case '/': tokens.emplace_back(Token::Divide, "/", currentLine, currentColumn); break;
+				case '%': tokens.emplace_back(Token::Modulo, "%", currentLine, currentColumn); break;
+				case '=': tokens.emplace_back(Token::Assign, "=", currentLine, currentColumn); break;
+				case '<': tokens.emplace_back(Token::Less, "<", currentLine, currentColumn); break;
+				case '>': tokens.emplace_back(Token::Greater, ">", currentLine, currentColumn); break;
+				case '!': tokens.emplace_back(Token::LogicalNot, "!", currentLine, currentColumn); break;
+				case '&': tokens.emplace_back(Token::MapRange, "&", currentLine, currentColumn); break;
+				case '|': tokens.emplace_back(Token::FilterRange, "|", currentLine, currentColumn); break;
+				case '^': tokens.emplace_back(Token::ReduceRange, "^", currentLine, currentColumn); break;
+				case '~': tokens.emplace_back(Token::Ownership, "~", currentLine, currentColumn); break;
+				case '(': tokens.emplace_back(Token::LeftParen, "(", currentLine, currentColumn); break;
+				case ')': tokens.emplace_back(Token::RightParen, ")", currentLine, currentColumn); break;
+				case '{': tokens.emplace_back(Token::LeftBrace, "{", currentLine, currentColumn); break;
+				case '}': tokens.emplace_back(Token::RightBrace, "}", currentLine, currentColumn); break;
+				case '[': tokens.emplace_back(Token::LeftBracket, "[", currentLine, currentColumn); break;
+				case ']': tokens.emplace_back(Token::RightBracket, "]", currentLine, currentColumn); break;
+				case ';': tokens.emplace_back(Token::Semicolon, ";", currentLine, currentColumn); break;
+				case ':': tokens.emplace_back(Token::Colon, ":", currentLine, currentColumn); break;
+				case ',': tokens.emplace_back(Token::Comma, ",", currentLine, currentColumn); break;
+				case '.': tokens.emplace_back(Token::Dot, ".", currentLine, currentColumn); break;
+				case '?': tokens.emplace_back(Token::QuestionMark, "?", currentLine, currentColumn); break;
+				case '#': tokens.emplace_back(Token::Hash, "#", currentLine, currentColumn); break;
 				default: throw std::runtime_error(std::string("Unexpected character: ") + c);
 			}
 			i++;
+			currentColumn++;
         }
     }
 
-    tokens.emplace_back(Token::End);
+    tokens.emplace_back(Token::End, "END", currentLine, currentColumn);
     return tokens;
 }
 
@@ -394,4 +443,4 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 	return "";
 }
 
-ArgonLang::Token::Token(Type t, std::string val) : type(t), value(std::move(val)) {}
+ArgonLang::Token::Token(Type t, std::string val, size_t line, size_t column) : type(t), value(std::move(val)), position({ line, column }) {}
