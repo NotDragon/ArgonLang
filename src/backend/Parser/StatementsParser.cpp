@@ -123,11 +123,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<std::unique_ptr<ASTNode>> identifier = parseExpression();
 	if(identifier.hasError()) return identifier;
 
-	if(!identifier.isNull()) {
-		try {
-			auto tempIdentifier = dynamic_cast<IdentifierNode*>(identifier.getValue().get());
-			if((*tempIdentifier).identifier == "main") mainCounter++;
-		} catch (const std::exception& e) { }
+	if(!identifier.isNull() && identifier.getValue()->getNodeType() == ASTNodeType::Identifier) {
+		auto tempIdentifier = dynamic_cast<IdentifierNode*>(identifier.getValue().get());
+		if(tempIdentifier->identifier == "main") mainCounter++;
 	}
 
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after function declaration");

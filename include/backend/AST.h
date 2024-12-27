@@ -31,7 +31,7 @@ namespace ArgonLang
 	PrimitiveType determineIntegerType(const std::string& value);
 	PrimitiveType determineFloatType(const std::string& value);
 
-	enum class ASTNodeType {
+	enum class [[nodiscard]] ASTNodeType {
 		StringLiteral,
 		IntegralLiteral,
 		FloatLiteral,
@@ -59,7 +59,6 @@ namespace ArgonLang
 		IfStatement,
 		ForStatement,
 		UnionDeclaration,
-		WhenStatement,
 		YieldStatement,
 		WhileStatement,
 		BreakStatement,
