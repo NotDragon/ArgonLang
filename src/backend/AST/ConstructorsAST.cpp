@@ -3,6 +3,7 @@
 
 ArgonLang::UnionTypeNode::UnionTypeNode(std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)) {}
 ArgonLang::StringLiteralNode::StringLiteralNode(std::string  val) : value(std::move(val)) {}
+
 ArgonLang::IntegralLiteralNode::IntegralLiteralNode(__int128 val, PrimitiveType type) : type(type) {
 	switch (type) {
 		case PrimitiveType::INT8:   value.i8 = static_cast<int8_t>(val); break;
