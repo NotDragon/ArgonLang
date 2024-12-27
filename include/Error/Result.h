@@ -17,7 +17,7 @@ namespace ArgonLang {
 		ASTNodeType type;
 		Token::Position position;
 		Trace();
-		Trace(std::string  text, ASTNodeType type, Token::Position position);
+		Trace(std::string text, ASTNodeType type, Token::Position position);
 	};
 
 	template<typename T>

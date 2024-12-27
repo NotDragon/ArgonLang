@@ -6,21 +6,40 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Source files
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+# GTest Installation
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
-# Create executable
-add_executable(ArgonLang ${SOURCES})
+# Source files for the library (excluding main.cpp)
+file(GLOB_RECURSE LIB_SOURCES "src/*.cpp")
+list(REMOVE_ITEM LIB_SOURCES "${CMAKE_SOURCE_DIR}/src/main.cpp") # Exclude main.cpp
 
-# Include directories
-target_include_directories(ArgonLang PRIVATE include)
+# Create a library for shared code
+add_library(ArgonLangLib STATIC ${LIB_SOURCES})
+target_include_directories(ArgonLangLib PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
-#target_link_directories(ArgonLang PRIVATE lib)
-#target_link_libraries(ArgonLang PRIVATE library_name)
+# Create the main executable
+add_executable(ArgonLang src/main.cpp)
+target_link_libraries(ArgonLang PRIVATE ArgonLangLib)
+
+# Add unit tests
+enable_testing()
+file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp") # Include all test files in 'tests/' directory
+add_executable(ArgonLangTests ${TEST_SOURCES})
+target_link_libraries(ArgonLangTests PRIVATE ArgonLangLib gtest gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(ArgonLangTests)
 
 target_compile_options(ArgonLang PRIVATE
         $<$<CONFIG:Debug>:-g>
-#        $<$<CONFIG:Release>:-O3>
+        $<$<CONFIG:Release>:-O3>
 )
 
 # Metadata
