@@ -87,7 +87,8 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			}
 
 			std::string numLiteral = input.substr(start, i - start);
-			numLiteral.erase(std::remove(numLiteral.begin(), numLiteral.end(), '`'), numLiteral.end());
+
+			std::erase(numLiteral, '`');
 
 			if (isDecimal) {
 				tokens.emplace_back(Token::FloatLiteral, numLiteral);

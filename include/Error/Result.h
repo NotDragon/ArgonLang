@@ -60,7 +60,7 @@ namespace ArgonLang {
 
 		Result& operator=(T newValue) {
 			this->value = std::move(newValue);
-			return this;
+			return *this;
 		}
 
 		Result& addToTrace(const std::string& str) {
