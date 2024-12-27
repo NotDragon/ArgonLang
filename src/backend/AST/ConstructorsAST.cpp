@@ -86,8 +86,10 @@ ArgonLang::BlockNode::BlockNode(std::vector<std::unique_ptr<ASTNode>> body): bod
 ArgonLang::ForStatementNode::ForStatementNode(
 		std::string variableName,
 		std::unique_ptr<ExpressionNode> iterator,
-		std::unique_ptr<ASTNode> body
+		std::unique_ptr<ASTNode> body,
+		std::unique_ptr<TypeNode> variableType
 ) : iterator(std::move(iterator)),
+	variableType(std::move(variableType)),
 	variableName(std::move(variableName)),
 	body(std::move(body)) {}
 

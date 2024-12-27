@@ -532,10 +532,11 @@ namespace ArgonLang
     class ForStatementNode : public StatementNode {
     public:
         std::string variableName;
+		std::unique_ptr<TypeNode> variableType;
         std::unique_ptr<ExpressionNode> iterator;
         std::unique_ptr<ASTNode> body;
 
-        explicit ForStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<ASTNode> body);
+        explicit ForStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<ASTNode> body, std::unique_ptr<TypeNode> variableType);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG

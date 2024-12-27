@@ -215,13 +215,48 @@ Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseForStatement() {
-	return std::unique_ptr<ASTNode>();
+	Result<Token> keyword = advance();
+	if(keyword.hasError()) return { keyword.getErrorMsg() };
+	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after for statement");
+	if(leftParen.hasError()) return { leftParen.getErrorMsg() };
+
+	Result<Token> identifierRes = expect(Token::Identifier, "Expected identifier");
+	if(identifierRes.hasError()) return { identifierRes.getErrorMsg() };
+
+	std::unique_ptr<TypeNode> type;
+	if(peek().type == Token::Colon) {
+		Result<Token> colon = advance();
+		if(colon.hasError()) return { colon.getErrorMsg() };
+
+		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
+		if(typeRes.hasError()) return { typeRes.getErrorMsg() };
+		type = typeRes.moveValue();
+	}
+
+	Result<Token> arrow = expect(Token::Arrow, "Expected '->' after variable");
+	if(arrow.hasError()) return { arrow.getErrorMsg() };
+
+	Result<std::unique_ptr<ASTNode>> iterator = parseExpression();
+	if(iterator.hasError()) return iterator;
+
+	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after expression");
+	if(rightParen.hasError()) return { rightParen.getErrorMsg() };
+
+	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	if(body.hasError()) return body;
+
+	return { std::make_unique<ForStatementNode>(
+			identifierRes.getValue().value,
+			dynamic_unique_cast<ExpressionNode>(iterator.moveValue()),
+			dynamic_unique_cast<StatementNode>(body.moveValue()),
+			std::move(type)
+	) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseWhileStatement() {
-	Result<Token> keywordError = advance();
-	if(keywordError.hasError()) return { keywordError.getErrorMsg() };
-	Token keyword = keywordError.getValue();
+	Result<Token> keywordRes = advance();
+	if(keywordRes.hasError()) return {keywordRes.getErrorMsg() };
+	Token keyword = keywordRes.getValue();
 
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after while statement");
 	if(leftParen.hasError()) return { leftParen.getErrorMsg() };
