@@ -75,17 +75,6 @@ Result<std::unique_ptr<ASTNode>> Parser::parseExpression() {
 	return parseAssignmentExpression();
 }
 
-Result<std::unique_ptr<ProgramNode>> Parser::parse() {
-	std::vector<std::unique_ptr<ASTNode>> statements;
-	while(!eos()) {
-		Result<std::unique_ptr<ASTNode>> statement = parseStatement();
-		if(statement.hasError()) return { statement.getErrorMsg() };
-
-		statements.push_back(statement.moveValue());
-	}
-	return std::make_unique<ProgramNode>(std::move(statements));
-}
-
 Parser::Parser(const std::vector<Token> &tokens)  : tokens(tokens) {}
 
 Result<std::unique_ptr<ASTNode>> Parser::parseLogicalOrExpression() {

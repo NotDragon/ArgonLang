@@ -26,6 +26,16 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
+	if(parser.getMainCounter() == 0) {
+		std::cerr << "The main function was not declared";
+		return 1;
+	}
+
+	if(parser.getMainCounter() > 1) {
+		std::cerr << "Multiple definition of the main function";
+		return 1;
+	}
+
 	std::ofstream dotFile(argv[2]);
 	dotFile << "digraph AST {\n";
 	int nodeId = 0;

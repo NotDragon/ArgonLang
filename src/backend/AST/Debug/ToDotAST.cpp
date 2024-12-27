@@ -406,7 +406,7 @@ void ArgonLang::FunctionArgument::toDot(std::ostream &os, int &nodeId) const {
 
 void ArgonLang::FunctionDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"" << "Function Declaration" << name << "\"];\n";
+	os << "  node" << currentId << " [label=\"" << "Function Declaration: " << dynamic_cast<IdentifierNode*>(name.get())->identifier << "\"];\n"; // for now this works
 
 	for(const auto & arg : args) {
 		int argId = nodeId;
@@ -418,6 +418,7 @@ void ArgonLang::FunctionDeclarationNode::toDot(std::ostream &os, int &nodeId) co
 	body->toDot(os, nodeId);
 	os << "  node" << currentId << " -> node" << thenId << " [label=\"body\"];\n";
 
+	if(!returnType)  return;
 
 	int typeId = nodeId;
 	returnType->toDot(os, nodeId);
@@ -426,13 +427,15 @@ void ArgonLang::FunctionDeclarationNode::toDot(std::ostream &os, int &nodeId) co
 
 void ArgonLang::FunctionDefinitionNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"" << "Function Definition" << name << "\"];\n";
+	os << "  node" << currentId << " [label=\"" << "Function Definition: " << dynamic_cast<IdentifierNode*>(name.get())->identifier << "\"];\n";
 
 	for(const auto & arg : args) {
 		int argId = nodeId;
 		arg->toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << argId << " [label=\"arg\"];\n";
 	}
+
+	if(!returnType)  return;
 
 	int typeId = nodeId;
 	returnType->toDot(os, nodeId);

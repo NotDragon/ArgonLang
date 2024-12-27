@@ -17,14 +17,25 @@ namespace ArgonLang {
 		throw std::runtime_error("Invalid cast");
 	}
 
+	template <typename Target, typename Source>
+	std::unique_ptr<Target> dynamic_unique_cast(std::unique_ptr<Source&> source) {
+		if (auto* result = dynamic_cast<Target*>(source)) {
+			source.release();
+			return std::unique_ptr<Target>(result);
+		}
+		throw std::runtime_error("Invalid cast");
+	}
+
 	class Parser {
 	private:
     	const std::vector<Token>& tokens;
     	size_t current = 0;
+		int mainCounter = 0;
 
 	public:
 		explicit Parser(const std::vector<Token>& tokens);
 
+		int getMainCounter();
 		Token peek() const;
 		bool eos() const;
 		Result<Token> advance();

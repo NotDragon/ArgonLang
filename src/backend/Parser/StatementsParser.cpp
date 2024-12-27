@@ -123,11 +123,18 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<std::unique_ptr<ASTNode>> identifier = parseExpression();
 	if(identifier.hasError()) return identifier;
 
+	if(!identifier.isNull()) {
+		try {
+			auto tempIdentifier = dynamic_cast<IdentifierNode*>(identifier.getValue().get());
+			if((*tempIdentifier).identifier == "main") mainCounter++;
+		} catch (const std::exception& e) { }
+	}
+
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after function declaration");
 	if(leftParen.hasError()) return { leftParen.getErrorMsg() };
 
 	std::vector<std::unique_ptr<FunctionArgument>> args;
-	while(true) {
+	while(peek().type != Token::RightParen) {
 		Result<std::unique_ptr<FunctionArgument>> arg = parseFunctionArgument();
 		if(arg.hasError()) return { arg.getErrorMsg() };
 
@@ -142,8 +149,11 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after function declaration");
 	if(rightParen.hasError()) return { rightParen.getErrorMsg() };
 
-	Result<std::unique_ptr<TypeNode>> returnType = parseType();
-	if(returnType.hasError()) return { returnType.getErrorMsg() };
+	Result<std::unique_ptr<TypeNode>> returnType;
+	if(peek().type != Token::LeftBrace) {
+		returnType = parseType();
+		if (returnType.hasError()) return {returnType.getErrorMsg()};
+	}
 
 	if(peek().type == Token::Semicolon) {
 		Result<Token> semicolon = advance();
@@ -169,7 +179,12 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
 	if(body.hasError()) return body;
 
-	return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), body.moveValue(), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
+	return { std::make_unique<FunctionDeclarationNode>(
+			returnType.isNull()? nullptr :returnType.moveValue(),
+			std::move(args),
+			body.moveValue(),
+			dynamic_unique_cast<ExpressionNode>(identifier.moveValue()))
+	};
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
