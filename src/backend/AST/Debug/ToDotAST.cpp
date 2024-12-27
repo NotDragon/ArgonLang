@@ -396,9 +396,12 @@ void ArgonLang::FunctionArgument::toDot(std::ostream &os, int &nodeId) const {
 	int filedId = nodeId++;
 	os << " node" << filedId << " [label=\"FunctionArgument: " << name << "\"];\n";
 
+	if(!type) return;
 	int typeId = nodeId;
 	type->toDot(os, nodeId);
 	os << "  node" << filedId << " -> node" << typeId << " [label=\"Type\"];\n";
+
+	if(!value) return;
 	int expressionId = nodeId;
 	value->toDot(os, nodeId);
 	os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
