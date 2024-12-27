@@ -33,7 +33,7 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 				return { "Only Function and Variable declarations are allowed in the outer scope" };
 		}
 
-		if(statement.hasError()) return { statement.getErrorMsg() };
+		if(statement.hasError()) return { statement.getErrorMsg(), statement.getStackTrace() };
 
 		statements.push_back(statement.moveValue());
 	}

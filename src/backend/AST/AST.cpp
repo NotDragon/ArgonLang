@@ -33,5 +33,63 @@ ArgonLang::PrimitiveType ArgonLang::determineFloatType(const std::string& value)
 }
 
 
+std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
+	switch (type) {
+		case ASTNodeType::StringLiteral: return "StringLiteral";
+		case ASTNodeType::IntegralLiteral: return "IntegralLiteral";
+		case ASTNodeType::FloatLiteral: return "FloatLiteral";
+		case ASTNodeType::BooleanLiteral: return "BooleanLiteral";
+		case ASTNodeType::Identifier: return "Identifier";
+		case ASTNodeType::BinaryExpression: return "BinaryExpression";
+		case ASTNodeType::UnaryExpression: return "UnaryExpression";
+		case ASTNodeType::NullExpression: return "NullExpression";
+		case ASTNodeType::FunctionCallExpression: return "FunctionCallExpression";
+		case ASTNodeType::ToExpression: return "ToExpression";
+		case ASTNodeType::LambdaExpression: return "LambdaExpression";
+		case ASTNodeType::ComparisonExpression: return "ComparisonExpression";
+		case ASTNodeType::AssignmentExpression: return "AssignmentExpression";
+		case ASTNodeType::IndexExpression: return "IndexExpression";
+		case ASTNodeType::MatchExpression: return "MatchExpression";
+		case ASTNodeType::TernaryExpression: return "TernaryExpression";
+		case ASTNodeType::ParallelExpression: return "ParallelExpression";
+		case ASTNodeType::AwaitExpression: return "AwaitExpression";
+		case ASTNodeType::LazyExpression: return "LazyExpression";
+		case ASTNodeType::StructExpression: return "StructExpression";
+		case ASTNodeType::RangeExpression: return "RangeExpression";
+		case ASTNodeType::Program: return "Program";
+		case ASTNodeType::ReturnStatement: return "ReturnStatement";
+		case ASTNodeType::VariableDeclaration: return "VariableDeclaration";
+		case ASTNodeType::IfStatement: return "IfStatement";
+		case ASTNodeType::ForStatement: return "ForStatement";
+		case ASTNodeType::UnionDeclaration: return "UnionDeclaration";
+		case ASTNodeType::YieldStatement: return "YieldStatement";
+		case ASTNodeType::WhileStatement: return "WhileStatement";
+		case ASTNodeType::BreakStatement: return "BreakStatement";
+		case ASTNodeType::ContinueStatement: return "ContinueStatement";
+		case ASTNodeType::Block: return "Block";
+		case ASTNodeType::UnionType: return "UnionType";
+		case ASTNodeType::IdentifierType: return "IdentifierType";
+		case ASTNodeType::TypeAlias: return "TypeAlias";
+		case ASTNodeType::GenericType: return "GenericType";
+		case ASTNodeType::StructField: return "StructField";
+		case ASTNodeType::MatchBranch: return "MatchBranch";
+		case ASTNodeType::FunctionArgument: return "FunctionArgument";
+		case ASTNodeType::ClassDeclaration: return "ClassDeclaration";
+		case ASTNodeType::FunctionDeclaration: return "FunctionDeclaration";
+		case ASTNodeType::FunctionDefinition: return "FunctionDefinition";
+		case ASTNodeType::ConstructorStatement: return "ConstructorStatement";
+		case ASTNodeType::ImplStatement: return "ImplStatement";
+	}
+}
 
+ArgonLang::ASTNodeGroup ArgonLang::ExpressionNode::getNodeGroup() const {
+	return ArgonLang::ASTNodeGroup::Expression;
+}
 
+ArgonLang::ASTNodeGroup ArgonLang::StatementNode::getNodeGroup() const {
+	return ArgonLang::ASTNodeGroup::Statement;
+}
+
+ArgonLang::ASTNodeGroup ArgonLang::TypeNode::getNodeGroup() const {
+	return ArgonLang::ASTNodeGroup::Type;
+}

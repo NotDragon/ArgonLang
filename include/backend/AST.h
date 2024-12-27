@@ -27,10 +27,6 @@ namespace ArgonLang
 		PRO
 	};
 
-	std::string primitiveTypeToString(PrimitiveType type);
-	PrimitiveType determineIntegerType(const std::string& value);
-	PrimitiveType determineFloatType(const std::string& value);
-
 	enum class [[nodiscard]] ASTNodeType {
 		StringLiteral,
 		IntegralLiteral,
@@ -78,10 +74,23 @@ namespace ArgonLang
 		ImplStatement
 	};
 
+	enum class [[nodiscard]] ASTNodeGroup {
+		Expression,
+		Statement,
+		Type
+	};
+
+	std::string primitiveTypeToString(PrimitiveType type);
+	std::string ASTNodeTypeToString(ASTNodeType type);
+	PrimitiveType determineIntegerType(const std::string& value);
+	PrimitiveType determineFloatType(const std::string& value);
+
     class ASTNode {
     public:
         virtual ~ASTNode() = default;
+
 		virtual ASTNodeType getNodeType() const = 0;
+		virtual ASTNodeGroup getNodeGroup() const = 0;
 
     #ifdef DEBUG
         virtual void print() const = 0;
@@ -89,11 +98,20 @@ namespace ArgonLang
     #endif
     };
 
-    class ExpressionNode : public ASTNode { };
+    class ExpressionNode : public ASTNode {
+	public:
+		ASTNodeGroup getNodeGroup() const override;
+	};
 
-    class StatementNode : public ASTNode { };
+    class StatementNode : public ASTNode {
+	public:
+		ASTNodeGroup getNodeGroup() const override;
+	};
 
-    class TypeNode : public ASTNode { };
+    class TypeNode : public ASTNode {
+	public:
+		ASTNodeGroup getNodeGroup() const override;
+	};
 
     class StringLiteralNode : public ExpressionNode {
     public:

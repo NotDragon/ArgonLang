@@ -7,21 +7,28 @@
 #include <memory>
 #include <type_traits>
 #include <stack>
+#include <utility>
+#include "backend/AST.h"
 
 namespace ArgonLang {
+
+	struct Trace {
+		std::string text;
+		ASTNodeType type;
+	};
 
 	template<typename T>
 	class Result {
 		T value;
 		std::string errorMsg;
-		std::stack<std::string> trace;
 
 		template <typename U>
 		struct is_unique_ptr : std::false_type {};
 
 		template <typename U>
 		struct is_unique_ptr<std::unique_ptr<U>> : std::true_type {};
-
+	protected:
+		std::stack<Trace> trace;
 	public:
 		bool isNull() const {
 			if constexpr (is_unique_ptr<T>::value)
@@ -63,13 +70,20 @@ namespace ArgonLang {
 			return *this;
 		}
 
-		Result& addToTrace(const std::string& str) {
-			trace.push(str);
-			return this;
+		void addToTrace(const Trace& trace1) {
+			trace.push(trace1);
 		}
 
-		std::stack<std::string> getTrace() {
+		std::stack<Trace> getStackTrace() {
 			return trace;
+		}
+
+		Trace getTrace() {
+			return trace.top();
+		}
+
+		void popTrace() {
+			trace.pop();
 		}
 
 		Result(T value): value(std::move(value)), errorMsg("") { }
@@ -77,6 +91,21 @@ namespace ArgonLang {
 //		Result(std::unique_ptr<T> value);
 		Result(std::string errorMsg): value(nullptr), errorMsg(std::move(errorMsg)) { }
 		Result(std::string errorMsg, T value): value(value), errorMsg(std::move(errorMsg)) { }
+
+		Result(std::string errorMsg, std::stack<Trace> trace): value(nullptr), errorMsg(std::move(errorMsg)), trace(std::move(trace)) {}
+		Result(std::string errorMsg, Trace newTrace): value(nullptr), errorMsg(std::move(errorMsg)) {
+			trace.push(newTrace);
+		}
+
+		Result(std::string errorMsg, std::stack<Trace> oldTrace, Trace newTrace): value(nullptr), errorMsg(std::move(errorMsg)), trace(std::move(oldTrace)) {
+			trace.push(newTrace);
+		}
+
+		template<class U>
+		Result(Result<U> res, const Trace& newTrace): value(nullptr), errorMsg(std::move(res.getErrorMsg())) {
+			trace = res.getStackTrace();
+			trace.push(newTrace);
+		}
 	};
 }
 

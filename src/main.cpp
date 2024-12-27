@@ -23,6 +23,14 @@ int main(int argc, char** argv) {
 
 	if(program.hasError()) {
 		std::cerr << "Parsing error occurred \n\t" << program.getErrorMsg();
+		std::cerr << "\nTrace: \n";
+		std::string space;
+		while(!program.getStackTrace().empty()) {
+			space += " ";
+			std::cerr << space << "-> " << program.getTrace().text << " (" << ArgonLang::ASTNodeTypeToString(program.getTrace().type) << ")\n";
+			program.popTrace();
+		}
+
 		return 1;
 	}
 
