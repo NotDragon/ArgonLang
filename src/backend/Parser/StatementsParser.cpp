@@ -120,7 +120,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<Token> token = advance();
 	if(token.hasError()) return { token.getErrorMsg() };
 
-	Result<std::unique_ptr<ASTNode>> identifier = parseExpression();
+	Result<std::unique_ptr<ASTNode>> identifier = parseMemberAccessExpression();
 	if(identifier.hasError()) return identifier;
 
 	if(!identifier.isNull() && identifier.getValue()->getNodeType() == ASTNodeType::Identifier) {
@@ -458,6 +458,11 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 	while(peek().type != Token::RightBrace) {
 		Result<std::unique_ptr<ASTNode>> statement = parseStatement();
 		if(statement.hasError()) return statement;
+
+		if(statement.getValue()->getNodeType() == ASTNodeType::FunctionCallExpression) {
+			Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
+			if(semiColon.hasError()) return { semiColon.getErrorMsg() };
+		}
 
 		body.push_back(statement.moveValue());
 	}

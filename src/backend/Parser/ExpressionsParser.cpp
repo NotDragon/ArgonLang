@@ -296,6 +296,31 @@ Result<std::unique_ptr<ASTNode>> Parser::parseRangeExpression() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionCallExpression() {
 	Result<std::unique_ptr<ASTNode>> left = parseIndexingExpression();
+	if(left.hasError()) return left;
+
+	while(peek().type == Token::LeftParen) {
+		Result<Token> leftParen = advance();
+		if(leftParen.hasError()) return { leftParen.getErrorMsg() };
+
+		std::vector<std::unique_ptr<ExpressionNode>> arguments;
+		while(peek().type != Token::RightParen) {
+			Result<std::unique_ptr<ASTNode>> argument = parseExpression();
+			if(argument.hasError()) return argument;
+
+			arguments.push_back(dynamic_unique_cast<ExpressionNode>(argument.moveValue()));
+			if(peek().type == Token::RightParen) break;
+
+			Result<Token> comma = expect(Token::Comma, "Expected ',' between function arguments");
+			if(comma.hasError()) return { comma.getErrorMsg() };
+		}
+		Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after function arguments");
+		if(rightParen.hasError()) return { rightParen.getErrorMsg() };
+
+		left = std::make_unique<FunctionCallExpressionNode>(
+				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
+				std::move(arguments)
+		);
+	}
 
 	return left;
 }

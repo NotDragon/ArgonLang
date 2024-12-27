@@ -106,7 +106,18 @@ void ArgonLang::ToExpressionNode::toDot(std::ostream& os, int& nodeId) const {
 }
 
 void ArgonLang::FunctionCallExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"FunctionCallExpression\"];\n";
+
+	int nameId = nodeId;
+	function->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << nameId << " [label=\"Name\"];\n";
+
+	for(const auto& argument: arguments) {
+		int argumentId = nodeId;
+		argument->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << argumentId << " [label=\"Argument\"];\n";
+	}
 }
 
 void ArgonLang::LambdaExpressionNode::toDot(std::ostream &os, int &nodeId) const {
@@ -409,7 +420,11 @@ void ArgonLang::FunctionArgument::toDot(std::ostream &os, int &nodeId) const {
 
 void ArgonLang::FunctionDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"" << "Function Declaration: " << dynamic_cast<IdentifierNode*>(name.get())->identifier << "\"];\n"; // for now this works
+	os << "  node" << currentId << " [label=\"" << "Function Declaration\"];\n";
+
+	int nameId = nodeId;
+	name->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << nameId << " [label=\"Name\"];\n";
 
 	for(const auto & arg : args) {
 		int argId = nodeId;
@@ -430,7 +445,11 @@ void ArgonLang::FunctionDeclarationNode::toDot(std::ostream &os, int &nodeId) co
 
 void ArgonLang::FunctionDefinitionNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"" << "Function Definition: " << dynamic_cast<IdentifierNode*>(name.get())->identifier << "\"];\n";
+	os << "  node" << currentId << " [label=\"" << "Function Definition: \"];\n";
+
+	int nameId = nodeId;
+	name->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << nameId << " [label=\"Name\"];\n";
 
 	for(const auto & arg : args) {
 		int argId = nodeId;
