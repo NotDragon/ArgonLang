@@ -128,7 +128,7 @@ void ArgonLang::TernaryExpressionNode::print() const {
 }
 
 void ArgonLang::ReturnStatementNode::print() const {
-    
+
 }
 
 void ArgonLang::VariableDeclarationNode::print() const {

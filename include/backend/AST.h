@@ -494,8 +494,9 @@ namespace ArgonLang
     class ReturnStatementNode : public StatementNode {
     public:
         std::unique_ptr<ExpressionNode> returnExpression;
+		bool isSuper;
 
-        explicit ReturnStatementNode(std::unique_ptr<ExpressionNode> returnExpression);
+        explicit ReturnStatementNode(std::unique_ptr<ExpressionNode> returnExpression, bool isSuper);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG

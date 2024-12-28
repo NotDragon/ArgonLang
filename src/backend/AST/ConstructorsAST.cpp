@@ -66,7 +66,7 @@ ArgonLang::TernaryExpressionNode::TernaryExpressionNode(std::unique_ptr<Expressi
 														std::unique_ptr<ExpressionNode> trueBranch,
 														std::unique_ptr<ExpressionNode> falseBranch): condition(std::move(condition)), trueBranch(std::move(trueBranch)), falseBranch(std::move(falseBranch)) {}
 
-ArgonLang::ReturnStatementNode::ReturnStatementNode(std::unique_ptr<ExpressionNode> returnExpression): returnExpression(std::move(returnExpression)) {}
+ArgonLang::ReturnStatementNode::ReturnStatementNode(std::unique_ptr<ExpressionNode> returnExpression, bool isSuper): returnExpression(std::move(returnExpression)), isSuper(isSuper) {}
 
 ArgonLang::VariableDeclarationNode::VariableDeclarationNode(bool isConst, std::unique_ptr<TypeNode> type,
 															std::unique_ptr<ExpressionNode> value, std::string name): isConst(isConst), type(std::move(type)), value(std::move(value)), name(std::move(name)) {}

@@ -557,6 +557,8 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBitwiseNotExpression() {
 	return left;
 }
 
+
+
 Result<std::unique_ptr<ASTNode>> Parser::parseParallelExpression() {
 	if(peek().type != Token::KeywordPar) return parseStructExpression();
 
