@@ -12,14 +12,31 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parsePrefixedType() {
-	if(peek().type != Token::Multiply && peek().type != Token::Ownership) return parseIdentifierType();
+	PrefixedTypeNode::Prefix prefix;
+	switch (peek().type) {
+		case Token::Multiply:
+			prefix = PrefixedTypeNode::Prefix::Pointer;
+			break;
+		case Token::Ownership:
+			prefix = PrefixedTypeNode::Prefix::Owned;
+			break;
+		default:
+			return parseIdentifierType();
+	}
 
-	return std::unique_ptr<TypeNode>();
+	Result<Token> pref = advance();
+	if(pref.hasError()) return { pref, Trace("", ASTNodeType::PrefixedType, pref.getValue().position) };
+
+	Token::Position pos = peek().position;
+	Result<std::unique_ptr<TypeNode>> base = parseIdentifierType();
+	if(base.hasError()) return { std::move(base), Trace("", ASTNodeType::PrefixedType, pos) };
+
+	return { std::make_unique<PrefixedTypeNode>(base.moveValue(), prefix) };
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseGenericType() {
-	Result<std::unique_ptr<TypeNode>> left = parsePrefixedType();
-	if(peek().type != Token::Less || left.hasError()) return left;
+	Result<std::unique_ptr<TypeNode>> base = parsePrefixedType();
+	if(peek().type != Token::Less || base.hasError()) return base;
 
 	Result<Token> less = advance();
 	if (less.hasError()) return {less, Trace("", ASTNodeType::GenericType, less.getValue().position)};
@@ -39,7 +56,7 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	}
 
 
-	return { std::make_unique<GenericTypeNode>(left.moveValue(), std::move(args)) };
+	return { std::make_unique<GenericTypeNode>(base.moveValue(), std::move(args)) };
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseSumType() {
