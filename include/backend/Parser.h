@@ -76,7 +76,7 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseReduceExpression();
 		Result<std::unique_ptr<ASTNode>> parseRangeExpression();
 		Result<std::unique_ptr<ASTNode>> parseFunctionCallExpression();
-		Result<std::unique_ptr<ASTNode>> parseIndexingExpression();
+		Result<std::unique_ptr<ASTNode>> parseIndexExpression();
 		Result<std::unique_ptr<ASTNode>> parseMemberAccessExpression();
 
 		// Methods for parsing statements

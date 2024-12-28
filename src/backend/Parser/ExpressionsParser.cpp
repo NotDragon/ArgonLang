@@ -257,8 +257,26 @@ Result<std::unique_ptr<ASTNode>> Parser::parseMemberAccessExpression() {
 	return left;
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseIndexingExpression() {
+Result<std::unique_ptr<ASTNode>> Parser::parseIndexExpression() {
 	Result<std::unique_ptr<ASTNode>> left = parseMemberAccessExpression();
+	if(left.hasError())	return left;
+
+	while(peek().type == Token::LeftBracket) {
+		Result<Token> leftBracket = expect(Token::LeftBracket, "Expected '['");
+		if (leftBracket.hasError()) return {leftBracket.getErrorMsg()};
+
+		Token::Position pos = peek().position;
+		Result<std::unique_ptr<ASTNode>> index = parseMemberAccessExpression();
+		if (index.hasError()) return { std::move(index), Trace("", ASTNodeType::IndexExpression, pos) };
+
+		Result<Token> rightBracket = expect(Token::RightBracket, "Expected ']'");
+		if (rightBracket.hasError()) return {rightBracket, Trace("", ASTNodeType::IndexExpression, rightBracket.getValue().position) };
+
+		left = std::make_unique<IndexExpressionNode>(
+				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
+				dynamic_unique_cast<ExpressionNode>(index.moveValue())
+		);
+	}
 
 	return left;
 }
@@ -339,7 +357,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseRangeExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionCallExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parseIndexingExpression();
+	Result<std::unique_ptr<ASTNode>> left = parseIndexExpression();
 	if(left.hasError()) return left;
 
 	while(peek().type == Token::LeftParen) {
