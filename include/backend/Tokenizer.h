@@ -37,7 +37,6 @@ namespace ArgonLang {
 			KeywordPro,
 			KeywordConstructor,
 			KeywordTypeconst,
-			KeywordImplements,
 			KeywordInter,
 			KeywordIs,
 			KeywordThrow,

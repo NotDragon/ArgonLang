@@ -51,7 +51,6 @@ namespace ArgonLang {
 			{ "enum", Token::KeywordEnum },
 			{ "typeconst", Token::KeywordTypeconst },
 			{ "super", Token::KeywordSuper },
-			{ "implements", Token::KeywordImplements },
 			{ "inter", Token::KeywordInter },
 			{ "is", Token::KeywordIs },
 			{ "throw", Token::KeywordThrow },
@@ -348,7 +347,6 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::KeywordConstructor: return "KeywordConstructor";
 		case Token::KeywordEnum: return "KeywordEnum";
 		case Token::KeywordTypeconst: return "KeywordTypeconst";
-		case Token::KeywordImplements: return "KeywordImplements";
 		case Token::KeywordInter: return "KeywordInter";
 		case Token::KeywordIs: return "KeywordIs";
 		case Token::KeywordThrow: return "KeywordThrow";
