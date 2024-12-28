@@ -128,10 +128,6 @@ void ArgonLang::ComparisonExpressionNode::toDot(std::ostream &os, int &nodeId) c
 	
 }
 
-void ArgonLang::AssignmentExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	
-}
-
 void ArgonLang::IndexExpressionNode::toDot(std::ostream &os, int &nodeId) const {
 	
 }
@@ -488,6 +484,24 @@ void ArgonLang::MemberAccessExpressionNode::toDot(std::ostream &os, int &nodeId)
 	os << "  n" << nodeId << " [label=\"" << memberName << "\", shape=record]\n";
 	this->left->toDot(os, ++nodeId);
 	os << "  n" << nodeId << " -> n" << nodeId - 1 << "\n";
+}
+
+
+void ArgonLang::AssignmentExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"Assignment\"];\n";
+
+	if (left) {
+		int leftId = nodeId;
+		left->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << leftId << " [label=\"left\"];\n";
+	}
+
+	if (right) {
+		int rightId = nodeId;
+		right->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << rightId << " [label=\"right\"];\n";
+	}
 }
 
 #endif
