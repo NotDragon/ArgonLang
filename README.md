@@ -31,6 +31,7 @@ argon hello.arg -o hello
 git clone https://github.com/NotDragon/ArgonLang.git
 cd ArgonLang
 mkdir build
+cd build
 cmake -G "MinGW Makefiles" .. # or "Unix Makefiles"
 mingw32-make # or make
 ```
