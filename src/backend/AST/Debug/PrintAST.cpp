@@ -190,7 +190,7 @@ void ArgonLang::IdentifierTypeNode::print() const {
 }
 
 void ArgonLang::GenericTypeNode::print() const {
-    std::cout << "GenericType: " << name << "<";
+    std::cout << "GenericType: " << base << "<";
     for (int i = 0; i < params.size(); ++i) {
         params[i]->print();
         if (i < params.size() - 1) std::cout << ", ";

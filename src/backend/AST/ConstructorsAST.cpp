@@ -103,7 +103,7 @@ ArgonLang::IdentifierTypeNode::IdentifierTypeNode(std::string typeName)
 
 ArgonLang::RangeExpressionNode::RangeExpressionNode(std::vector<std::unique_ptr<ExpressionNode>> range): range(std::move(range)) {}
 
-ArgonLang::GenericTypeNode::GenericTypeNode(std::string name, std::vector<std::unique_ptr<TypeNode>> params) : name(std::move(name)), params(std::move(params)) {}
+ArgonLang::GenericTypeNode::GenericTypeNode(std::unique_ptr<TypeNode> base, std::vector<std::unique_ptr<TypeNode>> params) : base(std::move(base)), params(std::move(params)) {}
 
 ArgonLang::YieldStatementNode::YieldStatementNode(std::unique_ptr<ExpressionNode> expressionNode): expressionNode(std::move(expressionNode)) {}
 

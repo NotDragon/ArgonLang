@@ -185,3 +185,7 @@ ASTNodeType MemberAccessExpressionNode::getNodeType() const {
 ArgonLang::ASTNodeType ArgonLang::IntersectionTypeNode::getNodeType() const {
 	return ArgonLang::ASTNodeType::IntersectionType;
 }
+
+ArgonLang::ASTNodeType ArgonLang::PrefixedTypeNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::PrefixedType;
+}

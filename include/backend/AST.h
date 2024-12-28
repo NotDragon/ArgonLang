@@ -74,7 +74,8 @@ namespace ArgonLang
 		ConstructorStatement,
 		ImplStatement,
 		MemberAccessExpression,
-		IntersectionType
+		IntersectionType,
+		PrefixedType
 	};
 
 	enum class [[nodiscard]] ASTNodeGroup {
@@ -759,9 +760,9 @@ namespace ArgonLang
 
 	class GenericTypeNode : public TypeNode { // vec<i32>
 	public:
-		std::string name;
+		std::unique_ptr<TypeNode> base;
 		std::vector<std::unique_ptr<TypeNode>> params;
-		explicit GenericTypeNode(std::string name, std::vector<std::unique_ptr<TypeNode>> params);
+		explicit GenericTypeNode(std::unique_ptr<TypeNode> base, std::vector<std::unique_ptr<TypeNode>> params);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG

@@ -338,7 +338,7 @@ void ArgonLang::UnionDeclarationNode::toDot(std::ostream& os, int& nodeId) const
 
 void ArgonLang::GenericTypeNode::toDot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"GenericType: " << name << "\"];\n";
+	os << "  node" << currentId << " [label=\"GenericType: " << base << "\"];\n";
 	for (const auto &param: params) {
 		int paramId = nodeId;
 		param->toDot(os, nodeId);

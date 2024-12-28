@@ -583,7 +583,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStructExpression() {
 
 	std::vector<StructField> fields;
 	while(peek().type != Token::RightBrace) {
-		Result<Token> nameError = expect(Token::Identifier, "Expected fields name");
+		Result<Token> nameError = expect(Token::Identifier, "Expected fields base");
 		if(nameError.hasError()) return { nameError.getErrorMsg(), Trace("", ASTNodeType::StructExpression, nameError.getValue().position) };
 		Token name = nameError.getValue();
 
