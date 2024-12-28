@@ -17,6 +17,6 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	return std::unique_ptr<TypeNode>();
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseTypePrefix() {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parsePrefixedType() {
 	return std::unique_ptr<TypeNode>();
 }

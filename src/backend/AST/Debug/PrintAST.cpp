@@ -135,6 +135,10 @@ void ArgonLang::IntersectionTypeNode::print() const {
 
 }
 
+void ArgonLang::PrefixedTypeNode::print() const {
+
+}
+
 void ArgonLang::VariableDeclarationNode::print() const {
     
 }

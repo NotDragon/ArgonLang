@@ -796,6 +796,24 @@ namespace ArgonLang
 #endif
 	};
 
+	class PrefixedTypeNode : public TypeNode { // *i32
+	public:
+		enum Prefix {
+			Pointer,
+			Owned
+		} prefix;
+
+		std::unique_ptr<TypeNode> type;
+
+		explicit PrefixedTypeNode(std::unique_ptr<TypeNode> type, Prefix prefix);
+
+		ASTNodeType getNodeType() const override;
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
 }
 
 

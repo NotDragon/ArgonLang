@@ -539,4 +539,8 @@ void ArgonLang::IntersectionTypeNode::toDot(std::ostream &os, int &nodeId) const
 
 }
 
+void ArgonLang::PrefixedTypeNode::toDot(std::ostream &os, int &nodeId) const {
+
+}
+
 #endif

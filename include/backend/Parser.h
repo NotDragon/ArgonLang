@@ -100,7 +100,7 @@ namespace ArgonLang {
 		Result<std::unique_ptr<TypeNode>> parseGenericType();
 		Result<std::unique_ptr<TypeNode>> parseSumType();
 		Result<std::unique_ptr<TypeNode>> parseIntersectionType();
-		Result<std::unique_ptr<TypeNode>> parseTypePrefix();
+		Result<std::unique_ptr<TypeNode>> parsePrefixedType();
 	};
 }
 

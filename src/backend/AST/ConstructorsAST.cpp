@@ -154,3 +154,6 @@ ArgonLang::MemberAccessExpressionNode::MemberAccessExpressionNode(std::unique_pt
 
 ArgonLang::IntersectionTypeNode::IntersectionTypeNode(std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)) { }
 
+ArgonLang::PrefixedTypeNode::PrefixedTypeNode(std::unique_ptr<TypeNode> type,
+											  ArgonLang::PrefixedTypeNode::Prefix prefix): type(std::move(type)), prefix(prefix) { }
+
