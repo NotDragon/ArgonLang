@@ -376,7 +376,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 			peek().type == Token::KeywordPri ||
 			peek().type == Token::KeywordPro) {
 			Result<Token> visKeyword = advance();
-			if(visKeyword.hasError()) return { visKeyword.getErrorMsg() };
+			if(visKeyword.hasError()) return { visKeyword, Trace("", ASTNodeType::ClassDeclaration, visKeyword.getValue().position) };
 
 			visibility = 	visKeyword.getValue().type == Token::KeywordPub ? MemberVisibility::PUB :
 							visKeyword.getValue().type == Token::KeywordPri ? MemberVisibility::PRI :
@@ -456,7 +456,6 @@ Result<std::unique_ptr<ASTNode>> Parser::parseConstructorStatement() {
 	if(leftParen.hasError()) return { leftParen.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement, leftParen.getValue().position) };
 
 	while(true) {
-		
 		Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> arg = parseConstructorArgument();
 		if(arg.hasError()) return { arg.getErrorMsg(), Trace("", ASTNodeType::ConstructorStatement, constructorKeyword.getValue().position) };
 
