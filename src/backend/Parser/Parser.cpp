@@ -21,7 +21,7 @@ Result<Token> Parser::advance() {
 Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) {
     if (current > tokens.size() || tokens[current].type != type) {
 		current--;
-        return { errorMessage, peek() };
+        return { errorMessage + " got " + peek().value + "(" + Token::getTypeAsString(peek().type) + ")", peek() };
     }
 	return advance();
 }
