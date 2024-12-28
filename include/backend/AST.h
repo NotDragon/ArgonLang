@@ -715,6 +715,20 @@ namespace ArgonLang
 #endif
 	};
 
+	class TypeAliasNode : public StatementNode {
+	public:
+		std::string aliasName;
+		std::unique_ptr<TypeNode> targetType;
+
+		explicit TypeAliasNode(std::string aliasName, std::unique_ptr<TypeNode> targetType);
+
+		ASTNodeType getNodeType() const override;
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
 	class BlockNode : public StatementNode {
 	public:
 		std::vector<std::unique_ptr<ASTNode>> body;
@@ -746,20 +760,6 @@ namespace ArgonLang
         std::string typeName;
 
         explicit IdentifierTypeNode(std::string typeName);
-
-		ASTNodeType getNodeType() const override;
-    #ifdef DEBUG
-        void print() const override;
-        void toDot(std::ostream& os, int& nodeId) const override;
-    #endif
-    };
-
-    class TypeAliasNode : public TypeNode { // idk
-    public:
-        std::string aliasName;
-        std::unique_ptr<TypeNode> targetType;
-
-        explicit TypeAliasNode(std::string aliasName, std::unique_ptr<TypeNode> targetType);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG

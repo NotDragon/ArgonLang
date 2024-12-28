@@ -331,7 +331,24 @@ Result<std::unique_ptr<ASTNode>> Parser::parseContinueStatement() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {
-	return std::unique_ptr<ASTNode>();
+	Result<Token> typeAlias = advance();
+	if (typeAlias.hasError())
+		return { typeAlias.getErrorMsg(), Trace("", ASTNodeType::TypeAlias, typeAlias.getValue().position) };
+
+	Result<Token> identifier = expect(Token::Identifier, "Expected identifier after using");
+	if(identifier.hasError()) return { identifier, Trace("", ASTNodeType::TypeAlias, identifier.getValue().position) };
+
+	Result<Token> assign = expect(Token::Assign, "Expected '=' after using");
+	if(assign.hasError()) return { assign, Trace("", ASTNodeType::TypeAlias, assign.getValue().position) };
+
+	Token::Position pos = peek().position;
+	Result<std::unique_ptr<TypeNode>> type = parseType();
+	if(type.hasError()) return { std::move(type), Trace("", ASTNodeType::TypeAlias, pos) };
+
+	return { std::make_unique<TypeAliasNode>(
+			identifier.getValue().value,
+			type.moveValue()
+		) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
