@@ -129,7 +129,21 @@ void ArgonLang::ComparisonExpressionNode::toDot(std::ostream &os, int &nodeId) c
 }
 
 void ArgonLang::IndexExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	
+	int currentId = nodeId++;
+
+	os << "  node" << currentId << " [label=\"IndexExpression\"];\n";
+
+	if (array) {
+		int arrayId = nodeId;
+		array->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << arrayId << " [label=\"array\"];\n";
+	}
+
+	if (index) {
+		int indexId = nodeId;
+		index->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << indexId << " [label=\"index\"];\n";
+	}
 }
 
 void ArgonLang::MatchBranch::toDot(std::ostream& os, int& nodeId) const {
