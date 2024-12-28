@@ -214,13 +214,46 @@ Result<std::unique_ptr<ASTNode>> Parser::parseShiftExpression() {
 
 Result<std::unique_ptr<ASTNode>> Parser::parseAssignmentExpression() {
 	Result<std::unique_ptr<ASTNode>> left = parseParallelExpression();
+	if(left.hasError()) return left;
+
+	while(peek().type == Token::Assign) {
+		Result<Token> assign = advance();
+		if (assign.hasError()) return { assign.getErrorMsg(), Trace("", ASTNodeType::AssignmentExpression, assign.getValue().position) };
+
+		Token::Position pos = peek().position;
+		Result<std::unique_ptr<ASTNode>> right = parseParallelExpression();
+		if(right.hasError()) return { std::move(right), Trace("", ASTNodeType::AssignmentExpression, pos) };
+
+		left = std::make_unique<AssignmentExpressionNode>(
+				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
+				assign.getValue(),
+				dynamic_unique_cast<ExpressionNode>(right.moveValue())
+		);
+	}
 
 	return left;
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseMemberAccessExpression() {
 	Result<std::unique_ptr<ASTNode>> left = parsePrimary();
+	if(left.hasError()) return left;
 
+	while (peek().type == Token::Dot || peek().type == Token::DoubleColon) {
+		Result<Token> accessType = advance();
+		if (accessType.hasError())
+			return {accessType.getErrorMsg(),
+					Trace("", ASTNodeType::MemberAccessExpression, accessType.getValue().position)};
+
+		Token::Position pos = peek().position;
+		Result<std::unique_ptr<ASTNode>> right = parsePrimary();
+		if(right.hasError()) return { std::move(right), Trace("", ASTNodeType::MemberAccessExpression, pos) };
+
+		left = std::make_unique<MemberAccessExpressionNode>(
+				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
+				accessType.getValue(),
+				dynamic_unique_cast<ExpressionNode>(right.moveValue())
+		);
+	}
 	return left;
 }
 

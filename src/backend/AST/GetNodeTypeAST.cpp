@@ -177,3 +177,7 @@ ASTNodeType ConstructorStatementNode::getNodeType() const {
 ASTNodeType ImplStatementNode::getNodeType() const {
 	return ASTNodeType::ImplStatement;
 }
+
+ASTNodeType MemberAccessExpressionNode::getNodeType() const {
+	return ASTNodeType::MemberAccessExpression;
+}

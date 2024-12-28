@@ -484,4 +484,10 @@ void ArgonLang::ClassDeclarationNode::toDot(std::ostream &os, int &nodeId) const
 
 }
 
+void ArgonLang::MemberAccessExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+	os << "  n" << nodeId << " [label=\"" << memberName << "\", shape=record]\n";
+	this->left->toDot(os, ++nodeId);
+	os << "  n" << nodeId << " -> n" << nodeId - 1 << "\n";
+}
+
 #endif

@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <memory>
+#include <utility>
 #include "Tokenizer.h"
 #include "frontend/Value.h"
 
@@ -71,7 +72,8 @@ namespace ArgonLang
 		FunctionDeclaration,
 		FunctionDefinition,
 		ConstructorStatement,
-		ImplStatement
+		ImplStatement,
+		MemberAccessExpression
 	};
 
 	enum class [[nodiscard]] ASTNodeGroup {
@@ -243,6 +245,23 @@ namespace ArgonLang
         void toDot(std::ostream& os, int& nodeId) const override;
     #endif
     };
+
+
+	class MemberAccessExpressionNode : public ExpressionNode {
+	public:
+		std::unique_ptr<ExpressionNode> left;
+		Token accessType;
+		std::unique_ptr<ExpressionNode> memberName;
+
+		explicit MemberAccessExpressionNode(std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member);
+
+		ASTNodeType getNodeType() const override;
+
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream &os, int &nodeId) const override;
+#endif
+	};
 
     class ToExpressionNode : public ExpressionNode {
     public:
