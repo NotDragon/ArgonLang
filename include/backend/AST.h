@@ -61,7 +61,7 @@ namespace ArgonLang
 		BreakStatement,
 		ContinueStatement,
 		Block,
-		UnionType,
+		SumType,
 		IdentifierType,
 		TypeAlias,
 		GenericType,
@@ -73,7 +73,8 @@ namespace ArgonLang
 		FunctionDefinition,
 		ConstructorStatement,
 		ImplStatement,
-		MemberAccessExpression
+		MemberAccessExpression,
+		IntersectionType
 	};
 
 	enum class [[nodiscard]] ASTNodeGroup {
@@ -743,31 +744,18 @@ namespace ArgonLang
 #endif
 	};
 
-    class UnionTypeNode : public TypeNode { // i32 | f64
-    public:
-        std::vector<std::unique_ptr<TypeNode>> types;
+	class IdentifierTypeNode : public TypeNode { // i32
+	public:
+		std::string typeName;
 
-        explicit UnionTypeNode(std::vector<std::unique_ptr<TypeNode>> types);
-
-		ASTNodeType getNodeType() const override;
-    #ifdef DEBUG
-        void print() const override;
-        void toDot(std::ostream& os, int& nodeId) const override;
-    #endif
-    };
-
-    class IdentifierTypeNode : public TypeNode { // i32
-    public:
-        std::string typeName;
-
-        explicit IdentifierTypeNode(std::string typeName);
+		explicit IdentifierTypeNode(std::string typeName);
 
 		ASTNodeType getNodeType() const override;
-    #ifdef DEBUG
-        void print() const override;
-        void toDot(std::ostream& os, int& nodeId) const override;
-    #endif
-    };
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
 
 	class GenericTypeNode : public TypeNode { // vec<i32>
 	public:
@@ -782,7 +770,31 @@ namespace ArgonLang
 #endif
 	};
 
-	// need one more for Printable & i32
+    class SumTypeNode : public TypeNode { // i32 | f64
+    public:
+        std::vector<std::unique_ptr<TypeNode>> types;
+
+        explicit SumTypeNode(std::vector<std::unique_ptr<TypeNode>> types);
+
+		ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+	class IntersectionTypeNode : public TypeNode { // i32 & Printable
+	public:
+		std::vector<std::unique_ptr<TypeNode>> types;
+
+		explicit IntersectionTypeNode(std::vector<std::unique_ptr<TypeNode>> types);
+
+		ASTNodeType getNodeType() const override;
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
 
 }
 

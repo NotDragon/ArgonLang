@@ -130,8 +130,8 @@ ASTNodeType BlockNode::getNodeType() const {
 	return ASTNodeType::Block;
 }
 
-ASTNodeType UnionTypeNode::getNodeType() const {
-	return ASTNodeType::UnionType;
+ASTNodeType SumTypeNode::getNodeType() const {
+	return ASTNodeType::SumType;
 }
 
 ASTNodeType IdentifierTypeNode::getNodeType() const {
@@ -180,4 +180,8 @@ ASTNodeType ImplStatementNode::getNodeType() const {
 
 ASTNodeType MemberAccessExpressionNode::getNodeType() const {
 	return ASTNodeType::MemberAccessExpression;
+}
+
+ArgonLang::ASTNodeType ArgonLang::IntersectionTypeNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::IntersectionType;
 }

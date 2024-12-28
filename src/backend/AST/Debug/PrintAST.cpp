@@ -131,6 +131,10 @@ void ArgonLang::ReturnStatementNode::print() const {
 
 }
 
+void ArgonLang::IntersectionTypeNode::print() const {
+
+}
+
 void ArgonLang::VariableDeclarationNode::print() const {
     
 }
@@ -190,8 +194,8 @@ void ArgonLang::GenericTypeNode::print() const {
     std::cout << ">" << std::endl;
 }
 
-void ArgonLang::UnionTypeNode::print() const {
-    std::cout << "UnionType: ";
+void ArgonLang::SumTypeNode::print() const {
+    std::cout << "SumType: ";
     for (int i = 0; i < types.size(); ++i) {
         types[i]->print();
         if (i < types.size() - 1) std::cout << " | ";

@@ -394,9 +394,9 @@ void ArgonLang::BlockNode::toDot(std::ostream &os, int &nodeId) const {
 	}
 }
 
-void ArgonLang::UnionTypeNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::SumTypeNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"UnionType\"];\n";
+	os << "  node" << currentId << " [label=\"SumType\"];\n";
 	for (const auto& type : types) {
 		int typeId = nodeId;
 		type->toDot(os, nodeId);
@@ -533,6 +533,10 @@ void ArgonLang::AssignmentExpressionNode::toDot(std::ostream &os, int &nodeId) c
 		right->toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << rightId << " [label=\"right\"];\n";
 	}
+}
+
+void ArgonLang::IntersectionTypeNode::toDot(std::ostream &os, int &nodeId) const {
+
 }
 
 #endif

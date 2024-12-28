@@ -9,10 +9,14 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	return std::unique_ptr<TypeNode>();
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseUnionType() {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseSumType() {
 	return std::unique_ptr<TypeNode>();
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseArrayType() {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseIntersectionType() {
+	return std::unique_ptr<TypeNode>();
+}
+
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseTypePrefix() {
 	return std::unique_ptr<TypeNode>();
 }

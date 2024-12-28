@@ -1,7 +1,7 @@
 #include "backend/AST.h"
 #include <utility>
 
-ArgonLang::UnionTypeNode::UnionTypeNode(std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)) {}
+ArgonLang::SumTypeNode::SumTypeNode(std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)) {}
 ArgonLang::StringLiteralNode::StringLiteralNode(std::string  val) : value(std::move(val)) {}
 
 ArgonLang::IntegralLiteralNode::IntegralLiteralNode(__int128 val, PrimitiveType type) : type(type) {
@@ -151,3 +151,6 @@ ArgonLang::ClassDeclarationNode::ClassDeclarationNode(std::string className, std
 
 ArgonLang::MemberAccessExpressionNode::MemberAccessExpressionNode(std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member)
 : parent(std::move(leftExpression)), member(std::move(member)), accessType(std::move(accessType)) {}
+
+ArgonLang::IntersectionTypeNode::IntersectionTypeNode(std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)) { }
+

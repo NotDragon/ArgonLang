@@ -98,8 +98,9 @@ namespace ArgonLang {
 		// Methods for parsing types
 		Result<std::unique_ptr<TypeNode>> parseType();
 		Result<std::unique_ptr<TypeNode>> parseGenericType();
-		Result<std::unique_ptr<TypeNode>> parseUnionType();
-		Result<std::unique_ptr<TypeNode>> parseArrayType();
+		Result<std::unique_ptr<TypeNode>> parseSumType();
+		Result<std::unique_ptr<TypeNode>> parseIntersectionType();
+		Result<std::unique_ptr<TypeNode>> parseTypePrefix();
 	};
 }
 

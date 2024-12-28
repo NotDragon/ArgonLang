@@ -67,7 +67,7 @@ std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
 		case ASTNodeType::BreakStatement: return "BreakStatement";
 		case ASTNodeType::ContinueStatement: return "ContinueStatement";
 		case ASTNodeType::Block: return "Block";
-		case ASTNodeType::UnionType: return "UnionType";
+		case ASTNodeType::SumType: return "SumType";
 		case ASTNodeType::IdentifierType: return "IdentifierType";
 		case ASTNodeType::TypeAlias: return "TypeAlias";
 		case ASTNodeType::GenericType: return "GenericType";
