@@ -243,7 +243,14 @@ void ArgonLang::StructExpressionNode::toDot(std::ostream &os, int &nodeId) const
 }
 
 void ArgonLang::RangeExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+	int currentNodeId = nodeId++;
+	os << "  node" << currentNodeId << " [label=\"RangeExpression\"];\n";
 
+	for (const auto& element : range) {
+		int elementNodeId = nodeId;
+		element->toDot(os, nodeId);
+		os << "  node" << currentNodeId << " -> node" << elementNodeId << ";\n";
+	}
 }
 
 void ArgonLang::VariableDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
@@ -495,11 +502,21 @@ void ArgonLang::ClassDeclarationNode::toDot(std::ostream &os, int &nodeId) const
 }
 
 void ArgonLang::MemberAccessExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	os << "  n" << nodeId << " [label=\"" << memberName << "\", shape=record]\n";
-	this->left->toDot(os, ++nodeId);
-	os << "  n" << nodeId << " -> n" << nodeId - 1 << "\n";
-}
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"Member Access\"];\n";
 
+	if (parent) {
+		int leftId = nodeId;
+		parent->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << leftId << ";\n";
+	}
+
+	if(member) {
+		int memberId = nodeId;
+		member->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << memberId << ";\n";
+	}
+}
 
 void ArgonLang::AssignmentExpressionNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
@@ -508,7 +525,7 @@ void ArgonLang::AssignmentExpressionNode::toDot(std::ostream &os, int &nodeId) c
 	if (left) {
 		int leftId = nodeId;
 		left->toDot(os, nodeId);
-		os << "  node" << currentId << " -> node" << leftId << " [label=\"left\"];\n";
+		os << "  node" << currentId << " -> node" << leftId << " [label=\"parent\"];\n";
 	}
 
 	if (right) {

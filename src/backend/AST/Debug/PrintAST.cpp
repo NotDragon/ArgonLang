@@ -274,7 +274,7 @@ void ArgonLang::ClassDeclarationNode::print() const {
 }
 
 void ArgonLang::MemberAccessExpressionNode::print() const {
-	std::cout << "MemberAccessExpressionNode: " << memberName << std::endl;
+	std::cout << "MemberAccessExpressionNode: " << member << std::endl;
 }
 
 #endif

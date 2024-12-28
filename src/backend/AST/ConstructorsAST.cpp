@@ -150,4 +150,4 @@ ArgonLang::ClassDeclarationNode::ClassMember::ClassMember(std::unique_ptr<Statem
 ArgonLang::ClassDeclarationNode::ClassDeclarationNode(std::string className, std::vector<ClassMember> body): className(std::move(className)), body(std::move(body)) { }
 
 ArgonLang::MemberAccessExpressionNode::MemberAccessExpressionNode(std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member)
-: left(std::move(leftExpression)), memberName(std::move(member)), accessType(std::move(accessType)) {}
+: parent(std::move(leftExpression)), member(std::move(member)), accessType(std::move(accessType)) {}

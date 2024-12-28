@@ -249,9 +249,9 @@ namespace ArgonLang
 
 	class MemberAccessExpressionNode : public ExpressionNode {
 	public:
-		std::unique_ptr<ExpressionNode> left;
+		std::unique_ptr<ExpressionNode> parent;
 		Token accessType;
-		std::unique_ptr<ExpressionNode> memberName;
+		std::unique_ptr<ExpressionNode> member;
 
 		explicit MemberAccessExpressionNode(std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member);
 

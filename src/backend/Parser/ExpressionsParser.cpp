@@ -351,9 +351,31 @@ Result<std::unique_ptr<ASTNode>> Parser::parseReduceExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseRangeExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parseFunctionCallExpression();
+	if(peek().type != Token::LeftBracket) return parseFunctionCallExpression();
 
-	return left;
+	Result<Token> leftBracket = advance();
+	if (leftBracket.hasError()) return {leftBracket.getErrorMsg(), Trace("", ASTNodeType::RangeExpression, leftBracket.getValue().position) };
+
+	std::vector<std::unique_ptr<ExpressionNode>> elements;
+
+	while (peek().type != Token::RightBracket) {
+		Token::Position pos = peek().position;
+		Result<std::unique_ptr<ASTNode>> element = parseFunctionCallExpression();
+		if (element.hasError()) return { std::move(element), Trace("", ASTNodeType::RangeExpression, pos) };
+
+		elements.push_back(dynamic_unique_cast<ExpressionNode>(element.moveValue()));
+
+		if(peek().type != Token::Comma) break;
+
+		Result<Token> comma = advance();
+		if (comma.hasError()) return {comma.getErrorMsg(), Trace("", ASTNodeType::RangeExpression, comma.getValue().position) };
+	}
+
+	Result<Token> rightBracket = expect(Token::RightBracket, "Expected ']' to close the range expression");
+	if (rightBracket.hasError()) return {rightBracket.getErrorMsg(), Trace("", ASTNodeType::RangeExpression, rightBracket.getValue().position) };
+
+	return { std::make_unique<RangeExpressionNode>(std::move(elements)) };
+
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionCallExpression() {
@@ -417,22 +439,38 @@ Result<std::unique_ptr<ASTNode>> Parser::parseToExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseDerefExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parseRangeExpression();
+	if(peek().type != Token::Multiply) return parseRangeExpression();
 
-	return left;
+	Result<Token> derefToken = advance();
+	if (derefToken.hasError()) return { derefToken.getErrorMsg(), Trace("", ASTNodeType::UnaryExpression, derefToken.getValue().position) };
+
+	Token::Position pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> operand = parseRangeExpression();
+	if (operand.hasError()) return { std::move(operand), Trace("", ASTNodeType::UnaryExpression, pos) };
+
+	return { std::make_unique<UnaryExpressionNode>(derefToken.getValue(),
+												   dynamic_unique_cast<ExpressionNode>(operand.moveValue())) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseReferenceExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parseDerefExpression();
+	if(peek().type != Token::MapRange) return parseDerefExpression();
 
-	return left;
+	Result<Token> refToken = advance();
+	if (refToken.hasError()) return {refToken.getErrorMsg(), Trace("", ASTNodeType::UnaryExpression, refToken.getValue().position) };
+
+	Token::Position pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> operand = parseDerefExpression();
+	if (operand.hasError()) return { std::move(operand), Trace("", ASTNodeType::UnaryExpression, pos) };
+
+	return { std::make_unique<UnaryExpressionNode>(refToken.getValue(),
+												   dynamic_unique_cast<ExpressionNode>(operand.moveValue())) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseIncrementExpression() {
 	Result<std::unique_ptr<ASTNode>> left = parseReferenceExpression();
 	if(left.hasError()) return left;
 
-	while(peek().type == Token::Increment) {
+	while(peek().type == Token::Increment || peek().type == Token::Decrement) {
 		Result<Token> opError = advance();
 		if(opError.hasError()) return { opError.getErrorMsg(), Trace("", ASTNodeType::UnaryExpression, opError.getValue().position) };
 		Token op = opError.getValue();
@@ -446,15 +484,42 @@ Result<std::unique_ptr<ASTNode>> Parser::parseIncrementExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseUnaryMinusExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parseIncrementExpression();
+	if(peek().type != Token::Minus) return parseIncrementExpression();
 
-	return left;
+	Result<Token> minusToken = advance();
+	if (minusToken.hasError()) return { minusToken.getErrorMsg(), Trace("", ASTNodeType::UnaryExpression, minusToken.getValue().position) };
+
+	if(peek().type == Token::Plus) {
+		// Decrement
+	}
+
+	Token::Position pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> operand = parseIncrementExpression();
+	if (operand.hasError()) return { std::move(operand), Trace("", ASTNodeType::UnaryExpression, pos) };
+
+	return { std::make_unique<UnaryExpressionNode>(minusToken.getValue(),
+												  dynamic_unique_cast<ExpressionNode>(operand.moveValue()))
+	};
+
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseUnaryPlusExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parseUnaryMinusExpression();
+	if(peek().type != Token::Plus) return parseUnaryMinusExpression();
 
-	return left;
+	Result<Token> plusToken = advance();
+	if (plusToken.hasError()) return { plusToken.getErrorMsg(), Trace("", ASTNodeType::UnaryExpression, plusToken.getValue().position) };
+
+	if(peek().type == Token::Plus) {
+		// Increment
+	}
+
+	Token::Position pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> operand = parseUnaryMinusExpression();
+	if (operand.hasError()) return { std::move(operand), Trace("", ASTNodeType::UnaryExpression, pos) };
+
+	return { std::make_unique<UnaryExpressionNode>(plusToken.getValue(),
+												  dynamic_unique_cast<ExpressionNode>(operand.moveValue()))
+	};
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseLogicalNotExpression() {
