@@ -163,26 +163,26 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			tokens.emplace_back(Token::LogicalOr, "||", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
-        } else if (c == '<' && input[i + 1] == '<') {
+        } else if (c == '*' && input[i + 1] == '<') {
 			if (input[i + 2] == '=') {
-				tokens.emplace_back(Token::LeftShiftAssign, "<<=", currentLine, currentColumn);
+				tokens.emplace_back(Token::LeftShiftAssign, "*<=", currentLine, currentColumn);
 				i += 3;
 				currentColumn += 3;
 				continue;
 			}
 
-			tokens.emplace_back(Token::LeftShift, "<<", currentLine, currentColumn);
+			tokens.emplace_back(Token::LeftShift, "*<", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
-        } else if (c == '>' && input[i + 1] == '>') {
+        } else if (c == '*' && input[i + 1] == '>') {
 			if (input[i + 2] == '=') {
-				tokens.emplace_back(Token::RightShiftAssign, ">>=", currentLine, currentColumn);
+				tokens.emplace_back(Token::RightShiftAssign, "*>=", currentLine, currentColumn);
 				i += 3;
 				currentColumn += 3;
 				continue;
 			}
 
-			tokens.emplace_back(Token::RightShift, ">>", currentLine, currentColumn);
+			tokens.emplace_back(Token::RightShift, "*>", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
         } else if (c == '<' && input[i + 1] == '=') {

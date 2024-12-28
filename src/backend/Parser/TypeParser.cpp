@@ -5,8 +5,11 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseIdentifierType() {
-	Result<Token> left = expect(Token::Identifier, "Expected Identifier");
+	Result<Token> left = advance();
 	if(left.hasError()) return { left, Trace("", ASTNodeType::IdentifierType, left.getValue().position) };
+
+	if(left.getValue().type != Token::Identifier && left.getValue().type != Token::PrimitiveType)
+		return { "Expected type", Trace("", ASTNodeType::IdentifierType, left.getValue().position) };
 
 	return { std::make_unique<IdentifierTypeNode>(left.getValue().value) };
 }
@@ -55,6 +58,8 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		if (comma.hasError()) return {comma, Trace("", ASTNodeType::GenericType, comma.getValue().position)};
 	}
 
+	Result<Token> greater = advance();
+	if (greater.hasError()) return {greater, Trace("", ASTNodeType::GenericType, less.getValue().position)};
 
 	return { std::make_unique<GenericTypeNode>(base.moveValue(), std::move(args)) };
 }

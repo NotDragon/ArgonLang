@@ -336,16 +336,6 @@ void ArgonLang::UnionDeclarationNode::toDot(std::ostream& os, int& nodeId) const
 	}
 }
 
-void ArgonLang::GenericTypeNode::toDot(std::ostream& os, int& nodeId) const {
-	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"GenericType: " << base << "\"];\n";
-	for (const auto &param: params) {
-		int paramId = nodeId;
-		param->toDot(os, nodeId);
-		os << "  node" << currentId << " -> node" << paramId << " [label=\"param\"];\n";
-	}
-}
-
 void ArgonLang::YieldStatementNode::toDot(std::ostream &os, int &nodeId) const {
 
 }
@@ -392,20 +382,6 @@ void ArgonLang::BlockNode::toDot(std::ostream &os, int &nodeId) const {
 		node->toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << branchId << ";\n";
 	}
-}
-
-void ArgonLang::SumTypeNode::toDot(std::ostream &os, int &nodeId) const {
-	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"SumType\"];\n";
-	for (const auto& type : types) {
-		int typeId = nodeId;
-		type->toDot(os, nodeId);
-		os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
-	}
-}
-
-void ArgonLang::IdentifierTypeNode::toDot(std::ostream& os, int& nodeId) const {
-	os << "  node" << nodeId++ << " [label=\"PrimitiveType: " << typeName << "\"];\n";
 }
 
 void ArgonLang::StructField::toDot(std::ostream &os, int &nodeId) const {
@@ -535,12 +511,58 @@ void ArgonLang::AssignmentExpressionNode::toDot(std::ostream &os, int &nodeId) c
 	}
 }
 
-void ArgonLang::IntersectionTypeNode::toDot(std::ostream &os, int &nodeId) const {
-
+void ArgonLang::IdentifierTypeNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"IdentifierType: " << typeName << "\"];";
 }
 
-void ArgonLang::PrefixedTypeNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::GenericTypeNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"GenericType\"];";
 
+	int baseId = nodeId;
+	base->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << baseId << " [label=\"base\"];";
+
+	for (const auto& param : params) {
+		int paramId = nodeId;
+		param->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << paramId << " [label=\"param\"];";
+	}
 }
+
+void ArgonLang::SumTypeNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"SumType\"];";
+
+	for (const auto& type : types) {
+		int typeId = nodeId;
+		type->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];";
+	}
+}
+
+void ArgonLang::IntersectionTypeNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"IntersectionType\"];";
+
+	for (const auto& type : types) {
+		int typeId = nodeId;
+		type->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];";
+	}
+}
+
+void ArgonLang::PrefixedTypeNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	std::string prefixLabel = (prefix == Prefix::Pointer) ? "Pointer" : "Owned";
+	os << "  node" << currentId << " [label=\"PrefixedType: " << prefixLabel << "\"];";
+
+	int typeId = nodeId;
+	type->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];";
+}
+
+
 
 #endif
