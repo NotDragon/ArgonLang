@@ -8,6 +8,14 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	Result<Token> left = advance();
 	if(left.hasError()) return { left, Trace("", ASTNodeType::IdentifierType, left.getValue().position) };
 
+	if(left.getValue().type == Token::LeftParen) {
+		Result<std::unique_ptr<TypeNode>> type = parseType();
+		Result<Token> tokenError1 = expect(Token::RightParen, "Expected closing ')'");
+		if(tokenError1.hasError()) return { tokenError1.getErrorMsg() };
+
+		return type;
+	}
+
 	if(left.getValue().type != Token::Identifier && left.getValue().type != Token::PrimitiveType)
 		return { "Expected type", Trace("", ASTNodeType::IdentifierType, left.getValue().position) };
 

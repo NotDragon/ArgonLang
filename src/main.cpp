@@ -21,6 +21,8 @@ int main(int argc, char** argv) {
 	if(program.hasError()) {
 		std::cerr << "Parsing error occurred \n\t" << program.getErrorMsg();
 		std::cerr << "\nAt: \n";
+
+		size_t columnError = 0;
 		std::string space;
 		while(!program.getStackTrace().empty()) {
 			std::string line = " ";
@@ -39,11 +41,18 @@ int main(int argc, char** argv) {
 			}
 
 			space += " ";
-			std::cerr << space << "L " << "Line: " <<  program.getTrace().position.line << " Column: " << program.getTrace().position.column
+			std::cerr << space << "L"
 			<< line
-			<< program.getTrace().text << " (" << ArgonLang::ASTNodeTypeToString(program.getTrace().type) << ") \n";
+			<< program.getTrace().text << " (" << ArgonLang::ASTNodeTypeToString(program.getTrace().type)
+			<< " Line: " <<  program.getTrace().position.line << " Column: " << program.getTrace().position.column << ")\n";
+			columnError = program.getTrace().position.column;
 			program.popTrace();
 		}
+
+		std::cerr << space;
+		for(int i = 0; i < columnError; i++)
+			std::cerr << " ";
+		std::cerr << "^ Here";
 
 		return 1;
 	}
