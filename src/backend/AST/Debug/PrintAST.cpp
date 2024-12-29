@@ -6,6 +6,10 @@ void ArgonLang::StringLiteralNode::print() const {
     std::cout << "StringLiteral(" << value << ")";
 }
 
+void ArgonLang::CharLiteralNode::print() const {
+	std::cout << "CharLiteral(" << value << ")";
+}
+
 void ArgonLang::IntegralLiteralNode::print() const {
     std::cout << "IntegralLiteral: ";
     switch (type) {

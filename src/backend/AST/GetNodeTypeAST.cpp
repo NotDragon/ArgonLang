@@ -6,6 +6,10 @@ ASTNodeType StringLiteralNode::getNodeType() const {
 	return ASTNodeType::StringLiteral;
 }
 
+ASTNodeType CharLiteralNode::getNodeType() const {
+	return ASTNodeType::CharLiteral;
+}
+
 ASTNodeType IntegralLiteralNode::getNodeType() const {
 	return ASTNodeType::IntegralLiteral;
 }

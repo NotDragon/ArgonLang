@@ -6,7 +6,6 @@
 #include <memory>
 #include <utility>
 #include "Tokenizer.h"
-#include "frontend/Value.h"
 
 #define DEBUG
 namespace ArgonLang
@@ -30,6 +29,7 @@ namespace ArgonLang
 
 	enum class [[nodiscard]] ASTNodeType {
 		StringLiteral,
+		CharLiteral,
 		IntegralLiteral,
 		FloatLiteral,
 		BooleanLiteral,
@@ -129,6 +129,19 @@ namespace ArgonLang
         void toDot(std::ostream& os, int& nodeId) const override;
     #endif
     };
+
+	class CharLiteralNode : public ExpressionNode {
+	public:
+		char value;
+
+		explicit CharLiteralNode(char val);
+
+		ASTNodeType getNodeType() const override;
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
 
     class IntegralLiteralNode : public ExpressionNode {
     public:

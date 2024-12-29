@@ -1,8 +1,14 @@
 #include "backend/AST.h"
 #ifdef DEBUG
+
 void ArgonLang::StringLiteralNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"StringLiteral(" << value << ")\"];\n";
+}
+
+void ArgonLang::CharLiteralNode::toDot(std::ostream &os, int &nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"CharLiteral(" << value << ")\"];\n";
 }
 
 void ArgonLang::IntegralLiteralNode::toDot(std::ostream& os, int& nodeId) const {
