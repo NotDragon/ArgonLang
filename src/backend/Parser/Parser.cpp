@@ -15,13 +15,13 @@ Result<Token> Parser::advance() {
     if (current < tokens.size()) {
         return tokens[current++];
     }
-	return { "Unexpected end of input", peek() };
+	return { "Unexpected end of input", "", peek() };
 }
 
 Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) {
     if (current > tokens.size() || tokens[current].type != type) {
 		current--;
-        return { errorMessage + " got " + peek().value + "(" + Token::getTypeAsString(peek().type) + ")", peek() };
+        return { errorMessage + " got " + peek().value + "(" + Token::getTypeAsString(peek().type) + ")", "", peek() };
     }
 	return advance();
 }
@@ -43,13 +43,13 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 				statement = parseFunctionDeclaration();
 				break;
 			default:
-				return { "Only Function and Variable declarations are allowed in the outer scope" };
+				return { "Only Function and Variable declarations are allowed in the outer scope", "", Trace(ASTNodeType::Program, peek().position) };
 		}
 
 		if(statement.hasError()) {
 			synchronize();
 
-			return {statement.getErrorMsg(), statement.getStackTrace() };
+			return { std::move(statement), Trace() };
 		}
 
 		statements.push_back(statement.moveValue());

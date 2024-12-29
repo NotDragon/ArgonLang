@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
 			space += " ";
 			std::cerr << space << "L"
 			<< line
-			<< program.getTrace().text << " (" << ArgonLang::ASTNodeTypeToString(program.getTrace().type)
+			<< " (" << ArgonLang::ASTNodeTypeToString(program.getTrace().type)
 			<< " Line: " <<  program.getTrace().position.line << " Column: " << program.getTrace().position.column << ")\n";
 			columnError = program.getTrace().position.column;
 			program.popTrace();
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 		std::cerr << space;
 		for(int i = 0; i < columnError; i++)
 			std::cerr << " ";
-		std::cerr << "^ Here";
+		std::cerr << "^ " << program.getErrorNote();
 
 		return 1;
 	}

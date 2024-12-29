@@ -1,5 +1,7 @@
 #include <utility>
 #include "Error/Result.h"
 
-ArgonLang::Trace::Trace(): text(""), type(), position({ 0, 0 }) { }
-ArgonLang::Trace::Trace(std::string  text, ASTNodeType type, Token::Position position): text(std::move(text)), type(type), position(position) {}
+ArgonLang::Trace::Trace(): type(), position({ 0, 0 }) { }
+
+
+ArgonLang::Trace::Trace(ASTNodeType type, Token::Position position): type(type), position(position) {}

@@ -13,17 +13,17 @@
 
 namespace ArgonLang {
 	struct Trace {
-		std::string text;
 		ASTNodeType type;
 		Token::Position position;
 		Trace();
-		Trace(std::string text, ASTNodeType type, Token::Position position);
+		Trace(ASTNodeType type, Token::Position position);
 	};
 
 	template<typename T>
 	class Result {
 		T value;
 		std::string errorMsg;
+		std::string errorNote;
 
 		template <typename U>
 		struct is_unique_ptr : std::false_type {};
@@ -45,6 +45,10 @@ namespace ArgonLang {
 
 		std::string getErrorMsg() const {
 			return errorMsg;
+		}
+
+		std::string getErrorNote() const {
+			return errorNote;
 		}
 
 		T& getValue() {
@@ -87,21 +91,22 @@ namespace ArgonLang {
 
 		Result(T value): value(std::move(value)), errorMsg("") { }
 		Result(): value(nullptr), errorMsg("") { }
-//		Result(std::unique_ptr<T> value);
-		Result(std::string errorMsg): value(nullptr), errorMsg(std::move(errorMsg)) { }
-		Result(std::string errorMsg, T value): value(value), errorMsg(std::move(errorMsg)) { }
+		Result(std::string errorMsg, std::string errorNote, T value): value(value), errorMsg(std::move(errorMsg)), errorNote(std::move(errorNote)) { }
 
-		Result(std::string errorMsg, std::stack<Trace> trace): value(nullptr), errorMsg(std::move(errorMsg)), trace(std::move(trace)) {}
-		Result(std::string errorMsg, Trace newTrace): value(nullptr), errorMsg(std::move(errorMsg)) {
-			trace.push(newTrace);
-		}
+//		Result(std::string errorMsg): value(nullptr), errorMsg(std::move(errorMsg)) { }
+//
+//		Result(std::string errorMsg, std::stack<Trace> trace): value(nullptr), errorMsg(std::move(errorMsg)), trace(std::move(trace)) {}
 
-		Result(std::string errorMsg, std::stack<Trace> oldTrace, Trace newTrace): value(nullptr), errorMsg(std::move(errorMsg)), trace(std::move(oldTrace)) {
+//		Result(std::string errorMsg, std::stack<Trace> oldTrace, Trace newTrace): value(nullptr), errorMsg(std::move(errorMsg)), trace(std::move(oldTrace)) {
+//			trace.push(newTrace);
+//		}
+
+		Result(std::string errorMsg, std::string errorNote, Trace newTrace): value(nullptr), errorMsg(std::move(errorMsg)), errorNote(std::move(errorNote)) {
 			trace.push(newTrace);
 		}
 
 		template<class U>
-		Result(Result<U> res, const Trace& newTrace): value(nullptr), errorMsg(std::move(res.getErrorMsg())) {
+		Result(Result<U> res, const Trace& newTrace): value(nullptr), errorMsg(std::move(res.getErrorMsg())), errorNote(std::move(res.getErrorNote())) {
 			trace = res.getStackTrace();
 			trace.push(newTrace);
 		}

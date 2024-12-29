@@ -79,6 +79,10 @@ std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
 		case ASTNodeType::FunctionDefinition: return "FunctionDefinition";
 		case ASTNodeType::ConstructorStatement: return "ConstructorStatement";
 		case ASTNodeType::ImplStatement: return "ImplStatement";
+		case ASTNodeType::CharLiteral: return "CharLiteral";
+		case ASTNodeType::MemberAccessExpression: return "MemberAccessExpression";
+		case ASTNodeType::IntersectionType: return "IntersectionType";
+		case ASTNodeType::PrefixedType: return "PrefixedType";
 	}
 }
 
