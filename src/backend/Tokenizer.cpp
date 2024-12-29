@@ -59,6 +59,7 @@ namespace ArgonLang {
 			{ "catch", Token::KeywordCatch },
     };
 }
+
 std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
     std::vector<Token> tokens;
     size_t length = input.size();
@@ -76,7 +77,46 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			continue;
 		}
 
-        if (std::isspace(c)) {
+		if (c == '\"' || c == '\'') {
+			char quoteType = c;
+			size_t start = i;
+			i++;
+			std::string stringLiteral;
+			while (i < length && input[i] != quoteType) {
+				if (input[i] == '\\') {
+					i++;
+					if (i >= length) throw std::runtime_error("Unterminated escape sequence in string");
+					switch (input[i]) {
+						case 'n': stringLiteral += '\n'; break;
+						case 't': stringLiteral += '\t'; break;
+						case '\\': stringLiteral += '\\'; break;
+						case '\"': stringLiteral += '\"'; break;
+						case '\'': stringLiteral += '\''; break;
+						default: stringLiteral += input[i]; break;
+					}
+				} else {
+					stringLiteral += input[i];
+				}
+				i++;
+			}
+			if (i >= length || input[i] != quoteType) {
+				throw std::runtime_error("Unterminated string literal");
+			}
+			i++;
+
+			if(quoteType == '\"')
+				tokens.emplace_back(Token::StringLiteral, stringLiteral, currentLine, currentColumn);
+			else if(stringLiteral.size() != 1)
+				throw std::runtime_error("Multiple characters in char literal");
+			else
+				tokens.emplace_back(Token::CharLiteral, stringLiteral, currentLine, currentColumn);
+
+			currentColumn += (i - start);
+			continue;
+		}
+
+
+		if (std::isspace(c)) {
 			currentColumn++;
 			i++;
 			continue;
