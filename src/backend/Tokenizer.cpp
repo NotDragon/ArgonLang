@@ -85,13 +85,15 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			while (i < length && input[i] != quoteType) {
 				if (input[i] == '\\') {
 					i++;
-					if (i >= length) throw std::runtime_error("Unterminated escape sequence in string");
+					if (i >= length) throw std::runtime_error("Unterminated escape sequence in string" + std::to_string(currentLine) + ", column " + std::to_string(currentColumn));
 					switch (input[i]) {
 						case 'n': stringLiteral += '\n'; break;
 						case 't': stringLiteral += '\t'; break;
 						case '\\': stringLiteral += '\\'; break;
 						case '\"': stringLiteral += '\"'; break;
 						case '\'': stringLiteral += '\''; break;
+						case 'r': stringLiteral += '\r'; break;
+						case '0': stringLiteral += '\0'; break;
 						default: stringLiteral += input[i]; break;
 					}
 				} else {
@@ -100,14 +102,14 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 				i++;
 			}
 			if (i >= length || input[i] != quoteType) {
-				throw std::runtime_error("Unterminated string literal");
+				throw std::runtime_error("Unterminated string literal" + std::to_string(currentLine) + ", column " + std::to_string(currentColumn));
 			}
 			i++;
 
 			if(quoteType == '\"')
 				tokens.emplace_back(Token::StringLiteral, stringLiteral, currentLine, currentColumn);
 			else if(stringLiteral.size() != 1)
-				throw std::runtime_error("Multiple characters in char literal");
+				throw std::runtime_error("Multiple characters in char literal" + std::to_string(currentLine) + ", column " + std::to_string(currentColumn));
 			else
 				tokens.emplace_back(Token::CharLiteral, stringLiteral, currentLine, currentColumn);
 
@@ -128,7 +130,7 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			while (i < length && (std::isdigit(input[i]) || input[i] == '.' || input[i] == '`')) {
 				if (input[i] == '.') {
 					if (isDecimal) {
-						throw std::runtime_error("Invalid numeric literal: multiple decimal points");
+						throw std::runtime_error("Invalid numeric literal: multiple decimal points" + std::to_string(currentLine) + ", column " + std::to_string(currentColumn));
 					}
 					isDecimal = true;
 				}
