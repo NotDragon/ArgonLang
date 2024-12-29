@@ -74,6 +74,23 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			currentLine++;
 			currentColumn = 1;
 			i++;
+
+			while(input[i] == ' ' || input[i] == '\t') {
+				i++;
+			}
+
+			continue;
+		}
+
+		if(c == '\t') {
+			currentColumn+=4;
+			i++;
+			continue;
+		}
+
+		if (std::isspace(c)) {
+			currentColumn++;
+			i++;
 			continue;
 		}
 
@@ -116,13 +133,6 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			currentColumn += (i - start);
 			continue;
 		}
-
-
-		if (std::isspace(c)) {
-			currentColumn++;
-			i++;
-			continue;
-        }
 
         if (std::isdigit(c)) {
 			size_t start = i;

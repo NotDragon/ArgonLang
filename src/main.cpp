@@ -18,6 +18,8 @@ int main(int argc, char** argv) {
     ArgonLang::Parser parser(tokens);
 	ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> program = parser.parse();
 
+	bool verbose = true;
+
 	if(program.hasError()) {
 		std::cerr << "Parsing error occurred \n\t" << program.getErrorMsg();
 		std::cerr << "\nAt: \n";
@@ -25,22 +27,36 @@ int main(int argc, char** argv) {
 		size_t columnError = 0;
 		std::string space;
 		while(!program.getStackTrace().empty()) {
+			if(program.getTrace().type == ArgonLang::ASTNodeType::Program // Don't print global scope
+				|| (!verbose && program.getStackTrace().size() > 1)) { // If not verbose, only print the last one
+				program.popTrace();
+				continue;
+			}
+
 			std::string line = " ";
 			int lineCounter = 0;
-			for(char i : str) {
-				if(i == '\n') {
+			bool whiteSpace = true;
+			for(int i = 0; i < str.size(); i++) {
+				if(str[i] == '\n') {
 					lineCounter++;
 					continue;
 				}
 
-				if(i == '\t') continue;
-
 				if(lineCounter == program.getTrace().position.line - 1)	{
-					line += i;
+					if(!whiteSpace) {
+						line += str[i];
+						continue;
+					}
+
+					if(str[i] == ' ' || str[i] == '\t') continue;
+
+					line += str[i];
+					whiteSpace = false;
 				}
 			}
 
 			space += " ";
+
 			std::cerr << space << "L"
 			<< line
 			<< " (" << ArgonLang::ASTNodeTypeToString(program.getTrace().type)
@@ -50,7 +66,7 @@ int main(int argc, char** argv) {
 		}
 
 		std::cerr << space;
-		for(int i = 0; i < columnError; i++)
+		for(int i = 0; i < columnError + 1; i++)
 			std::cerr << " ";
 		std::cerr << "^ " << program.getErrorNote();
 

@@ -26,7 +26,7 @@ Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) 
 	return advance();
 }
 
-int Parser::getMainCounter() {
+int Parser::getMainCounter() const {
 	return mainCounter;
 }
 
@@ -49,7 +49,7 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 		if(statement.hasError()) {
 			synchronize();
 
-			return { std::move(statement), Trace() };
+			return { std::move(statement), Trace(ASTNodeType::Program, { 0, 0 }) };
 		}
 
 		statements.push_back(statement.moveValue());

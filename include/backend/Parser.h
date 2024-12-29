@@ -35,7 +35,7 @@ namespace ArgonLang {
 	public:
 		explicit Parser(const std::vector<Token>& tokens);
 
-		int getMainCounter();
+		int getMainCounter() const;
 		Token peek() const;
 		bool eos() const;
 		void synchronize();

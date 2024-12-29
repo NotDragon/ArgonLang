@@ -20,7 +20,7 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		return { "Expected type", "", Trace(ASTNodeType::IdentifierType, left.getValue().position) };
 
 	if (peek().type == Token::Identifier || peek().type == Token::PrimitiveType) {
-		return { "Expected '&' between types", "Did you mean to add '&'?", Trace(ASTNodeType::IntersectionType, left.getValue().position) };
+		return { "Expected '&' or '|' between types", "Did you mean to add '&' or '|'?", Trace(ASTNodeType::IntersectionType, left.getValue().position) };
 	}
 
 	return { std::make_unique<IdentifierTypeNode>(left.getValue().value) };
