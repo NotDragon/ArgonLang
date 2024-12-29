@@ -14,11 +14,13 @@ Result<std::unique_ptr<ASTNode>> Parser::parsePrimary() {
 		return { std::make_unique<FloatLiteralNode>(std::stod(token.value), determineFloatType(token.value)) }; // stod needs to be changed
 	} else if (token.type == Token::StringLiteral) {
 		return { std::make_unique<StringLiteralNode>(token.value) };
+	}  else if(token.type == Token::CharLiteral) {
+		return { std::make_unique<CharLiteralNode>(token.value[0]) };
 	} else if (token.type == Token::BooleanLiteral) {
 		return { std::make_unique<BooleanLiteralNode>(token.value == "true") };
 	} else if (token.type == Token::Identifier) {
 		return { std::make_unique<IdentifierNode>(token.value) };
-	} else if (token.type == Token::LeftParen) {
+	}else if (token.type == Token::LeftParen) {
 		Result<std::unique_ptr<ASTNode>> expr = parseExpression();
 		Result<Token> tokenError1 = expect(Token::RightParen, "Expected closing ')'");
 		if(tokenError1.hasError()) return { tokenError1.getErrorMsg() };

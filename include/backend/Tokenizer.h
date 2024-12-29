@@ -47,6 +47,7 @@ namespace ArgonLang {
             IntegralLiteral,
             FloatLiteral,
             StringLiteral,
+			CharLiteral,
             BooleanLiteral,
 			PrimitiveType,
 
