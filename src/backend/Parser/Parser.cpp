@@ -62,9 +62,7 @@ void Parser::synchronize() {
 		Token currentType = peek();
 
 		if (currentType.type == Token::Semicolon ||
-			currentType.type == Token::KeywordDef ||
-			currentType.type == Token::KeywordFunc ||
-			currentType.type == Token::KeywordClass) {
+			currentType.type == Token::RightBrace) {
 			advance();
 			return;
 		}
