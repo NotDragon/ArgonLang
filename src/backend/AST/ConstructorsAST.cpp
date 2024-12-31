@@ -110,11 +110,6 @@ ArgonLang::YieldStatementNode::YieldStatementNode(std::unique_ptr<ExpressionNode
 
 ArgonLang::ParallelExpressionNode::ParallelExpressionNode(std::unique_ptr<ASTNode> statementNode): statementNode(std::move(statementNode)) {}
 
-ArgonLang::AwaitExpressionNode::AwaitExpressionNode(std::unique_ptr<ExpressionNode> statementNode): statementNode(std::move(statementNode)) {}
-
-
-ArgonLang::LazyExpressionNode::LazyExpressionNode(std::unique_ptr<ExpressionNode> statementNode): statementNode(std::move(statementNode)) {}
-
 ArgonLang::WhileStatementNode::WhileStatementNode(bool isDoWhile, std::unique_ptr<ExpressionNode> condition,
 												  std::unique_ptr<ASTNode> body,
 												  std::unique_ptr<StatementNode> elseBranch): condition(std::move(condition)), body(std::move(body)), elseBranch(std::move(elseBranch)), isDoWhile(isDoWhile) {}

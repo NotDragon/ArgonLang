@@ -74,14 +74,6 @@ ASTNodeType ParallelExpressionNode::getNodeType() const {
 	return ASTNodeType::ParallelExpression;
 }
 
-ASTNodeType AwaitExpressionNode::getNodeType() const {
-	return ASTNodeType::AwaitExpression;
-}
-
-ASTNodeType LazyExpressionNode::getNodeType() const {
-	return ASTNodeType::LazyExpression;
-}
-
 ASTNodeType StructExpressionNode::getNodeType() const {
 	return ASTNodeType::StructExpression;
 }

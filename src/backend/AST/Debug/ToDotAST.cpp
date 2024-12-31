@@ -224,20 +224,6 @@ void ArgonLang::ParallelExpressionNode::toDot(std::ostream &os, int &nodeId) con
 	os << "  node" << currentId << " -> node" << currentId + 1 << ";\n";
 }
 
-void ArgonLang::AwaitExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"AwaitExpression\"];\n";
-	statementNode->toDot(os, nodeId);
-	os << "  node" << currentId << " -> node" << currentId + 1 << ";\n";
-}
-
-void ArgonLang::LazyExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"LazyExpression\"];\n";
-	statementNode->toDot(os, nodeId);
-	os << "  node" << currentId << " -> node" << currentId + 1 << ";\n";
-}
-
 void ArgonLang::StructExpressionNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"StructExpressionNode\"];\n";

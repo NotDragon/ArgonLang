@@ -426,32 +426,6 @@ namespace ArgonLang
     #endif
     };
 
-    class AwaitExpressionNode : public ExpressionNode {
-    public:
-        std::unique_ptr<ExpressionNode> statementNode;
-
-        explicit AwaitExpressionNode(std::unique_ptr<ExpressionNode> statementNode);
-
-		ASTNodeType getNodeType() const override;
-    #ifdef DEBUG
-        void print() const override;
-        void toDot(std::ostream& os, int& nodeId) const override;
-    #endif
-    };
-
-    class LazyExpressionNode : public ExpressionNode {
-    public:
-        std::unique_ptr<ExpressionNode> statementNode;
-
-        explicit LazyExpressionNode(std::unique_ptr<ExpressionNode> statementNode);
-
-		ASTNodeType getNodeType() const override;
-    #ifdef DEBUG
-        void print() const override;
-        void toDot(std::ostream& os, int& nodeId) const override;
-    #endif
-    };
-
 	class StructField {
 	public:
 		std::string name;

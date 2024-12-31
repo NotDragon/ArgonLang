@@ -223,16 +223,6 @@ void ArgonLang::ParallelExpressionNode::print() const {
     
 }
 
-void ArgonLang::AwaitExpressionNode::print() const {
-    std::cout << "AwaitExpression(";
-    statementNode->print();
-    std::cout << ")\n";
-}
-
-void ArgonLang::LazyExpressionNode::print() const {
-    
-}
-
 void ArgonLang::WhileStatementNode::print() const {
 
 }
