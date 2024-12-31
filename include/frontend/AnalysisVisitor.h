@@ -6,10 +6,10 @@
 
 namespace ArgonLang {
 	class AnalysisVisitor: Visitor<Result<bool>> {
-		Result<bool> visit(std::unique_ptr<ASTNode> node);
-		Result<bool> visit(std::unique_ptr<ExpressionNode> node);
-		Result<bool> visit(std::unique_ptr<StatementNode> node);
-		Result<bool> visit(std::unique_ptr<TypeNode> node);
+		Result<bool> visit(const ASTNode& node);
+		Result<bool> visit(const ExpressionNode& node);
+		Result<bool> visit(const StatementNode& node);
+		Result<bool> visit(const TypeNode& node);
 
 		Result<bool> visit(const ProgramNode &node);
 

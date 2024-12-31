@@ -6,110 +6,129 @@
 
 using namespace ArgonLang;
 
-Result<bool> AnalysisVisitor::visit(std::unique_ptr<ASTNode> node) {
-	switch (node.get()->getNodeGroup()) {
+Result<bool> AnalysisVisitor::visit(const ASTNode& node) {
+	switch (node.getNodeGroup()) {
 		case ASTNodeGroup::Expression:
-			return visit(dynamic_unique_cast<ExpressionNode>(std::move(node)));
+			return visit(static_cast<const ExpressionNode&>(node));
 		case ASTNodeGroup::Statement:
-			return visit(dynamic_unique_cast<StatementNode>(std::move(node)));
+			return visit(static_cast<const StatementNode&>(node));
 		case ASTNodeGroup::Type:
-			return visit(dynamic_unique_cast<TypeNode>(std::move(node)));
+			return visit(static_cast<const TypeAliasNode&>(node));
 	}
 }
 
-Result<bool> AnalysisVisitor::visit(std::unique_ptr<ExpressionNode> node) {
-	switch (node.get()->getNodeType()) {
+Result<bool> AnalysisVisitor::visit(const ExpressionNode& node) {
+	switch (node.getNodeType()) {
 		case ASTNodeType::IntegralLiteral:
-			return visit(static_cast<const IntegralLiteralNode&>(*node));
+			return visit(static_cast<const IntegralLiteralNode&>(node));
 		case ASTNodeType::FloatLiteral:
-			return visit(static_cast<const FloatLiteralNode&>(*node));
+			return visit(static_cast<const FloatLiteralNode&>(node));
 		case ASTNodeType::StringLiteral:
-			return visit(static_cast<const StringLiteralNode&>(*node));
+			return visit(static_cast<const StringLiteralNode&>(node));
 		case ASTNodeType::CharLiteral:
-			return visit(static_cast<const CharLiteralNode&>(*node));
+			return visit(static_cast<const CharLiteralNode&>(node));
 		case ASTNodeType::BooleanLiteral:
-			return visit(static_cast<const BooleanLiteralNode&>(*node));
+			return visit(static_cast<const BooleanLiteralNode&>(node));
 		case ASTNodeType::Identifier:
-			return visit(static_cast<const IdentifierNode&>(*node));
+			return visit(static_cast<const IdentifierNode&>(node));
 		case ASTNodeType::BinaryExpression:
-			return visit(static_cast<const BinaryExpressionNode&>(*node));
+			return visit(static_cast<const BinaryExpressionNode&>(node));
 		case ASTNodeType::UnaryExpression:
-			return visit(static_cast<const UnaryExpressionNode&>(*node));
+			return visit(static_cast<const UnaryExpressionNode&>(node));
 		case ASTNodeType::FunctionCallExpression:
-			return visit(static_cast<const FunctionCallExpressionNode&>(*node));
+			return visit(static_cast<const FunctionCallExpressionNode&>(node));
 		case ASTNodeType::MemberAccessExpression:
-			return visit(static_cast<const MemberAccessExpressionNode&>(*node));
+			return visit(static_cast<const MemberAccessExpressionNode&>(node));
 		case ASTNodeType::ToExpression:
-			return visit(static_cast<const ToExpressionNode&>(*node));
+			return visit(static_cast<const ToExpressionNode&>(node));
 		case ASTNodeType::LambdaExpression:
-			return visit(static_cast<const LambdaExpressionNode&>(*node));
+			return visit(static_cast<const LambdaExpressionNode&>(node));
 		case ASTNodeType::ComparisonExpression:
-			return visit(static_cast<const ComparisonExpressionNode&>(*node));
+			return visit(static_cast<const ComparisonExpressionNode&>(node));
 		case ASTNodeType::AssignmentExpression:
-			return visit(static_cast<const AssignmentExpressionNode&>(*node));
+			return visit(static_cast<const AssignmentExpressionNode&>(node));
 		case ASTNodeType::IndexExpression:
-			return visit(static_cast<const IndexExpressionNode&>(*node));
+			return visit(static_cast<const IndexExpressionNode&>(node));
 		case ASTNodeType::MatchExpression:
-			return visit(static_cast<const MatchExpressionNode&>(*node));
+			return visit(static_cast<const MatchExpressionNode&>(node));
 		case ASTNodeType::TernaryExpression:
-			return visit(static_cast<const TernaryExpressionNode&>(*node));
+			return visit(static_cast<const TernaryExpressionNode&>(node));
 		case ASTNodeType::ParallelExpression:
-			return visit(static_cast<const ParallelExpressionNode&>(*node));
+			return visit(static_cast<const ParallelExpressionNode&>(node));
 		case ASTNodeType::StructExpression:
-			return visit(static_cast<const StructExpressionNode&>(*node));
+			return visit(static_cast<const StructExpressionNode&>(node));
 		case ASTNodeType::RangeExpression:
-			return visit(static_cast<const RangeExpressionNode&>(*node));
+			return visit(static_cast<const RangeExpressionNode&>(node));
 		default:
 			return visit(std::move(node));
 	}
 }
 
-Result<bool> AnalysisVisitor::visit(std::unique_ptr<StatementNode> node) {
-	switch (node.get()->getNodeType()) {
+Result<bool> AnalysisVisitor::visit(const StatementNode& node) {
+	switch (node.getNodeType()) {
 		case ASTNodeType::ReturnStatement:
-			return visit(static_cast<const ReturnStatementNode&>(*node));
+			return visit(static_cast<const ReturnStatementNode&>(node));
 		case ASTNodeType::VariableDeclaration:
-			return visit(static_cast<const VariableDeclarationNode&>(*node));
+			return visit(static_cast<const VariableDeclarationNode&>(node));
 		case ASTNodeType::IfStatement:
-			return visit(static_cast<const IfStatementNode&>(*node));
+			return visit(static_cast<const IfStatementNode&>(node));
 		case ASTNodeType::ForStatement:
-			return visit(static_cast<const ForStatementNode&>(*node));
+			return visit(static_cast<const ForStatementNode&>(node));
 		case ASTNodeType::UnionDeclaration:
-			return visit(static_cast<const UnionDeclarationNode&>(*node));
+			return visit(static_cast<const UnionDeclarationNode&>(node));
 		case ASTNodeType::YieldStatement:
-			return visit(static_cast<const YieldStatementNode&>(*node));
+			return visit(static_cast<const YieldStatementNode&>(node));
 		case ASTNodeType::WhileStatement:
-			return visit(static_cast<const WhileStatementNode&>(*node));
+			return visit(static_cast<const WhileStatementNode&>(node));
 		case ASTNodeType::BreakStatement:
-			return visit(static_cast<const BreakStatementNode&>(*node));
+			return visit(static_cast<const BreakStatementNode&>(node));
 		case ASTNodeType::ContinueStatement:
-			return visit(static_cast<const ContinueStatementNode&>(*node));
+			return visit(static_cast<const ContinueStatementNode&>(node));
 		case ASTNodeType::Block:
-			return visit(static_cast<const BlockNode&>(*node));
+			return visit(static_cast<const BlockNode&>(node));
 		case ASTNodeType::TypeAlias:
-			return visit(static_cast<const TypeAliasNode&>(*node));
+			return visit(static_cast<const TypeAliasNode&>(node));
 		case ASTNodeType::ClassDeclaration:
-			return visit(static_cast<const ClassDeclarationNode&>(*node));
+			return visit(static_cast<const ClassDeclarationNode&>(node));
 		case ASTNodeType::FunctionDeclaration:
-			return visit(static_cast<const FunctionDeclarationNode&>(*node));
+			return visit(static_cast<const FunctionDeclarationNode&>(node));
 		case ASTNodeType::FunctionDefinition:
-			return visit(static_cast<const FunctionDefinitionNode&>(*node));
+			return visit(static_cast<const FunctionDefinitionNode&>(node));
 		case ASTNodeType::ConstructorStatement:
-			return visit(static_cast<const ConstructorStatementNode&>(*node));
+			return visit(static_cast<const ConstructorStatementNode&>(node));
 		case ASTNodeType::ImplStatement:
-			return visit(static_cast<const ImplStatementNode&>(*node));
+			return visit(static_cast<const ImplStatementNode&>(node));
 		default:
 			return visit(std::move(node));
 	}
 }
 
-Result<bool> AnalysisVisitor::visit(std::unique_ptr<TypeNode> node) {
-
+Result<bool> AnalysisVisitor::visit(const TypeNode& node) {
+	switch (node.getNodeType()) {
+		case ASTNodeType::IntersectionType:
+			return visit(static_cast<const IntersectionTypeNode&>(node));
+		case ASTNodeType::PrefixedType:
+			return visit(static_cast<const PrefixedTypeNode&>(node));
+		case ASTNodeType::GenericType:
+			return visit(static_cast<const GenericTypeNode&>(node));
+		case ASTNodeType::SumType:
+			return visit(static_cast<const SumTypeNode&>(node));
+		case ASTNodeType::IdentifierType:
+			return visit(static_cast<const IdentifierTypeNode&>(node));
+		default:
+			return visit(node);
+	}
 }
 
 
 Result<bool> AnalysisVisitor::visit(const ProgramNode &node) {
-
+	for (const auto& child : node.nodes) {
+		auto result = visit(*child);
+		if (result.hasError()) {
+			return result;
+		}
+	}
+	return Result<bool>(true);
 }
 
 

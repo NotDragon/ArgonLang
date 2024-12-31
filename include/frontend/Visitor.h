@@ -8,10 +8,10 @@ namespace ArgonLang {
 	public:
 		virtual ~Visitor() = default;
 
-		virtual T visit(std::unique_ptr<ASTNode> node) = 0;
-		virtual T visit(std::unique_ptr<ExpressionNode> node) = 0;
-		virtual T visit(std::unique_ptr<StatementNode> node) = 0;
-		virtual T visit(std::unique_ptr<TypeNode> node) = 0;
+		virtual T visit(const ASTNode& node) = 0;
+		virtual T visit(const ExpressionNode& node) = 0;
+		virtual T visit(const StatementNode& node) = 0;
+		virtual T visit(const TypeNode& node) = 0;
 
 		virtual T visit(const ProgramNode &node) = 0;
 
