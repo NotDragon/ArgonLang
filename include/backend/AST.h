@@ -44,13 +44,16 @@ namespace ArgonLang
 		AssignmentExpression,
 		IndexExpression,
 		MatchExpression,
+		MatchBranch,
 		TernaryExpression,
 		ParallelExpression,
-		AwaitExpression,
-		LazyExpression,
+		StructField,
 		StructExpression,
 		RangeExpression,
+		MemberAccessExpression,
+
 		Program,
+
 		ReturnStatement,
 		VariableDeclaration,
 		IfStatement,
@@ -61,21 +64,19 @@ namespace ArgonLang
 		BreakStatement,
 		ContinueStatement,
 		Block,
-		SumType,
-		IdentifierType,
 		TypeAlias,
-		GenericType,
-		StructField,
-		MatchBranch,
 		FunctionArgument,
 		ClassDeclaration,
 		FunctionDeclaration,
 		FunctionDefinition,
 		ConstructorStatement,
 		ImplStatement,
-		MemberAccessExpression,
+
 		IntersectionType,
-		PrefixedType
+		PrefixedType,
+		GenericType,
+		SumType,
+		IdentifierType
 	};
 
 	enum class [[nodiscard]] ASTNodeGroup {
