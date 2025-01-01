@@ -54,7 +54,7 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 
 		statements.push_back(statement.moveValue());
 	}
-	return std::make_unique<ProgramNode>(std::move(statements));
+	return std::make_unique<ProgramNode>(Token::Position(0, 0), std::move(statements));
 }
 
 void Parser::synchronize() {

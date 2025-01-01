@@ -2,6 +2,7 @@
 #include <iostream>
 #include "backend/Parser.h"
 #include "backend/Tokenizer.h"
+#include "frontend/AnalysisVisitor.h"
 
 int main(int argc, char** argv) {
 	if(argc < 3) {
@@ -82,6 +83,9 @@ int main(int argc, char** argv) {
 		std::cerr << "Multiple definition of the main function";
 		return 1;
 	}
+
+	ArgonLang::AnalysisVisitor analysis;
+	analysis.visit(*program.getValue());
 
 	std::ofstream dotFile(argv[2]);
 	dotFile << "digraph AST {\n";

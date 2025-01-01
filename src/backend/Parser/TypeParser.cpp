@@ -23,7 +23,8 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		return { "Expected '&' or '|' between types", "Did you mean to add '&' or '|'?", Trace(ASTNodeType::IntersectionType, left.getValue().position) };
 	}
 
-	return { std::make_unique<IdentifierTypeNode>(left.getValue().value) };
+	return { std::make_unique<IdentifierTypeNode>(
+			left.getValue().position, left.getValue().value) };
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parsePrefixedType() {
@@ -46,7 +47,7 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	Result<std::unique_ptr<TypeNode>> base = parseIdentifierType();
 	if(base.hasError()) return { std::move(base), Trace(ASTNodeType::PrefixedType, pos) };
 
-	return { std::make_unique<PrefixedTypeNode>(base.moveValue(), prefix) };
+	return { std::make_unique<PrefixedTypeNode>(base.getValue()->position,  base.moveValue(), prefix) };
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseGenericType() {
@@ -73,11 +74,12 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	Result<Token> greater = advance();
 	if (greater.hasError()) return {greater, Trace(ASTNodeType::GenericType, less.getValue().position)};
 
-	return { std::make_unique<GenericTypeNode>(base.moveValue(), std::move(args)) };
+	return { std::make_unique<GenericTypeNode>(base.getValue()->position, base.moveValue(), std::move(args)) };
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseSumType() {
 	Result<std::unique_ptr<TypeNode>> left = parseIntersectionType();
+	Token::Position leftPos = left.getValue()->position;
 	if(peek().type != Token::FilterRange || left.hasError()) return left;
 
 	std::vector<std::unique_ptr<TypeNode>> types;
@@ -93,11 +95,12 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		types.push_back(right.moveValue());
 	}
 
-	return { std::make_unique<SumTypeNode>(std::move(types)) };
+	return { std::make_unique<SumTypeNode>(leftPos, std::move(types)) };
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseIntersectionType() {
 	Result<std::unique_ptr<TypeNode>> left = parseGenericType();
+	Token::Position leftPos = left.getValue()->position;
 	if(peek().type != Token::MapRange || left.hasError()) return left;
 
 	std::vector<std::unique_ptr<TypeNode>> types;
@@ -113,5 +116,5 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		types.push_back(right.moveValue());
 	}
 
-	return { std::make_unique<IntersectionTypeNode>(std::move(types)) };
+	return { std::make_unique<IntersectionTypeNode>(leftPos, std::move(types)) };
 }

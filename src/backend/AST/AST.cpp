@@ -52,8 +52,6 @@ std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
 		case ASTNodeType::MatchExpression: return "MatchExpression";
 		case ASTNodeType::TernaryExpression: return "TernaryExpression";
 		case ASTNodeType::ParallelExpression: return "ParallelExpression";
-		case ASTNodeType::AwaitExpression: return "AwaitExpression";
-		case ASTNodeType::LazyExpression: return "LazyExpression";
 		case ASTNodeType::StructExpression: return "StructExpression";
 		case ASTNodeType::RangeExpression: return "RangeExpression";
 		case ASTNodeType::Program: return "Program";

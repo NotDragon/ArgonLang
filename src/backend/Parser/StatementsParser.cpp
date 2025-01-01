@@ -82,7 +82,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 //		return { "Expected either value or type, in variable declaration" };
 	}
 
-	return { std::make_unique<VariableDeclarationNode>((keyword.value == "const"), !type.isNull() ? type.moveValue() : nullptr,
+	return { std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), !type.isNull() ? type.moveValue() : nullptr,
 													   !value.isNull() ? dynamic_unique_cast<ExpressionNode>(value.moveValue()) : nullptr,
 													   std::move(identifier.value)) };
 }
@@ -114,7 +114,7 @@ Result<std::unique_ptr<FunctionArgument>> Parser::parseFunctionArgument() {
 		value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
 	}
 
-	return { std::make_unique<FunctionArgument>(std::move(type), std::move(value), std::move(argIdentifier.getValue().value)) };
+	return { std::make_unique<FunctionArgument>(argIdentifier.getValue().position, std::move(type), std::move(value), std::move(argIdentifier.getValue().value)) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
@@ -160,7 +160,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	if(peek().type == Token::Semicolon) {
 		Result<Token> semicolon = advance();
 		if(semicolon.hasError()) return { semicolon, Trace(ASTNodeType::FunctionDefinition, semicolon.getValue().position) };
-		return { std::make_unique<FunctionDefinitionNode>(returnType.moveValue(), std::move(args), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
+		return { std::make_unique<FunctionDefinitionNode>(token.getValue().position, returnType.moveValue(), std::move(args), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
 	}
 
 	if(peek().type == Token::Arrow) {
@@ -171,18 +171,19 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 		Result<std::unique_ptr<ASTNode>> expr = parseExpression();
 		if(expr.hasError()) return { std::move(expr), Trace(ASTNodeType::FunctionDeclaration, exprPos) };
 
-		std::unique_ptr<ReturnStatementNode> body = std::make_unique<ReturnStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue()), false);
+		std::unique_ptr<ReturnStatementNode> body = std::make_unique<ReturnStatementNode>(exprPos, dynamic_unique_cast<ExpressionNode>(expr.moveValue()), false);
 
 		Result<Token> semiColon = expect(Token::Semicolon, "Expected ';' after inline function");
 		if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::FunctionDeclaration, semiColon.getValue().position) };
 
-		return { std::make_unique<FunctionDeclarationNode>(returnType.moveValue(), std::move(args), std::move(body), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
+		return { std::make_unique<FunctionDeclarationNode>(token.getValue().position, returnType.moveValue(), std::move(args), std::move(body), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
 	}
 
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
 	if(body.hasError()) return { std::move(body), Trace(ASTNodeType::FunctionDeclaration, token.getValue().position) };
 
 	return { std::make_unique<FunctionDeclarationNode>(
+			token.getValue().position,
 			returnType.isNull()? nullptr :returnType.moveValue(),
 			std::move(args),
 			body.moveValue(),
@@ -218,7 +219,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
 		elseStatement = parseStatement();
 		if(elseStatement.hasError()) return { std::move(elseStatement), Trace(ASTNodeType::IfStatement, token1.getValue().position) };
 	}
-	return { std::make_unique<IfStatementNode>(dynamic_unique_cast<ExpressionNode>(condition.moveValue()),
+	return { std::make_unique<IfStatementNode>(
+			token.getValue().position,
+			dynamic_unique_cast<ExpressionNode>(condition.moveValue()),
 	        dynamic_unique_cast<StatementNode>(body.moveValue()),
 			dynamic_unique_cast<StatementNode>(elseStatement.moveValue())) };
 }
@@ -255,6 +258,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseForStatement() {
 	if(body.hasError()) return { std::move(body), Trace(ASTNodeType::ForStatement, keyword.getValue().position) };
 
 	return { std::make_unique<ForStatementNode>(
+			keyword.getValue().position,
 			identifierRes.getValue().value,
 			dynamic_unique_cast<ExpressionNode>(iterator.moveValue()),
 			dynamic_unique_cast<StatementNode>(body.moveValue()),
@@ -290,10 +294,12 @@ Result<std::unique_ptr<ASTNode>> Parser::parseWhileStatement() {
 		elseStatement = parseStatement();
 		if(elseStatement.hasError()) return { std::move(elseStatement), Trace(ASTNodeType::WhileStatement, token.getValue().position) };
 	}
-	return { std::make_unique<WhileStatementNode>(keyword.value == "dowhile",
-												  dynamic_unique_cast<ExpressionNode>(condition.moveValue()),
-												  dynamic_unique_cast<StatementNode>(body.moveValue()),
-												  dynamic_unique_cast<StatementNode>(elseStatement.moveValue())) };
+	return { std::make_unique<WhileStatementNode>(
+			keyword.position,
+			keyword.value == "dowhile",
+			dynamic_unique_cast<ExpressionNode>(condition.moveValue()),
+			dynamic_unique_cast<StatementNode>(body.moveValue()),
+			dynamic_unique_cast<StatementNode>(elseStatement.moveValue())) };
 }
 
 
@@ -314,7 +320,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseReturnStatement() {
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
 	if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::ReturnStatement, semiColon.getValue().position) };
 
-	return { std::make_unique<ReturnStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue()), isSuper) };
+	return { std::make_unique<ReturnStatementNode>(token.getValue().position, dynamic_unique_cast<ExpressionNode>(expr.moveValue()), isSuper) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseBreakStatement() {
@@ -324,7 +330,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBreakStatement() {
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
 	if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::BreakStatement, semiColon.getValue().position) };
 
-	return { std::make_unique<BreakStatementNode>() };
+	return { std::make_unique<BreakStatementNode>(token.getValue().position) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseContinueStatement() {
@@ -334,7 +340,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseContinueStatement() {
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
 	if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::ContinueStatement, semiColon.getValue().position) };
 
-	return { std::make_unique<ContinueStatementNode>() };
+	return { std::make_unique<ContinueStatementNode>(token.getValue().position) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {
@@ -353,6 +359,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {
 	if(type.hasError()) return { std::move(type), Trace(ASTNodeType::TypeAlias, pos) };
 
 	return { std::make_unique<TypeAliasNode>(
+			typeAlias.getValue().position,
 			identifier.getValue().value,
 			type.moveValue()
 		) };
@@ -403,7 +410,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 		Result<std::unique_ptr<ASTNode>> member = parseStatement();
 		if(member.hasError()) return { std::move(member), Trace(ASTNodeType::ClassDeclaration, classKeyword.getValue().position) };
 
-		members.emplace_back(dynamic_unique_cast<StatementNode>(member.moveValue()), visibility);
+		members.emplace_back(member.getValue()->position, dynamic_unique_cast<StatementNode>(member.moveValue()), visibility);
 	}
 
 	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after class declaration");
@@ -454,7 +461,7 @@ Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::p
 		value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
 	}
 
-	return { std::make_unique<ConstructorStatementNode::ConstructorArgument>(argIdentifier.getValue().value, initializes, std::move(type), std::move(value)) };
+	return { std::make_unique<ConstructorStatementNode::ConstructorArgument>(argIdentifier.getValue().position, argIdentifier.getValue().value, initializes, std::move(type), std::move(value)) };
 
 }
 
@@ -484,14 +491,14 @@ Result<std::unique_ptr<ASTNode>> Parser::parseConstructorStatement() {
 	if(rightParen.hasError()) return { rightParen, Trace(ASTNodeType::ConstructorStatement, rightParen.getValue().position) };
 
 	if(peek().type == Token::Semicolon) {
-		return { std::make_unique<ConstructorStatementNode>(std::move(args), nullptr) };
+		return { std::make_unique<ConstructorStatementNode>(constructorKeyword.getValue().position, std::move(args), nullptr) };
 	}
 
 	
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
 	if(body.hasError()) return { std::move(body), Trace(ASTNodeType::ConstructorStatement, constructorKeyword.getValue().position) };
 
-	return { std::make_unique<ConstructorStatementNode>(std::move(args), body.moveValue()) };
+	return { std::make_unique<ConstructorStatementNode>(constructorKeyword.getValue().position, std::move(args), body.moveValue()) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
@@ -518,7 +525,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after opening '{'");
 	if(rightBrace.hasError()) return { rightBrace, Trace(ASTNodeType::Block, rightBrace.getValue().position) };
 
-	return { std::make_unique<BlockNode>(std::move(body)) };
+	return { std::make_unique<BlockNode>(token.getValue().position, std::move(body)) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
@@ -551,8 +558,10 @@ Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
 	if(body.hasError()) return { std::move(body), Trace(ASTNodeType::ImplStatement, bodyPos)};
 
-	return { std::make_unique<ImplStatementNode>(className.getValue().value,
-											   dynamic_unique_cast<StatementNode>(body.moveValue()), visibility) };
+	return { std::make_unique<ImplStatementNode>(
+			token.getValue().position,
+			className.getValue().value,
+			dynamic_unique_cast<StatementNode>(body.moveValue()), visibility) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseYieldStatement() {
@@ -566,5 +575,8 @@ Result<std::unique_ptr<ASTNode>> Parser::parseYieldStatement() {
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
 	if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::YieldStatement, semiColon.getValue().position) };
 
-	return { std::make_unique<YieldStatementNode>(dynamic_unique_cast<ExpressionNode>(expr.moveValue())) };
+	return { std::make_unique<YieldStatementNode>(
+					token.getValue().position,
+					dynamic_unique_cast<ExpressionNode>(expr.moveValue())
+			        ) };
 }

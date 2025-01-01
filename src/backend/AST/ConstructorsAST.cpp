@@ -1,11 +1,18 @@
 #include "backend/AST.h"
 #include <utility>
 
-ArgonLang::SumTypeNode::SumTypeNode(std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)) {}
-ArgonLang::StringLiteralNode::StringLiteralNode(std::string  val) : value(std::move(val)) {}
-ArgonLang::CharLiteralNode::CharLiteralNode(char val) : value(val) {}
+using namespace ArgonLang;
+ASTNode::ASTNode(Token::Position position) : position(position) {}
+ExpressionNode::ExpressionNode(Token::Position position) : ASTNode(position) {}
+StatementNode::StatementNode(Token::Position position): ASTNode(position) {}
+TypeNode::TypeNode(Token::Position position): ASTNode(position) {}
 
-ArgonLang::IntegralLiteralNode::IntegralLiteralNode(__int128 val, PrimitiveType type) : type(type) {
+ArgonLang::SumTypeNode::SumTypeNode(Token::Position position, std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)), TypeNode(position) {}
+ArgonLang::StringLiteralNode::StringLiteralNode(Token::Position position, std::string  val) : value(std::move(val)),
+																							  ExpressionNode(position) {}
+ArgonLang::CharLiteralNode::CharLiteralNode(Token::Position position, char val) : value(val), ExpressionNode(position) {}
+
+ArgonLang::IntegralLiteralNode::IntegralLiteralNode(Token::Position position, __int128 val, PrimitiveType type) : type(type), ExpressionNode(position) {
 	switch (type) {
 		case PrimitiveType::INT8:   value.i8 = static_cast<int8_t>(val); break;
 		case PrimitiveType::INT16:  value.i16 = static_cast<int16_t>(val); break;
@@ -16,7 +23,7 @@ ArgonLang::IntegralLiteralNode::IntegralLiteralNode(__int128 val, PrimitiveType 
 	}
 }
 
-ArgonLang::FloatLiteralNode::FloatLiteralNode(long double val, PrimitiveType type) : type(type) {
+ArgonLang::FloatLiteralNode::FloatLiteralNode(Token::Position position, long double val, PrimitiveType type) : type(type), ExpressionNode(position) {
 	switch (type) {
 		case PrimitiveType::FLOAT32:  value.f32 = static_cast<float>(val); break;
 		case PrimitiveType::FLOAT64:  value.f64 = static_cast<double>(val); break;
@@ -24,67 +31,67 @@ ArgonLang::FloatLiteralNode::FloatLiteralNode(long double val, PrimitiveType typ
 		default: throw std::runtime_error("Invalid type for FloatLiteralNode");
 	}
 }
-ArgonLang::BooleanLiteralNode::BooleanLiteralNode(bool val) : value(val) {}
-ArgonLang::IdentifierNode::IdentifierNode(std::string  val) : identifier(std::move(val)) {}
-ArgonLang::BinaryExpressionNode::BinaryExpressionNode(std::unique_ptr<ExpressionNode> lhs, Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs)
-		: left(std::move(lhs)), right(std::move(rhs)), op(std::move(operatorSymbol)) {}
-ArgonLang::UnaryExpressionNode::UnaryExpressionNode(
-		Token operatorSymbol, std::unique_ptr<ExpressionNode> operandNode): op(std::move(operatorSymbol)), operand(std::move(operandNode)) {}
+ArgonLang::BooleanLiteralNode::BooleanLiteralNode(Token::Position position, bool val) : value(val), ExpressionNode(position) {}
+ArgonLang::IdentifierNode::IdentifierNode(Token::Position position, std::string  val) : identifier(std::move(val)), ExpressionNode(position) {}
+ArgonLang::BinaryExpressionNode::BinaryExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lhs, Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs)
+		: left(std::move(lhs)), right(std::move(rhs)), op(std::move(operatorSymbol)), ExpressionNode(position) {}
+ArgonLang::UnaryExpressionNode::UnaryExpressionNode(Token::Position position, 
+		Token operatorSymbol, std::unique_ptr<ExpressionNode> operandNode): op(std::move(operatorSymbol)), operand(std::move(operandNode)), ExpressionNode(position) {}
 
-ArgonLang::ProgramNode::ProgramNode(std::vector<std::unique_ptr<ASTNode>> stmts): nodes(std::move(stmts)) {}
+ArgonLang::ProgramNode::ProgramNode(Token::Position position, std::vector<std::unique_ptr<ASTNode>> stmts): nodes(std::move(stmts)), StatementNode(position) {}
 
-ArgonLang::NullExpressionNode::NullExpressionNode() = default;
+ArgonLang::NullExpressionNode::NullExpressionNode(Token::Position position): ExpressionNode(position) {}
 
-ArgonLang::FunctionCallExpressionNode::FunctionCallExpressionNode(std::unique_ptr<ExpressionNode> func,
-																  std::vector<std::unique_ptr<ExpressionNode>> args): arguments(std::move(args)), function(std::move(func)) {}
+ArgonLang::FunctionCallExpressionNode::FunctionCallExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> func,
+																  std::vector<std::unique_ptr<ExpressionNode>> args): arguments(std::move(args)), function(std::move(func)), ExpressionNode(position) {}
 
-ArgonLang::ToExpressionNode::ToExpressionNode(std::unique_ptr<ExpressionNode> lowerBound, std::unique_ptr<ExpressionNode> upperBound, bool isInclusive): lowerBound(std::move(lowerBound)), upperBound(std::move(upperBound)), isInclusive(isInclusive) {}
+ArgonLang::ToExpressionNode::ToExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lowerBound, std::unique_ptr<ExpressionNode> upperBound, bool isInclusive): lowerBound(std::move(lowerBound)), upperBound(std::move(upperBound)), isInclusive(isInclusive), ExpressionNode(position) {}
 
-ArgonLang::LambdaExpressionNode::LambdaExpressionNode(std::vector<std::unique_ptr<FunctionArgument>> params,
-													  std::unique_ptr<ASTNode> bd): parameters(std::move(params)), body(std::move(bd)) {}
+ArgonLang::LambdaExpressionNode::LambdaExpressionNode(Token::Position position, std::vector<std::unique_ptr<FunctionArgument>> params,
+													  std::unique_ptr<ASTNode> bd): parameters(std::move(params)), body(std::move(bd)), ExpressionNode(position) {}
 
-ArgonLang::ComparisonExpressionNode::ComparisonExpressionNode(std::unique_ptr<ExpressionNode> lhs,
+ArgonLang::ComparisonExpressionNode::ComparisonExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lhs,
 															  ArgonLang::Token  operatorSymbol,
 															  std::unique_ptr<ExpressionNode> rhs): left(std::move(lhs)),
-																									right(std::move(rhs)), op(std::move(operatorSymbol)) {}
+																									right(std::move(rhs)), op(std::move(operatorSymbol)), ExpressionNode(position) {}
 
-ArgonLang::AssignmentExpressionNode::AssignmentExpressionNode(std::unique_ptr<ExpressionNode> lhs,
+ArgonLang::AssignmentExpressionNode::AssignmentExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lhs,
 															  ArgonLang::Token operatorSymbol,
 															  std::unique_ptr<ExpressionNode> rhs): left(std::move(lhs)),
-																									right(std::move(rhs)), op(std::move(operatorSymbol))  {}
+																									right(std::move(rhs)), op(std::move(operatorSymbol)) , ExpressionNode(position) {}
 
-ArgonLang::IndexExpressionNode::IndexExpressionNode(std::unique_ptr<ExpressionNode> arr,
-													std::unique_ptr<ExpressionNode> i): array(std::move(arr)), index(std::move(i)) {}
+ArgonLang::IndexExpressionNode::IndexExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr,
+													std::unique_ptr<ExpressionNode> i): array(std::move(arr)), index(std::move(i)), ExpressionNode(position) {}
 
-ArgonLang::MatchBranch::MatchBranch(std::unique_ptr<ExpressionNode> pattern, std::unique_ptr<ExpressionNode> condition,
-									std::unique_ptr<ASTNode> body): pattern(std::move(pattern)), condition(std::move(condition)), body(std::move(body)) {}
+ArgonLang::MatchBranch::MatchBranch(Token::Position position, std::unique_ptr<ExpressionNode> pattern, std::unique_ptr<ExpressionNode> condition,
+									std::unique_ptr<ASTNode> body): pattern(std::move(pattern)), condition(std::move(condition)), body(std::move(body)), position(position) {}
 
-ArgonLang::MatchExpressionNode::MatchExpressionNode(std::unique_ptr<ExpressionNode> value,
-													std::vector<std::unique_ptr<MatchBranch>> branches): value(std::move(value)), branches(std::move(branches)) {}
+ArgonLang::MatchExpressionNode::MatchExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> value,
+													std::vector<std::unique_ptr<MatchBranch>> branches): value(std::move(value)), branches(std::move(branches)), ExpressionNode(position) {}
 
 
-ArgonLang::TernaryExpressionNode::TernaryExpressionNode(std::unique_ptr<ExpressionNode> condition,
+ArgonLang::TernaryExpressionNode::TernaryExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> condition,
 														std::unique_ptr<ExpressionNode> trueBranch,
-														std::unique_ptr<ExpressionNode> falseBranch): condition(std::move(condition)), trueBranch(std::move(trueBranch)), falseBranch(std::move(falseBranch)) {}
+														std::unique_ptr<ExpressionNode> falseBranch): condition(std::move(condition)), trueBranch(std::move(trueBranch)), falseBranch(std::move(falseBranch)), ExpressionNode(position) {}
 
-ArgonLang::ReturnStatementNode::ReturnStatementNode(std::unique_ptr<ExpressionNode> returnExpression, bool isSuper): returnExpression(std::move(returnExpression)), isSuper(isSuper) {}
+ArgonLang::ReturnStatementNode::ReturnStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> returnExpression, bool isSuper): returnExpression(std::move(returnExpression)), isSuper(isSuper), StatementNode(position) {}
 
-ArgonLang::VariableDeclarationNode::VariableDeclarationNode(bool isConst, std::unique_ptr<TypeNode> type,
-															std::unique_ptr<ExpressionNode> value, std::string name): isConst(isConst), type(std::move(type)), value(std::move(value)), name(std::move(name)) {}
+ArgonLang::VariableDeclarationNode::VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type,
+															std::unique_ptr<ExpressionNode> value, std::string name): isConst(isConst), type(std::move(type)), value(std::move(value)), name(std::move(name)), StatementNode(position) {}
 
-ArgonLang::TypeAliasNode::TypeAliasNode(std::string aliasName, std::unique_ptr<TypeNode> targetType): aliasName(std::move(aliasName)), targetType(std::move(targetType)) {}
+ArgonLang::TypeAliasNode::TypeAliasNode(Token::Position position, std::string aliasName, std::unique_ptr<TypeNode> targetType): aliasName(std::move(aliasName)), targetType(std::move(targetType)), StatementNode(position) {}
 
-ArgonLang::IfStatementNode::IfStatementNode(
+ArgonLang::IfStatementNode::IfStatementNode(Token::Position position, 
 		std::unique_ptr<ExpressionNode> condition,
 		std::unique_ptr<ASTNode> body,
 		std::unique_ptr<StatementNode> elseBranch
 ) : condition(std::move(condition)),
 	body(std::move(body)),
-	elseBranch(std::move(elseBranch)) {}
+	elseBranch(std::move(elseBranch)), StatementNode(position) {}
 
-ArgonLang::BlockNode::BlockNode(std::vector<std::unique_ptr<ASTNode>> body): body(std::move(body)) {}
+ArgonLang::BlockNode::BlockNode(Token::Position position, std::vector<std::unique_ptr<ASTNode>> body): body(std::move(body)), StatementNode(position) {}
 
-ArgonLang::ForStatementNode::ForStatementNode(
+ArgonLang::ForStatementNode::ForStatementNode(Token::Position position, 
 		std::string variableName,
 		std::unique_ptr<ExpressionNode> iterator,
 		std::unique_ptr<ASTNode> body,
@@ -92,64 +99,67 @@ ArgonLang::ForStatementNode::ForStatementNode(
 ) : iterator(std::move(iterator)),
 	variableType(std::move(variableType)),
 	variableName(std::move(variableName)),
-	body(std::move(body)) {}
+	body(std::move(body)), StatementNode(position) {}
 
-ArgonLang::UnionDeclarationNode::UnionDeclarationNode(
+ArgonLang::UnionDeclarationNode::UnionDeclarationNode(Token::Position position, 
 		std::string unionName,
 		std::vector<std::unique_ptr<TypeNode>> types
-) : unionName(std::move(unionName)), types(std::move(types)) {}
+) : unionName(std::move(unionName)), types(std::move(types)), StatementNode(position) {}
 
-ArgonLang::IdentifierTypeNode::IdentifierTypeNode(std::string typeName)
-		: typeName(std::move(typeName)) {}
+ArgonLang::IdentifierTypeNode::IdentifierTypeNode(Token::Position position, std::string typeName)
+		: typeName(std::move(typeName)), TypeNode(position) {}
 
-ArgonLang::RangeExpressionNode::RangeExpressionNode(std::vector<std::unique_ptr<ExpressionNode>> range): range(std::move(range)) {}
+ArgonLang::RangeExpressionNode::RangeExpressionNode(Token::Position position, std::vector<std::unique_ptr<ExpressionNode>> range): range(std::move(range)), ExpressionNode(position) {}
 
-ArgonLang::GenericTypeNode::GenericTypeNode(std::unique_ptr<TypeNode> base, std::vector<std::unique_ptr<TypeNode>> params) : base(std::move(base)), params(std::move(params)) {}
+ArgonLang::GenericTypeNode::GenericTypeNode(Token::Position position, std::unique_ptr<TypeNode> base, std::vector<std::unique_ptr<TypeNode>> params) : base(std::move(base)), params(std::move(params)), TypeNode(position) {}
 
-ArgonLang::YieldStatementNode::YieldStatementNode(std::unique_ptr<ExpressionNode> expressionNode): expressionNode(std::move(expressionNode)) {}
+ArgonLang::YieldStatementNode::YieldStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> expressionNode): expressionNode(std::move(expressionNode)), StatementNode(position) {}
 
-ArgonLang::ParallelExpressionNode::ParallelExpressionNode(std::unique_ptr<ASTNode> statementNode): statementNode(std::move(statementNode)) {}
+ArgonLang::ParallelExpressionNode::ParallelExpressionNode(Token::Position position, std::unique_ptr<ASTNode> statementNode): statementNode(std::move(statementNode)), ExpressionNode(position) {}
 
-ArgonLang::WhileStatementNode::WhileStatementNode(bool isDoWhile, std::unique_ptr<ExpressionNode> condition,
+ArgonLang::WhileStatementNode::WhileStatementNode(Token::Position position, bool isDoWhile, std::unique_ptr<ExpressionNode> condition,
 												  std::unique_ptr<ASTNode> body,
-												  std::unique_ptr<StatementNode> elseBranch): condition(std::move(condition)), body(std::move(body)), elseBranch(std::move(elseBranch)), isDoWhile(isDoWhile) {}
+												  std::unique_ptr<StatementNode> elseBranch): condition(std::move(condition)), body(std::move(body)), elseBranch(std::move(elseBranch)), isDoWhile(isDoWhile), StatementNode(position) {}
 
-ArgonLang::StructExpressionNode::StructExpressionNode(
-		std::vector<StructField> fields): fields(std::move(fields)) {}
+ArgonLang::StructExpressionNode::StructExpressionNode(Token::Position position, 
+		std::vector<StructField> fields): fields(std::move(fields)), ExpressionNode(position) {}
 
-ArgonLang::StructField::StructField(std::string name, std::unique_ptr<TypeNode> type,
-									std::unique_ptr<ExpressionNode> value): name(std::move(name)), type(std::move(type)), value(std::move(value)) {}
+ArgonLang::StructField::StructField(Token::Position position, std::string name, std::unique_ptr<TypeNode> type,
+									std::unique_ptr<ExpressionNode> value): name(std::move(name)), type(std::move(type)), value(std::move(value)), position(position) {}
 
-ArgonLang::FunctionArgument::FunctionArgument(std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value,
-											  std::string name): type(std::move(type)), value(std::move(value)), name(std::move(name)) {}
-ArgonLang::FunctionArgument::FunctionArgument(): type(), value(), name() {}
+ArgonLang::FunctionArgument::FunctionArgument(Token::Position position, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value,
+											  std::string name): type(std::move(type)), value(std::move(value)), name(std::move(name)), position(position) {}
+ArgonLang::FunctionArgument::FunctionArgument(Token::Position position): type(), value(), name(), position(position) {}
 
 
-ArgonLang::FunctionDeclarationNode::FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType,
+ArgonLang::FunctionDeclarationNode::FunctionDeclarationNode(Token::Position position, std::unique_ptr<TypeNode> returnType,
 															std::vector<std::unique_ptr<FunctionArgument>> args,
-															std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name): returnType(std::move(returnType)), args(std::move(args)), body(std::move(body)), name(std::move(name)) {}
+															std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name): returnType(std::move(returnType)), args(std::move(args)), body(std::move(body)), name(std::move(name)), StatementNode(position) {}
 
-ArgonLang::FunctionDefinitionNode::FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType,
-														  std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name): returnType(std::move(returnType)), args(std::move(args)), name(std::move(name)) { }
-ArgonLang::ImplStatementNode::ImplStatementNode(std::string className, std::unique_ptr<StatementNode> body,
-												ArgonLang::MemberVisibility visibility): className(std::move(className)), body(std::move(body)), visibility(visibility) { }
+ArgonLang::FunctionDefinitionNode::FunctionDefinitionNode(Token::Position position, std::unique_ptr<TypeNode> returnType,
+														  std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name): returnType(std::move(returnType)), args(std::move(args)), name(std::move(name)), StatementNode(position) {}
+ArgonLang::ImplStatementNode::ImplStatementNode(Token::Position position, std::string className, std::unique_ptr<StatementNode> body,
+												ArgonLang::MemberVisibility visibility): className(std::move(className)), body(std::move(body)), visibility(visibility), StatementNode(position) {}
 
-ArgonLang::ConstructorStatementNode::ConstructorArgument::ConstructorArgument(std::string name, std::string initializes,
-																			  std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value): name(std::move(name)), initializes(std::move(initializes)), type(std::move(type)), value(std::move(value)) { }
+ArgonLang::ConstructorStatementNode::ConstructorArgument::ConstructorArgument(Token::Position position, std::string name, std::string initializes,
+																			  std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value): name(std::move(name)), initializes(std::move(initializes)), type(std::move(type)), value(std::move(value)), position(position) {}
 
-ArgonLang::ConstructorStatementNode::ConstructorStatementNode(std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args,
-															  std::unique_ptr<ASTNode> body): args(std::move(args)), body(std::move(body)) { }
+ArgonLang::ConstructorStatementNode::ConstructorStatementNode(Token::Position position, std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args,
+															  std::unique_ptr<ASTNode> body): args(std::move(args)), body(std::move(body)), StatementNode(position) {}
 
-ArgonLang::ClassDeclarationNode::ClassMember::ClassMember(std::unique_ptr<StatementNode> declaration,
-														  ArgonLang::MemberVisibility visibility): declaration(std::move(declaration)), visibility(visibility) { }
+ArgonLang::ClassDeclarationNode::ClassMember::ClassMember(Token::Position position, std::unique_ptr<StatementNode> declaration,
+														  ArgonLang::MemberVisibility visibility): declaration(std::move(declaration)), visibility(visibility), position(position) {}
 
-ArgonLang::ClassDeclarationNode::ClassDeclarationNode(std::string className, std::vector<ClassMember> body): className(std::move(className)), body(std::move(body)) { }
+ArgonLang::ClassDeclarationNode::ClassDeclarationNode(Token::Position position, std::string className, std::vector<ClassMember> body): className(std::move(className)), body(std::move(body)), StatementNode(position) {}
 
-ArgonLang::MemberAccessExpressionNode::MemberAccessExpressionNode(std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member)
-: parent(std::move(leftExpression)), member(std::move(member)), accessType(std::move(accessType)) {}
+ArgonLang::MemberAccessExpressionNode::MemberAccessExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member)
+: parent(std::move(leftExpression)), member(std::move(member)), accessType(std::move(accessType)), ExpressionNode(position) {}
 
-ArgonLang::IntersectionTypeNode::IntersectionTypeNode(std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)) { }
+ArgonLang::IntersectionTypeNode::IntersectionTypeNode(Token::Position position, std::vector<std::unique_ptr<TypeNode>> types): types(std::move(types)), TypeNode(position) {}
 
-ArgonLang::PrefixedTypeNode::PrefixedTypeNode(std::unique_ptr<TypeNode> type,
-											  ArgonLang::PrefixedTypeNode::Prefix prefix): type(std::move(type)), prefix(prefix) { }
+ArgonLang::PrefixedTypeNode::PrefixedTypeNode(Token::Position position, std::unique_ptr<TypeNode> type,
+											  ArgonLang::PrefixedTypeNode::Prefix prefix): type(std::move(type)), prefix(prefix), TypeNode(position) {}
+
+ArgonLang::BreakStatementNode::BreakStatementNode(Token::Position position): StatementNode(position) {}
+ArgonLang::ContinueStatementNode::ContinueStatementNode(Token::Position position): StatementNode(position) {}
 

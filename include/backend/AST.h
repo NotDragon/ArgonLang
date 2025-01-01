@@ -93,7 +93,9 @@ namespace ArgonLang
     class ASTNode {
     public:
         virtual ~ASTNode() = default;
+		Token::Position position;
 
+		explicit ASTNode(Token::Position pos);
 		virtual ASTNodeType getNodeType() const = 0;
 		virtual ASTNodeGroup getNodeGroup() const = 0;
 
@@ -105,16 +107,19 @@ namespace ArgonLang
 
     class ExpressionNode : public ASTNode {
 	public:
+		explicit ExpressionNode(Token::Position position);
 		ASTNodeGroup getNodeGroup() const override;
 	};
 
     class StatementNode : public ASTNode {
 	public:
+		explicit StatementNode(Token::Position position);
 		ASTNodeGroup getNodeGroup() const override;
 	};
 
     class TypeNode : public ASTNode {
 	public:
+		explicit TypeNode(Token::Position position);
 		ASTNodeGroup getNodeGroup() const override;
 	};
 
@@ -122,7 +127,7 @@ namespace ArgonLang
     public:
         std::string value;
 
-        explicit StringLiteralNode(std::string val);
+        explicit StringLiteralNode(Token::Position position, std::string val);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -135,7 +140,7 @@ namespace ArgonLang
 	public:
 		char value;
 
-		explicit CharLiteralNode(char val);
+		explicit CharLiteralNode(Token::Position position, char val);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -155,7 +160,7 @@ namespace ArgonLang
             __int128 i128;
         } value;
 
-        explicit IntegralLiteralNode(__int128 val, PrimitiveType type);
+        explicit IntegralLiteralNode(Token::Position position, __int128 val, PrimitiveType type);
 		
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -173,7 +178,7 @@ namespace ArgonLang
             long double f128;
         } value;
 
-        explicit FloatLiteralNode(long double val, PrimitiveType type);
+        explicit FloatLiteralNode(Token::Position position, long double val, PrimitiveType type);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -186,7 +191,7 @@ namespace ArgonLang
     public:
         bool value;
 
-        explicit BooleanLiteralNode(bool val);
+        explicit BooleanLiteralNode(Token::Position position, bool val);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -199,7 +204,7 @@ namespace ArgonLang
     public:
         std::string identifier;
 
-        explicit IdentifierNode(std::string val);
+        explicit IdentifierNode(Token::Position position, std::string val);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -214,7 +219,7 @@ namespace ArgonLang
         Token op;
         std::unique_ptr<ExpressionNode> right;
 
-        explicit BinaryExpressionNode(std::unique_ptr<ExpressionNode> lhs, Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs);
+        explicit BinaryExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lhs, Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -228,7 +233,7 @@ namespace ArgonLang
         Token op;
         std::unique_ptr<ExpressionNode> operand;
 
-        explicit UnaryExpressionNode(Token operatorSymbol, std::unique_ptr<ExpressionNode> operandNode);
+        explicit UnaryExpressionNode(Token::Position position, Token operatorSymbol, std::unique_ptr<ExpressionNode> operandNode);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -239,7 +244,7 @@ namespace ArgonLang
 
     class NullExpressionNode : public ExpressionNode {
     public:
-        explicit NullExpressionNode();
+        explicit NullExpressionNode(Token::Position position);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -253,7 +258,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> function;
         std::vector<std::unique_ptr<ExpressionNode>> arguments;
 
-        explicit FunctionCallExpressionNode(std::unique_ptr<ExpressionNode> func, std::vector<std::unique_ptr<ExpressionNode>> args);
+        explicit FunctionCallExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> func, std::vector<std::unique_ptr<ExpressionNode>> args);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -269,7 +274,7 @@ namespace ArgonLang
 		Token accessType;
 		std::unique_ptr<ExpressionNode> member;
 
-		explicit MemberAccessExpressionNode(std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member);
+		explicit MemberAccessExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member);
 
 		ASTNodeType getNodeType() const override;
 
@@ -285,7 +290,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> upperBound;
         bool isInclusive;
 
-        explicit ToExpressionNode(std::unique_ptr<ExpressionNode> lowerBound, std::unique_ptr<ExpressionNode> upperBound, bool isInclusive);
+        explicit ToExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lowerBound, std::unique_ptr<ExpressionNode> upperBound, bool isInclusive);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -299,9 +304,10 @@ namespace ArgonLang
 		std::unique_ptr<TypeNode> type;
 		std::unique_ptr<ExpressionNode> value;
 		std::string name;
+		Token::Position position;
 
-		explicit FunctionArgument(std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
-		explicit FunctionArgument();
+		explicit FunctionArgument(Token::Position position, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
+		explicit FunctionArgument(Token::Position position);
 
 		ASTNodeType getNodeType() const;
 #ifdef DEBUG
@@ -316,7 +322,7 @@ namespace ArgonLang
 		std::vector<std::unique_ptr<FunctionArgument>> parameters;
         std::unique_ptr<ASTNode> body;
 
-        explicit LambdaExpressionNode(std::vector<std::unique_ptr<FunctionArgument>> params, std::unique_ptr<ASTNode> bd);
+        explicit LambdaExpressionNode(Token::Position position, std::vector<std::unique_ptr<FunctionArgument>> params, std::unique_ptr<ASTNode> bd);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -331,7 +337,7 @@ namespace ArgonLang
         ArgonLang::Token op;
         std::unique_ptr<ExpressionNode> right;
 
-        explicit ComparisonExpressionNode(std::unique_ptr<ExpressionNode> lhs, ArgonLang::Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs);
+        explicit ComparisonExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lhs, ArgonLang::Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -346,7 +352,7 @@ namespace ArgonLang
         ArgonLang::Token op;
         std::unique_ptr<ExpressionNode> right;
 
-        explicit AssignmentExpressionNode(std::unique_ptr<ExpressionNode> lhs, ArgonLang::Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs);
+        explicit AssignmentExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lhs, ArgonLang::Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -360,7 +366,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> array;
         std::unique_ptr<ExpressionNode> index;
 
-        explicit IndexExpressionNode(std::unique_ptr<ExpressionNode> arr, std::unique_ptr<ExpressionNode> i);
+        explicit IndexExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr, std::unique_ptr<ExpressionNode> i);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -374,8 +380,9 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> pattern;
         std::unique_ptr<ExpressionNode> condition;
         std::unique_ptr<ASTNode> body;
+		Token::Position position;
 
-        explicit MatchBranch(std::unique_ptr<ExpressionNode> pattern, std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ASTNode> body);
+        explicit MatchBranch(Token::Position position, std::unique_ptr<ExpressionNode> pattern, std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ASTNode> body);
 
 		ASTNodeType getNodeType() const;
 #ifdef DEBUG
@@ -390,7 +397,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> value;
         std::vector<std::unique_ptr<MatchBranch>> branches;
 
-        explicit MatchExpressionNode(std::unique_ptr<ExpressionNode> value, std::vector<std::unique_ptr<MatchBranch>> branches);
+        explicit MatchExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> value, std::vector<std::unique_ptr<MatchBranch>> branches);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -405,7 +412,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> trueBranch;
         std::unique_ptr<ExpressionNode> falseBranch;
 
-        explicit TernaryExpressionNode(std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ExpressionNode> trueBranch, std::unique_ptr<ExpressionNode> falseBranch);
+        explicit TernaryExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ExpressionNode> trueBranch, std::unique_ptr<ExpressionNode> falseBranch);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -418,7 +425,7 @@ namespace ArgonLang
     public:
         std::unique_ptr<ASTNode> statementNode;
 
-        explicit ParallelExpressionNode(std::unique_ptr<ASTNode> statementNode);
+        explicit ParallelExpressionNode(Token::Position position, std::unique_ptr<ASTNode> statementNode);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -432,7 +439,8 @@ namespace ArgonLang
 		std::string name;
 		std::unique_ptr<TypeNode> type;
 		std::unique_ptr<ExpressionNode> value;
-		explicit StructField(std::string name, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value);
+		Token::Position position;
+		explicit StructField(Token::Position position, std::string name, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value);
 
 		ASTNodeType getNodeType() const;
 #ifdef DEBUG
@@ -445,7 +453,7 @@ namespace ArgonLang
     public:
         std::vector<StructField> fields;
 
-        explicit StructExpressionNode(std::vector<StructField> fields);
+        explicit StructExpressionNode(Token::Position position, std::vector<StructField> fields);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -458,7 +466,7 @@ namespace ArgonLang
     public:
         std::vector<std::unique_ptr<ExpressionNode>> range;
 
-        explicit RangeExpressionNode(std::vector<std::unique_ptr<ExpressionNode>> range);
+        explicit RangeExpressionNode(Token::Position position, std::vector<std::unique_ptr<ExpressionNode>> range);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -472,7 +480,7 @@ namespace ArgonLang
     public:
         std::vector<std::unique_ptr<ASTNode>> nodes;
 
-        explicit ProgramNode(std::vector<std::unique_ptr<ASTNode>> stmts);
+        explicit ProgramNode(Token::Position position, std::vector<std::unique_ptr<ASTNode>> stmts);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -486,7 +494,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> returnExpression;
 		bool isSuper;
 
-        explicit ReturnStatementNode(std::unique_ptr<ExpressionNode> returnExpression, bool isSuper);
+        explicit ReturnStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> returnExpression, bool isSuper);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -502,7 +510,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> value;
         std::string name;
 
-        explicit VariableDeclarationNode(bool isConst, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
+        explicit VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -518,7 +526,7 @@ namespace ArgonLang
 		std::unique_ptr<ASTNode> body;
 		std::unique_ptr<ExpressionNode> name;
 
-		explicit FunctionDeclarationNode(std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name);
+		explicit FunctionDeclarationNode(Token::Position position, std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -533,7 +541,7 @@ namespace ArgonLang
 		std::vector<std::unique_ptr<FunctionArgument>> args;
 		std::unique_ptr<ExpressionNode> name;
 
-		explicit FunctionDefinitionNode(std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name);
+		explicit FunctionDefinitionNode(Token::Position position, std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -548,7 +556,7 @@ namespace ArgonLang
         std::unique_ptr<ASTNode> body;
         std::unique_ptr<StatementNode> elseBranch;
 
-        explicit IfStatementNode(std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ASTNode> body, std::unique_ptr<StatementNode> elseBranch);
+        explicit IfStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ASTNode> body, std::unique_ptr<StatementNode> elseBranch);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -564,7 +572,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> iterator;
         std::unique_ptr<ASTNode> body;
 
-        explicit ForStatementNode(std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<ASTNode> body, std::unique_ptr<TypeNode> variableType);
+        explicit ForStatementNode(Token::Position position, std::string variableName, std::unique_ptr<ExpressionNode> iterator, std::unique_ptr<ASTNode> body, std::unique_ptr<TypeNode> variableType);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -578,7 +586,7 @@ namespace ArgonLang
         std::string unionName;
         std::vector<std::unique_ptr<TypeNode>> types;
 
-        explicit UnionDeclarationNode(std::string unionName, std::vector<std::unique_ptr<TypeNode>> types);
+        explicit UnionDeclarationNode(Token::Position position, std::string unionName, std::vector<std::unique_ptr<TypeNode>> types);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -593,7 +601,7 @@ namespace ArgonLang
 		std::unique_ptr<StatementNode> body;
 		MemberVisibility visibility;
 
-		explicit ImplStatementNode(std::string className, std::unique_ptr<StatementNode> body, MemberVisibility visibility);
+		explicit ImplStatementNode(Token::Position position, std::string className, std::unique_ptr<StatementNode> body, MemberVisibility visibility);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -610,8 +618,9 @@ namespace ArgonLang
 			std::string initializes;
 			std::unique_ptr<TypeNode> type;
 			std::unique_ptr<ExpressionNode> value;
+			Token::Position position;
 
-			explicit ConstructorArgument(std::string name, std::string initializes, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value);
+			explicit ConstructorArgument(Token::Position position, std::string name, std::string initializes, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value);
 #ifdef DEBUG
 			void print() const;
 			void toDot(std::ostream& os, int& nodeId) const;
@@ -621,7 +630,7 @@ namespace ArgonLang
 		std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args;
 		std::unique_ptr<ASTNode> body;
 
-		explicit ConstructorStatementNode(std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args, std::unique_ptr<ASTNode> body);
+		explicit ConstructorStatementNode(Token::Position position, std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args, std::unique_ptr<ASTNode> body);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -637,8 +646,9 @@ namespace ArgonLang
 		public:
 			std::unique_ptr<StatementNode> declaration;
 			MemberVisibility visibility;
+			Token::Position position;
 
-			explicit ClassMember(std::unique_ptr<StatementNode> declaration, MemberVisibility visibility);
+			explicit ClassMember(Token::Position position, std::unique_ptr<StatementNode> declaration, MemberVisibility visibility);
 #ifdef DEBUG
 			void print() const;
 			void toDot(std::ostream& os, int& nodeId) const;
@@ -648,7 +658,7 @@ namespace ArgonLang
 		std::string className;
 		std::vector<ClassMember> body;
 
-		explicit ClassDeclarationNode(std::string className, std::vector<ClassMember> body);
+		explicit ClassDeclarationNode(Token::Position position, std::string className, std::vector<ClassMember> body);
 		ASTNodeType getNodeType() const override;
 
 #ifdef DEBUG
@@ -662,7 +672,7 @@ namespace ArgonLang
     public:
         std::unique_ptr<ExpressionNode> expressionNode;
 
-        explicit YieldStatementNode(std::unique_ptr<ExpressionNode> expressionNode);
+        explicit YieldStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> expressionNode);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -677,7 +687,7 @@ namespace ArgonLang
 		std::unique_ptr<ExpressionNode> condition;
 		std::unique_ptr<ASTNode> body;
 		std::unique_ptr<StatementNode> elseBranch;
-		explicit WhileStatementNode(bool isDoWhile, std::unique_ptr<ExpressionNode> condition,
+		explicit WhileStatementNode(Token::Position position, bool isDoWhile, std::unique_ptr<ExpressionNode> condition,
 									std::unique_ptr<ASTNode> body,
 									std::unique_ptr<StatementNode> elseBranch);
 
@@ -691,6 +701,7 @@ namespace ArgonLang
 	class BreakStatementNode : public StatementNode {
 	public:
 		ASTNodeType getNodeType() const override;
+		explicit BreakStatementNode(Token::Position position);
 #ifdef DEBUG
 		void print() const override;
 		void toDot(std::ostream& os, int& nodeId) const override;
@@ -700,6 +711,7 @@ namespace ArgonLang
 	class ContinueStatementNode : public StatementNode {
 	public:
 		ASTNodeType getNodeType() const override;
+		explicit ContinueStatementNode(Token::Position position);
 #ifdef DEBUG
 		void print() const override;
 		void toDot(std::ostream& os, int& nodeId) const override;
@@ -711,7 +723,7 @@ namespace ArgonLang
 		std::string aliasName;
 		std::unique_ptr<TypeNode> targetType;
 
-		explicit TypeAliasNode(std::string aliasName, std::unique_ptr<TypeNode> targetType);
+		explicit TypeAliasNode(Token::Position position, std::string aliasName, std::unique_ptr<TypeNode> targetType);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -724,7 +736,7 @@ namespace ArgonLang
 	public:
 		std::vector<std::unique_ptr<ASTNode>> body;
 
-		explicit BlockNode(std::vector<std::unique_ptr<ASTNode>> body);
+		explicit BlockNode(Token::Position position, std::vector<std::unique_ptr<ASTNode>> body);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -737,7 +749,7 @@ namespace ArgonLang
 	public:
 		std::string typeName;
 
-		explicit IdentifierTypeNode(std::string typeName);
+		explicit IdentifierTypeNode(Token::Position position, std::string typeName);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -750,7 +762,7 @@ namespace ArgonLang
 	public:
 		std::unique_ptr<TypeNode> base;
 		std::vector<std::unique_ptr<TypeNode>> params;
-		explicit GenericTypeNode(std::unique_ptr<TypeNode> base, std::vector<std::unique_ptr<TypeNode>> params);
+		explicit GenericTypeNode(Token::Position position, std::unique_ptr<TypeNode> base, std::vector<std::unique_ptr<TypeNode>> params);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -763,7 +775,7 @@ namespace ArgonLang
     public:
         std::vector<std::unique_ptr<TypeNode>> types;
 
-        explicit SumTypeNode(std::vector<std::unique_ptr<TypeNode>> types);
+        explicit SumTypeNode(Token::Position position, std::vector<std::unique_ptr<TypeNode>> types);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -776,7 +788,7 @@ namespace ArgonLang
 	public:
 		std::vector<std::unique_ptr<TypeNode>> types;
 
-		explicit IntersectionTypeNode(std::vector<std::unique_ptr<TypeNode>> types);
+		explicit IntersectionTypeNode(Token::Position position, std::vector<std::unique_ptr<TypeNode>> types);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -794,7 +806,7 @@ namespace ArgonLang
 
 		std::unique_ptr<TypeNode> type;
 
-		explicit PrefixedTypeNode(std::unique_ptr<TypeNode> type, Prefix prefix);
+		explicit PrefixedTypeNode(Token::Position position, std::unique_ptr<TypeNode> type, Prefix prefix);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
