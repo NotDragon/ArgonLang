@@ -488,6 +488,7 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::MapPipeAssign: return "MapPipeAssign";
 		case Token::MapPipe: return "MapPipe";
 		case Token::KeywordSuper: return "KeywordSuper";
+		case Token::CharLiteral: return "CharLiteral";
 	}
 
 	return "";

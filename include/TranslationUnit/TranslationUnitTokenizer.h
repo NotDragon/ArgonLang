@@ -80,6 +80,7 @@ namespace ArgonLang {
 				KeywordContinue,
 				KeywordWhile,
 				KeywordFor,
+				KeywordEnd,
 
 				Literal,
 
