@@ -3,6 +3,7 @@
 #include "backend/Parser.h"
 #include "backend/Tokenizer.h"
 #include "frontend/AnalysisVisitor.h"
+#include "frontend/CodeGenerationVisitor.h"
 
 int main(int argc, char** argv) {
 	if(argc < 3) {
@@ -85,7 +86,15 @@ int main(int argc, char** argv) {
 	}
 
 	ArgonLang::AnalysisVisitor analysis;
+	ArgonLang::CodeGenerationVisitor codeGenerator;
 	analysis.visit(*program.getValue());
+	ArgonLang::Result<std::string> code = codeGenerator.visit(*program.getValue());
+
+	if(code.hasError()) {
+		return 1;
+	}
+
+	std::cout << code.getValue();
 
 	std::ofstream dotFile(argv[2]);
 	dotFile << "digraph AST {\n";

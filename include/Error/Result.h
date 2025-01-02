@@ -101,7 +101,7 @@ namespace ArgonLang {
 //			trace.push(newTrace);
 //		}
 
-		Result(std::string errorMsg, std::string errorNote, Trace newTrace): value(nullptr), errorMsg(std::move(errorMsg)), errorNote(std::move(errorNote)) {
+		Result(std::string errorMsg, std::string errorNote, Trace newTrace): value(), errorMsg(std::move(errorMsg)), errorNote(std::move(errorNote)) {
 			trace.push(newTrace);
 		}
 
