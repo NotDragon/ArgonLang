@@ -423,28 +423,91 @@ Result<std::string> CodeGenerationVisitor::visit(const UnionDeclarationNode &nod
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const IfStatementNode &node) {
-	return { "" };
+	std::string code = "if(";
+
+	Result<std::string> condition = visit(*node.condition);
+	if(condition.hasError()) return condition;
+
+	code += condition.getValue();
+
+	code += ")";
+	Result<std::string> body = visit(*node.body);
+	if(body.hasError()) return body;
+
+	code += body.getValue();
+
+	return { code };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ForStatementNode &node) {
-	return { "" };
+	std::string code = "for(";
+
+	Result<std::string> type = visit(*node.variableType);
+	if(type.hasError()) return type;
+	code += type.getValue() + " " + node.variableName + ":";
+
+	Result<std::string> iterator = visit(*node.iterator);
+	if(iterator.hasError()) return iterator;
+
+	code += iterator.getValue();
+
+	code += ")";
+	Result<std::string> body = visit(*node.body);
+	if(body.hasError()) return body;
+
+	code += body.getValue();
+
+	return { code };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const WhileStatementNode &node) {
-	return { "" };
+	std::string code;
+	if(node.isDoWhile) {
+		code += "do";
+		Result<std::string> body = visit(*node.body);
+		if(body.hasError()) return body;
+
+		code += body.getValue();
+
+		Result<std::string> condition = visit(*node.condition);
+		if(condition.hasError()) return condition;
+		code += "while(" + condition.getValue() + ");";
+		return { code };
+	}
+
+	code += "while(";
+
+	Result<std::string> condition = visit(*node.condition);
+	if(condition.hasError()) return condition;
+
+	code += condition.getValue();
+
+	code += ")";
+	Result<std::string> body = visit(*node.body);
+	if(body.hasError()) return body;
+
+	code += body.getValue();
+
+	return { code };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const BreakStatementNode &node) {
-	return { "" };
+	return { "break;" };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ContinueStatementNode &node) {
-	return { "" };
+	return { "continue;" };
 }
 
 
 Result<std::string> CodeGenerationVisitor::visit(const TypeAliasNode &node) {
-	return { "" };
+	std::string code = "using " + node.aliasName + "=";
+	Result<std::string> type = visit(*node.targetType);
+	if(type.hasError()) return type;
+
+	code += type.getValue() + ";";
+
+	return { code };
 }
 
 
