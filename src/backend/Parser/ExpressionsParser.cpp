@@ -42,8 +42,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseAdditiveExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseMultiplicativeExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(std::move(left.moveValue())),
 				op,
 				dynamic_unique_cast<ExpressionNode>(std::move(right.moveValue()))
@@ -65,8 +66,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseMultiplicativeExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseBitwiseNotExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos) };
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(std::move(left.moveValue())),
 				op,
 				dynamic_unique_cast<ExpressionNode>(std::move(right.moveValue()))
@@ -94,9 +96,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseLogicalOrExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseLogicalAndExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos) };
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -118,9 +120,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseLogicalAndExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseEqualityExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -142,8 +144,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseEqualityExpression() {
 		Result<std::unique_ptr<ASTNode>> right = parseRelationalExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
 
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -166,8 +169,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseRelationalExpression() {
 		Result<std::unique_ptr<ASTNode>> right = parseBitwiseExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
 
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -189,8 +193,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBitwiseExpression() {
 		Result<std::unique_ptr<ASTNode>> right = parseShiftExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
 
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -211,9 +216,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseShiftExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseToExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -233,9 +238,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseAssignmentExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseParallelExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::AssignmentExpression, pos) };
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<AssignmentExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				assign.getValue(),
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -258,9 +263,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseMemberAccessExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parsePrimary();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::MemberAccessExpression, pos) };
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<MemberAccessExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				accessType.getValue(),
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -283,9 +288,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseIndexExpression() {
 
 		Result<Token> rightBracket = expect(Token::RightBracket, "Expected ']'");
 		if (rightBracket.hasError()) return {rightBracket, Trace(ASTNodeType::IndexExpression, rightBracket.getValue().position) };
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<IndexExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				dynamic_unique_cast<ExpressionNode>(index.moveValue())
 		);
@@ -306,9 +311,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFilterExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseMapExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -330,9 +335,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseMapExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseReduceExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -354,9 +359,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseReduceExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseLogicalOrExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<BinaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
@@ -416,9 +421,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionCallExpression() {
 		}
 		Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after function arguments");
 		if(rightParen.hasError()) return { rightParen, Trace(ASTNodeType::FunctionCallExpression, rightParen.getValue().position) };
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<FunctionCallExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				std::move(arguments)
 		);
@@ -445,9 +450,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseToExpression() {
 		Token::Position pos = peek().position;
 		Result<std::unique_ptr<ASTNode>> right = parseAdditiveExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::ToExpression, pos) };
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<ToExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				dynamic_unique_cast<ExpressionNode>(right.moveValue()),
 				isInclusive
@@ -496,9 +501,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseIncrementExpression() {
 		Result<Token> opError = advance();
 		if(opError.hasError()) return { opError, Trace(ASTNodeType::UnaryExpression, opError.getValue().position) };
 		Token op = opError.getValue();
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<UnaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				op,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue())
 		);
@@ -558,9 +563,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseLogicalNotExpression() {
 		Result<Token> opError = advance();
 		if(opError.hasError()) return { opError, Trace(ASTNodeType::UnaryExpression, opError.getValue().position) };
 		Token op = opError.getValue();
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<UnaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				op,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue())
 		);
@@ -576,9 +581,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBitwiseNotExpression() {
 		Result<Token> opError = advance();
 		if(opError.hasError()) return { opError, Trace(ASTNodeType::UnaryExpression, opError.getValue().position) };
 		Token op = opError.getValue();
-
+		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<UnaryExpressionNode>(
-				left.getValue()->position,
+				leftPos,
 				op,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue())
 		);
@@ -589,7 +594,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBitwiseNotExpression() {
 
 
 Result<std::unique_ptr<ASTNode>> Parser::parseParallelExpression() {
-	if(peek().type != Token::KeywordPar) return parseStructExpression();
+	if(peek().type != Token::KeywordPar) return parseLambdaExpression();
 
 	Result<Token> token = advance();
 	if(token.hasError()) return { token, Trace(ASTNodeType::UnaryExpression, token.getValue().position) };
@@ -597,9 +602,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseParallelExpression() {
 	Token::Position pos = peek().position;
 	Result<std::unique_ptr<ASTNode>> left = parseStatement();
 	if(left.hasError()) return { std::move(left), Trace(ASTNodeType::ParallelExpression, pos) };
-
+	Token::Position leftPos = left.getValue()->position;
 	return { std::make_unique<ParallelExpressionNode>(
-			left.getValue()->position,
+			leftPos,
 			left.moveValue())
 	};
 }
@@ -703,4 +708,84 @@ Result<std::unique_ptr<ASTNode>> Parser::parseMatchExpression() {
 	return { std::make_unique<MatchExpressionNode>(
 			pos,
 			dynamic_unique_cast<ExpressionNode>(value.moveValue()), std::move(branches)) };
+}
+
+bool Parser::isLambdaExpression() {
+	if (peek().type != Token::LeftParen) return false;
+
+	size_t startIndex = current;
+
+	Result<Token> leftParen = advance();
+	if (leftParen.hasError()) {
+		current = startIndex;
+		return false;
+	}
+
+	while (peek().type != Token::RightParen) {
+		Result<Token> token = advance();
+		if(token.hasError()) {
+			current = startIndex;
+			return false;
+		}
+	}
+
+	Result<Token> rightParen = advance();
+	if (rightParen.hasError()) {
+		current = startIndex;
+		return false;
+	}
+
+	if(peek().type != Token::Arrow) {
+		current = startIndex;
+		return false;
+	}
+
+	current = startIndex;
+	return true;
+}
+
+
+Result<std::unique_ptr<ASTNode>> Parser::parseLambdaExpression() {
+	if(!isLambdaExpression()) return parseStructExpression();
+	Result<Token> leftParen = expect(Token::LeftParen, "Expected '('");
+	if(leftParen.hasError()) return { leftParen, Trace(ASTNodeType::LambdaExpression, leftParen.getValue().position) };
+	std::vector<std::unique_ptr<FunctionArgument>> args;
+
+	while(peek().type != Token::RightParen) {
+		Token::Position argPos = peek().position;
+		Result<std::unique_ptr<FunctionArgument>> arg = parseFunctionArgument();
+		if(arg.hasError()) return { std::move(arg), Trace(ASTNodeType::LambdaExpression, argPos) };
+
+		args.push_back(arg.moveValue());
+
+		if(peek().type == Token::RightParen) break;
+
+		Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
+		if(comma.hasError()) return { comma, Trace(ASTNodeType::LambdaExpression, comma.getValue().position) };
+	}
+
+	Result<Token> rightParen = expect(Token::RightParen, "Expected ')'");
+	if(rightParen.hasError()) return { rightParen, Trace(ASTNodeType::LambdaExpression, rightParen.getValue().position) };
+
+	Result<Token> arrow = expect(Token::Arrow, "Expected '->'");
+	if(arrow.hasError()) return { arrow, Trace(ASTNodeType::LambdaExpression, arrow.getValue().position) };
+
+	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	if (body.hasError()) return { std::move(body), Trace(ASTNodeType::LambdaExpression, body.getValue()->position) };
+
+	if(body.getValue()->getNodeGroup() == ASTNodeGroup::Expression) {
+		auto bodyPosition = body.getValue()->position;
+		return {std::make_unique<LambdaExpressionNode>(
+				leftParen.getValue().position,
+				std::move(args),
+				std::make_unique<ReturnStatementNode>(bodyPosition,
+													  dynamic_unique_cast<ExpressionNode>(body.moveValue()), false))
+		};
+	}
+
+	return { std::make_unique<LambdaExpressionNode>(
+			leftParen.getValue().position,
+			std::move(args),
+			body.moveValue())
+	};
 }

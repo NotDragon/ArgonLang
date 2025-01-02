@@ -11,14 +11,14 @@ bool Parser::eos() const {
 	return current >= tokens.size() - 1;
 }
 
-Result<Token> Parser::advance() {
+[[nodiscard]] Result<Token> Parser::advance() {
     if (current < tokens.size()) {
         return tokens[current++];
     }
 	return { "Unexpected end of input", "", peek() };
 }
 
-Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) {
+[[nodiscard]] Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) {
     if (current > tokens.size() || tokens[current].type != type) {
 		current--;
         return { errorMessage + " got " + peek().value + "(" + Token::getTypeAsString(peek().type) + ")", "", peek() };

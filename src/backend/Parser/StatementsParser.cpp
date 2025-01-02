@@ -409,8 +409,8 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 
 		Result<std::unique_ptr<ASTNode>> member = parseStatement();
 		if(member.hasError()) return { std::move(member), Trace(ASTNodeType::ClassDeclaration, classKeyword.getValue().position) };
-
-		members.emplace_back(member.getValue()->position, dynamic_unique_cast<StatementNode>(member.moveValue()), visibility);
+		Token::Position memberPosition = member.getValue()->position;
+		members.emplace_back(memberPosition, dynamic_unique_cast<StatementNode>(member.moveValue()), visibility);
 	}
 
 	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after class declaration");

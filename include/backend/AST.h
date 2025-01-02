@@ -494,7 +494,7 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> returnExpression;
 		bool isSuper;
 
-        explicit ReturnStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> returnExpression, bool isSuper);
+		explicit ReturnStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> returnExpression, bool isSuper);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG

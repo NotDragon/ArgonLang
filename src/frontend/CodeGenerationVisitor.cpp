@@ -207,19 +207,48 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionCallExpressionNod
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const MemberAccessExpressionNode &node) {
-	return { "" };
+	Result<std::string> parent = visit(*node.parent);
+	if(parent.hasError()) return parent;
+	Result<std::string> member = visit(*node.member);
+	if (member.hasError()) return member;
+
+	return { parent.getValue() + node.accessType.value + member.getValue() };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ToExpressionNode &node) {
-	return { "" };
+	Result<std::string> lowerBound = visit(*node.lowerBound);
+	if(lowerBound.hasError()) return lowerBound;
+
+	Result<std::string> upperBound = visit(*node.upperBound);
+	if(upperBound.hasError()) return upperBound;
+
+	return {
+		"std::ranges::iota_view(" + lowerBound.getValue() + "," + upperBound.getValue() + (node.isInclusive? "+1": "")
+	};
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const FunctionArgument &node) {
-	return { "" };
+	Result<std::string> type = visit(*node.type);
+	if(type.hasError()) return type;
+
+
+	return { type.getValue() + " " + node.name };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const LambdaExpressionNode &node) {
-	return { "" };
+	std::string code = "[](";
+
+	code += ")";
+
+	Result<std::string> body = visit(*node.body);
+	if(body.hasError()) return body;
+
+	if(node.body->getNodeType() != ASTNodeType::Block)
+		code += "{" + body.getValue() + "}";
+	else
+		code += body.getValue();
+
+	return { code };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ComparisonExpressionNode &node) {
@@ -290,10 +319,10 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionDeclarationNode &
 	if(functionName.hasError()) return functionName;
 	std::string code = "int " + functionName.getValue() + "(";
 	for (const auto &arg: node.args) {
-		Result<std::string> type = visit(*arg->type);
-		if(type.hasError()) return type;
+		Result<std::string> argCode = visit(*arg);
+		if(argCode.hasError()) return argCode;
 
-		code += type.getValue() + " " + arg->name + ",";
+		code += argCode.getValue() + ",";
 	}
 	if (!node.args.empty()) {
 		code.pop_back();

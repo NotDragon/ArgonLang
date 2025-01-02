@@ -39,6 +39,8 @@ namespace ArgonLang {
 		Token peek() const;
 		bool eos() const;
 		void synchronize();
+
+		bool isLambdaExpression();
 		Result<Token> advance();
 		Result<Token> expect(Token::Type type, const std::string& errorMessage);
 
@@ -78,6 +80,7 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseFunctionCallExpression();
 		Result<std::unique_ptr<ASTNode>> parseIndexExpression();
 		Result<std::unique_ptr<ASTNode>> parseMemberAccessExpression();
+		Result<std::unique_ptr<ASTNode>> parseLambdaExpression();
 
 		// Methods for parsing statements
 		Result<std::unique_ptr<ASTNode>> parseVariableDeclaration();
