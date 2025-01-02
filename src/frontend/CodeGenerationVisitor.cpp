@@ -252,15 +252,33 @@ Result<std::string> CodeGenerationVisitor::visit(const LambdaExpressionNode &nod
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ComparisonExpressionNode &node) {
-	return { "" };
+	Result<std::string> left = visit(*node.left);
+	if(left.hasError()) return left;
+
+	Result<std::string> right = visit(*node.right);
+	if(right.hasError()) return right;
+
+	return { left.getValue() + node.op.value + right.getValue() };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const AssignmentExpressionNode &node) {
-	return { "" };
+	Result<std::string> left = visit(*node.left);
+	if(left.hasError()) return left;
+
+	Result<std::string> right = visit(*node.right);
+	if(right.hasError()) return right;
+
+	return { left.getValue() + node.op.value + right.getValue() };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const IndexExpressionNode &node) {
-	return { "" };
+	Result<std::string> array = visit(*node.array);
+	if(array.hasError()) return array;
+
+	Result<std::string> index = visit(*node.index);
+	if(index.hasError()) return index;
+
+	return { array.getValue() + "[" + index.getValue() + "]" };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
@@ -289,7 +307,17 @@ Result<std::string> CodeGenerationVisitor::visit(const StructExpressionNode &nod
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const RangeExpressionNode &node) {
-	return { "" };
+	std::string code = "{";
+
+	for(const auto& i: node.range) {
+		Result<std::string> item = visit(*i);
+		if(item.hasError()) return item;
+		code += item.getValue() + ",";
+	}
+
+	code.pop_back();
+	code += "}";
+	return { code };
 }
 
 
@@ -361,11 +389,17 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionDefinitionNode &n
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ReturnStatementNode &node) {
-	return { "" };
+	Result<std::string> returnValue = visit(*node.returnExpression);
+	if(returnValue.hasError()) return returnValue;
+
+	return { "return " + returnValue.getValue() };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const YieldStatementNode &node) {
-	return { "" };
+	Result<std::string> yieldValue = visit(*node.expressionNode);
+	if(yieldValue.hasError()) return yieldValue;
+
+	return { "co_yield " + yieldValue.getValue() };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ImplStatementNode &node) {
