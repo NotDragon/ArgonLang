@@ -6,6 +6,7 @@
 
 namespace ArgonLang {
 	class CodeGenerationVisitor: Visitor<Result<std::string>> {
+		bool isStatementContext = false;
 	public:
 		Result<std::string> visit(const ASTNode& node) override;
 		Result<std::string> visit(const ExpressionNode& node) override;
