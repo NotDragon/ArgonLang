@@ -163,7 +163,7 @@ std::vector<Token> ArgonLang::TranslationUnit::tokenizeTranslationUnit(const std
 			tokens.emplace_back(Token::LogicalOr, "||", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
-		}  else if (c == '_' && input[i + 1] == '>') {
+		}  else if (c == '-' && input[i + 1] == '>') {
 			tokens.emplace_back(Token::Arrow, "->", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
