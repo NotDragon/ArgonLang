@@ -3,10 +3,21 @@
 #define ARGONLANG_CODEGENERATIONSVISITOR_H
 #include "frontend/Visitor.h"
 #include "Error/Result.h"
+#include <set>
 
 namespace ArgonLang {
+	class ScopedStatementContext {
+		bool& ref;
+		bool old;
+	public:
+		ScopedStatementContext(bool& ref, bool val): ref(ref), old(ref) { ref = val; }
+		~ScopedStatementContext() { ref = old; }
+	};
+
 	class CodeGenerationVisitor: Visitor<Result<std::string>> {
 	public:
+		bool isStatementContext = false;
+	 	std::set<std::string> dependencies;
 		Result<std::string> visit(const ASTNode& node) override;
 		Result<std::string> visit(const ExpressionNode& node) override;
 		Result<std::string> visit(const StatementNode& node) override;
