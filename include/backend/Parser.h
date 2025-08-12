@@ -3,6 +3,7 @@
 
 #include "AST.h"
 #include "Error/Result.h"
+#include "Error/ErrorFormatter.h"
 #include <vector>
 #include <memory>
 #include "backend/Tokenizer.h"

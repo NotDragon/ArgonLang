@@ -4,11 +4,13 @@
 
 TEST(ParserTests, ParseVariableDeclaration) {
 	std::string input = "def x: i32 = 42;";
-	auto tokens = ArgonLang::tokenize(input);
-	ArgonLang::Parser parser(tokens);
+	auto tokenizeResult = ArgonLang::tokenize(input);
+	ASSERT_FALSE(tokenizeResult.hasError()) << "Tokenization failed: " << tokenizeResult.errorMsg;
+	
+	ArgonLang::Parser parser(tokenizeResult.tokens);
 
 	auto result = parser.parse();
-	ASSERT_FALSE(result.hasError());
+	ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
 	auto program = result.moveValue();
 
 	ASSERT_EQ(program->nodes.size(), 1);
@@ -19,11 +21,13 @@ TEST(ParserTests, ParseVariableDeclaration) {
 
 TEST(ParserTests, ParseFunctionDeclaration) {
 	std::string input = "func add(a: i32, b: i32) i32 -> a + b;";
-	auto tokens = ArgonLang::tokenize(input);
-	ArgonLang::Parser parser(tokens);
+	auto tokenizeResult = ArgonLang::tokenize(input);
+	ASSERT_FALSE(tokenizeResult.hasError()) << "Tokenization failed: " << tokenizeResult.errorMsg;
+	
+	ArgonLang::Parser parser(tokenizeResult.tokens);
 
 	auto result = parser.parse();
-	ASSERT_FALSE(result.hasError());
+	ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
 	auto program = result.moveValue();
 
 	ASSERT_EQ(program->nodes.size(), 1);

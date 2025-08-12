@@ -86,6 +86,7 @@ std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
 		case ASTNodeType::IntersectionType: return "IntersectionType";
 		case ASTNodeType::PrefixedType: return "PrefixedType";
 	}
+	return "Unknown";
 }
 
 ArgonLang::ASTNodeGroup ArgonLang::ExpressionNode::getNodeGroup() const {

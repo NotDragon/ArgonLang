@@ -14,8 +14,9 @@ Result<bool> AnalysisVisitor::visit(const ASTNode& node) {
 		case ASTNodeGroup::Statement:
 			return visit(dynamic_cast<const StatementNode&>(node));
 		case ASTNodeGroup::Type:
-			return visit(dynamic_cast<const TypeAliasNode&>(node));
+			return visit(dynamic_cast<const TypeNode&>(node));
 	}
+	return false; // Default case
 }
 
 Result<bool> AnalysisVisitor::visit(const ExpressionNode& node) {

@@ -3,6 +3,7 @@
 //
 #include "frontend/CodeGenerationVisitor.h"
 #include "backend/Parser.h"
+#include "Error/ErrorFormatter.h"
 #include <iostream>
 
 using namespace ArgonLang;
@@ -14,8 +15,13 @@ Result<std::string> CodeGenerationVisitor::visit(const ASTNode& node) {
 		case ASTNodeGroup::Statement:
 			return visit(dynamic_cast<const StatementNode&>(node));
 		case ASTNodeGroup::Type:
-			return visit(dynamic_cast<const TypeAliasNode&>(node));
+			return visit(dynamic_cast<const TypeNode&>(node));
 	}
+	return { 
+		ErrorFormatter::formatCodeGenError("Unknown node group", "ASTNode"),
+		"",
+		Trace(ASTNodeType::Program, node.position)
+	};
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ExpressionNode& node) {
@@ -61,7 +67,11 @@ Result<std::string> CodeGenerationVisitor::visit(const ExpressionNode& node) {
 		case ASTNodeType::RangeExpression:
 			return visit(dynamic_cast<const RangeExpressionNode&>(node));
 		default:
-			return { "Unexpected Expression", "", Trace() };
+			return { 
+				ErrorFormatter::formatCodeGenError("Unexpected expression type", ASTNodeTypeToString(node.getNodeType())),
+				"",
+				Trace(node.getNodeType(), node.position)
+			};
 	}
 }
 
@@ -108,7 +118,11 @@ Result<std::string> CodeGenerationVisitor::visit(const StatementNode& node) {
 		case ASTNodeType::ImportStatement:
 			return visit(dynamic_cast<const ImportStatementNode&>(node));
 		default:
-			return { "Unexpected Statement", "", Trace() };
+			return { 
+				ErrorFormatter::formatCodeGenError("Unexpected statement type", ASTNodeTypeToString(node.getNodeType())),
+				"",
+				Trace(node.getNodeType(), node.position)
+			};
 	}
 }
 
@@ -125,7 +139,11 @@ Result<std::string> CodeGenerationVisitor::visit(const TypeNode& node) {
 		case ASTNodeType::IdentifierType:
 			return visit(dynamic_cast<const IdentifierTypeNode&>(node));
 		default:
-			return { "Unexpected Type", "", Trace() };
+			return { 
+				ErrorFormatter::formatCodeGenError("Unexpected type", ASTNodeTypeToString(node.getNodeType())),
+				"",
+				Trace(node.getNodeType(), node.position)
+			};
 	}
 }
 
@@ -164,7 +182,11 @@ Result<std::string> CodeGenerationVisitor::visit(const IntegralLiteralNode &node
 		case PrimitiveType::INT64:  return std::to_string(node.value.i64);
 		case PrimitiveType::INT128: return std::to_string(static_cast<int64_t>(node.value.i128));
 		default:
-			return { "Invalid Integer", "", Trace(node.getNodeType(), node.position) };
+			return { 
+				ErrorFormatter::formatCodeGenError("Invalid integer type", primitiveTypeToString(node.type)),
+				ErrorFormatter::createContext("Integer literal code generation"),
+				Trace(node.getNodeType(), node.position)
+			};
 	}
 }
 
@@ -174,7 +196,11 @@ Result<std::string> CodeGenerationVisitor::visit(const FloatLiteralNode &node) {
 		case PrimitiveType::FLOAT64:  return std::to_string(node.value.f64);
 		case PrimitiveType::FLOAT128: return std::to_string(node.value.f128);
 		default:
-			return { "Invalid Float", "", Trace(node.getNodeType(), node.position) };
+			return { 
+				ErrorFormatter::formatCodeGenError("Invalid float type", primitiveTypeToString(node.type)),
+				ErrorFormatter::createContext("Float literal code generation"),
+				Trace(node.getNodeType(), node.position)
+			};
 	}
 
 }
@@ -221,7 +247,7 @@ Result<std::string> CodeGenerationVisitor::visit(const BinaryExpressionNode &nod
 		return { "[&]() { auto result = decltype(" + left.getValue() + "){}; std::transform(" + left.getValue() + ".begin(), " + left.getValue() + ".end(), std::back_inserter(result), " + right.getValue() + "); return result; }()" };
 	}
 	else if(node.op.value == "^") {
-		// Reduce operator: left ^ right becomes std::accumulate with right as binary operation
+		// Reduce operator: left ^ right becomes std::accumulate with binary operation
 		return { "std::accumulate(" + left.getValue() + ".begin(), " + left.getValue() + ".end(), typename decltype(" + left.getValue() + ")::value_type{}, " + right.getValue() + ")" };
 	}
 	else if(node.op.value == "^^") {

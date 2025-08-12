@@ -19,9 +19,18 @@ bool Parser::eos() const {
 }
 
 [[nodiscard]] Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) {
-    if (current > tokens.size() || tokens[current].type != type) {
-		current--;
-        return { errorMessage + " got " + peek().value + "(" + Token::getTypeAsString(peek().type) + ")", "", peek() };
+    if (current >= tokens.size() || tokens[current].type != type) {
+        // Don't modify parser state on error - create error with current position info
+        Token errorToken = (current < tokens.size()) ? tokens[current] : tokens.back();
+        std::string fullErrorMsg = ErrorFormatter::formatParseError(
+            errorMessage, 
+            Token::getTypeAsString(type), 
+            errorToken
+        );
+        std::string note = ErrorFormatter::createSuggestion(
+            "Check syntax near " + ErrorFormatter::formatPosition(errorToken.position)
+        );
+        return { fullErrorMsg, note, errorToken };
     }
 	return advance();
 }
@@ -61,13 +70,20 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 				statement = parseClassDeclaration();
 				break;
 			default:
-				return { "Only Function, Variable, Module, Import, Type Alias, Enum, Trait, and Class declarations are allowed in the outer scope, but got " + peek().value + "(" + Token::getTypeAsString(peek().type) + ")", "", Trace(ASTNodeType::Program, peek().position) };
+				Token currentToken = peek();
+				std::string errorMsg = ErrorFormatter::formatParseError(
+					"Invalid declaration at top level",
+					"function, variable, module, import, type alias, enum, trait, or class declaration",
+					currentToken
+				);
+				std::string note = ErrorFormatter::createContext("Only declarations are allowed at the top level");
+				return { errorMsg, note, Trace(ASTNodeType::Program, currentToken.position) };
 		}
 
 		if(statement.hasError()) {
 			synchronize();
-
-			return { std::move(statement), Trace(ASTNodeType::Program, { 0, 0 }) };
+			// Propagate error with proper trace information
+			return { statement, Trace(ASTNodeType::Program, peek().position) };
 		}
 
 		statements.push_back(statement.moveValue());
@@ -81,9 +97,10 @@ void Parser::synchronize() {
 
 		if (currentType.type == Token::Semicolon ||
 			currentType.type == Token::RightBrace) {
-			advance();
+			// Consume the synchronization token and return
+			(void)advance(); // Cast to void to suppress nodiscard warning
 			return;
 		}
-		advance();
+		(void)advance(); // Cast to void to suppress nodiscard warning
 	}
 }

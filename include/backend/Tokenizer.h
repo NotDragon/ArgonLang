@@ -144,7 +144,19 @@ namespace ArgonLang {
         static std::string getTypeAsString(Token::Type type);
     };
 
-    std::vector<Token> tokenize(const std::string& input);
+    class TokenizeResult {
+    public:
+        std::vector<Token> tokens;
+        std::string errorMsg;
+        Token::Position errorPosition;
+        
+        bool hasError() const { return !errorMsg.empty(); }
+        
+        TokenizeResult(std::vector<Token> tokens) : tokens(std::move(tokens)), errorPosition{0, 0} {}
+        TokenizeResult(std::string error, Token::Position pos) : errorMsg(std::move(error)), errorPosition(pos) {}
+    };
+
+    TokenizeResult tokenize(const std::string& input);
     extern const std::unordered_map<std::string, Token::Type> keywords;
 }
 #endif // TOKENIZER_H

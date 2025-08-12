@@ -16,34 +16,49 @@ int main(int argc, char** argv) {
 	std::string str((std::istreambuf_iterator<char>(file)),
 							 std::istreambuf_iterator<char>());
 
-	auto tokens = ArgonLang::tokenize(str);
-    ArgonLang::Parser parser(tokens);
+	auto tokenizeResult = ArgonLang::tokenize(str);
+	if (tokenizeResult.hasError()) {
+		std::cerr << "Tokenization failed: " << tokenizeResult.errorMsg << "\n";
+		std::cerr << "At: " << tokenizeResult.errorPosition.line << ":" << tokenizeResult.errorPosition.column << "\n";
+		return 1;
+	}
+
+    ArgonLang::Parser parser(tokenizeResult.tokens);
 	ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> program = parser.parse();
 
 	bool verbose = true;
 
 	if(program.hasError()) {
-		std::cerr << "Parsing error occurred \n\t" << program.getErrorMsg();
-		std::cerr << "\nAt: " << program.getTrace().position.line << ":" << program.getTrace().position.column << "\n";
+		std::cerr << "Parsing error occurred:\n\t" << program.getErrorMsg() << "\n";
+		
+		// Get initial trace information safely
+		if (auto currentTrace = program.tryGetTrace()) {
+			std::cerr << "At: " << currentTrace->position.line << ":" << currentTrace->position.column << "\n";
+		}
 
+		// Create a copy of the stack trace to avoid modifying the original
+		auto traceStack = program.getStackTrace();
 		size_t columnError = 0;
 		std::string space;
-		while(!program.getStackTrace().empty()) {
-			if(!verbose && program.getStackTrace().size() > 1) { // If not verbose, only print the last one
-				program.popTrace();
+		
+		while(!traceStack.empty()) {
+			if(!verbose && traceStack.size() > 1) {
+				traceStack.pop();
 				continue;
 			}
 
+			auto trace = traceStack.top();
 			std::string line = " ";
 			int lineCounter = 0;
 			bool whiteSpace = true;
-			for(int i = 0; i < str.size(); i++) {
+			
+			for(size_t i = 0; i < str.size(); i++) {
 				if(str[i] == '\n') {
 					lineCounter++;
 					continue;
 				}
 
-				if(lineCounter == program.getTrace().position.line - 1)	{
+				if(lineCounter == static_cast<int>(trace.position.line) - 1) {
 					if(!whiteSpace) {
 						line += str[i];
 						continue;
@@ -58,18 +73,17 @@ int main(int argc, char** argv) {
 
 			space += " ";
 
-			std::cerr << space << "L"
-			<< line
-			<< " (" << ArgonLang::ASTNodeTypeToString(program.getTrace().type)
-			<< " Line: " <<  program.getTrace().position.line << " Column: " << program.getTrace().position.column << ")\n";
-			columnError = program.getTrace().position.column;
-			program.popTrace();
+			std::cerr << space << "L" << line
+			<< " (" << ArgonLang::ASTNodeTypeToString(trace.type)
+			<< " Line: " << trace.position.line << " Column: " << trace.position.column << ")\n";
+			columnError = trace.position.column;
+			traceStack.pop();
 		}
 
 		std::cerr << space;
-		for(int i = 0; i < columnError + 1; i++)
+		for(size_t i = 0; i < columnError + 1; i++)
 			std::cerr << " ";
-		std::cerr << "^ " << program.getErrorNote();
+		std::cerr << "^ " << program.getErrorNote() << "\n";
 
 		return 1;
 	}

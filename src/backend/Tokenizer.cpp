@@ -1,5 +1,6 @@
 #include <sstream>
 #include "backend/Tokenizer.h"
+#include "Error/ErrorFormatter.h"
 
 namespace ArgonLang {
     const std::unordered_map<std::string, Token::Type> keywords = {
@@ -75,7 +76,7 @@ namespace ArgonLang {
     };
 }
 
-std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
+ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
     std::vector<Token> tokens;
     size_t length = input.size();
     size_t i = 0;
@@ -117,7 +118,12 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			while (i < length && input[i] != quoteType) {
 				if (input[i] == '\\') {
 					i++;
-					if (i >= length) throw std::runtime_error("Unterminated escape sequence in string" + std::to_string(currentLine) + ", column " + std::to_string(currentColumn));
+					if (i >= length) {
+						return TokenizeResult(
+							ErrorFormatter::formatTokenizerError("Unterminated escape sequence in string", currentLine, currentColumn),
+							{currentLine, currentColumn}
+						);
+					}
 					switch (input[i]) {
 						case 'n': stringLiteral += '\n'; break;
 						case 't': stringLiteral += '\t'; break;
@@ -134,14 +140,21 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 				i++;
 			}
 			if (i >= length || input[i] != quoteType) {
-				throw std::runtime_error("Unterminated string literal" + std::to_string(currentLine) + ", column " + std::to_string(currentColumn));
+				return TokenizeResult(
+					ErrorFormatter::formatTokenizerError("Unterminated string literal", currentLine, currentColumn),
+					{currentLine, currentColumn}
+				);
 			}
 			i++;
 
 			if(quoteType == '\"')
 				tokens.emplace_back(Token::StringLiteral, stringLiteral, currentLine, currentColumn);
-			else if(stringLiteral.size() != 1)
-				throw std::runtime_error("Multiple characters in char literal" + std::to_string(currentLine) + ", column " + std::to_string(currentColumn));
+			else if(stringLiteral.size() != 1) {
+				return TokenizeResult(
+					ErrorFormatter::formatTokenizerError("Multiple characters in char literal", currentLine, currentColumn),
+					{currentLine, currentColumn}
+				);
+			}
 			else
 				tokens.emplace_back(Token::CharLiteral, stringLiteral, currentLine, currentColumn);
 
@@ -155,7 +168,10 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 			while (i < length && (std::isdigit(input[i]) || input[i] == '.' || input[i] == '`')) {
 				if (input[i] == '.') {
 					if (isDecimal) {
-						throw std::runtime_error("Invalid numeric literal: multiple decimal points" + std::to_string(currentLine) + ", column " + std::to_string(currentColumn));
+						return TokenizeResult(
+							ErrorFormatter::formatTokenizerError("Invalid numeric literal: multiple decimal points", currentLine, currentColumn),
+							{currentLine, currentColumn}
+						);
 					}
 					isDecimal = true;
 				}
@@ -407,7 +423,11 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 				case '?': tokens.emplace_back(Token::QuestionMark, "?", currentLine, currentColumn); break;
 				case '#': tokens.emplace_back(Token::Hash, "#", currentLine, currentColumn); break;
 				case '$': tokens.emplace_back(Token::Dollar, "$", currentLine, currentColumn); break;
-				default: throw std::runtime_error(std::string("Unexpected character: ") + c);
+				default: 
+					return TokenizeResult(
+						ErrorFormatter::formatTokenizerError("Unexpected character: " + std::string(1, c), currentLine, currentColumn),
+						{currentLine, currentColumn}
+					);
 			}
 			i++;
 			currentColumn++;
@@ -415,7 +435,7 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
     }
 
     tokens.emplace_back(Token::End, "END", currentLine, currentColumn);
-    return tokens;
+    return TokenizeResult(std::move(tokens));
 }
 
 std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
