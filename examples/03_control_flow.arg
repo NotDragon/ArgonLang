@@ -1,0 +1,25 @@
+// Control flow: if statements, loops
+func testControlFlow() {
+    def x: i32 = 10;
+    
+    // If statement
+    if (x > 5) {
+        def message: str = "x is greater than 5";
+    }
+    
+    // For loop with range
+    for (i: i32 -> 0 to 10) {
+        def square: i32 = i * i;
+    }
+    
+    // While loop
+    def counter: i32 = 0;
+    while (counter < 5) {
+        counter = counter + 1;
+    }
+}
+
+func main() i32 {
+    testControlFlow();
+    return 0;
+}

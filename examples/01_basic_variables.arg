@@ -1,0 +1,13 @@
+// Basic variable declarations and types
+def x: i32 = 42;
+def y: f64 = 3.14;
+def name: str = "Hello World";
+def flag: bool = true;
+def ch: chr = 'A';
+
+const PI: f64 = 3.14159;
+const MAX_SIZE: i32 = 1000;
+
+func main() i32 {
+    return 0;
+}

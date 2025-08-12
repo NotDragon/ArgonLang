@@ -1,0 +1,11 @@
+// Simple arithmetic operations
+func main() i32 {
+    def a: i32 = 5;
+    def b: i32 = 3;
+    def sum: i32 = a + b;
+    def product: i32 = a * b;
+    def difference: i32 = a - b;
+    def quotient: i32 = a / b;
+    
+    return sum;
+}

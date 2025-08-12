@@ -1,0 +1,46 @@
+// Pattern matching and match expressions
+enum Option<T> {
+    Some(value: T),
+    None
+}
+
+func processOption(opt: Option<i32>) str {
+    return opt => {
+        Option::Some(value) && value > 10 -> "Large value: " + value,
+        Option::Some(value) -> "Small value: " + value,
+        Option::None -> "No value"
+    };
+}
+
+func matchNumbers(n: i32) str {
+    return n => {
+        0 -> "Zero",
+        1 to= 10 -> "Small number",
+        11 to= 100 -> "Medium number",
+        x && x > 100 -> "Large number: " + x,
+        _ -> "Unknown"
+    };
+}
+
+func matchTuple(pair: struct { x: i32, y: i32 }) str {
+    return pair => {
+        { x: 0, y: 0 } -> "Origin",
+        { x: 0, y } -> "Y-axis point: " + y,
+        { x, y: 0 } -> "X-axis point: " + x,
+        { x, y } && x == y -> "Diagonal point",
+        { x, y } -> "Point(" + x + ", " + y + ")"
+    };
+}
+
+func main() i32 {
+    def some_value: Option<i32> = Option::Some(42);
+    def none_value: Option<i32> = Option::None;
+    
+    def result1: str = processOption(some_value);
+    def result2: str = matchNumbers(25);
+    
+    def point: struct { x: i32, y: i32 } = struct { x = 5, y = 5 };
+    def result3: str = matchTuple(point);
+    
+    return 0;
+}

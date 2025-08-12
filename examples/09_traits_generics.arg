@@ -1,0 +1,25 @@
+// Traits and generics (simplified)
+trait Printable<T> {
+    func print() str;
+}
+
+class Person {
+    pub def name: str;
+    pub def age: i32;
+    
+    pub constructor(name: str, age: i32) {
+        this.name = name;
+        this.age = age;
+    }
+}
+
+func processGeneric<T>(value: T) T {
+    return value;
+}
+
+func main() i32 {
+    def person: Person = Person("Alice", 30);
+    def result: i32 = processGeneric<i32>(42);
+    
+    return 0;
+}

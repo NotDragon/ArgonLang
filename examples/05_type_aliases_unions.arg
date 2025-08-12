@@ -1,0 +1,41 @@
+// Type aliases and unions
+using Matrix = vec<vec<i32>>;
+using SmartPtr = ~i32;
+using NumberPair = struct { first: i32, second: i32 };
+
+union IntOrFloat {
+    intValue: i32,
+    floatValue: f64
+}
+
+union Result = i32 | str;
+
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+
+enum union Shape {
+    Circle(radius: i32),
+    Rectangle(width: i32, height: i32),
+    Triangle(base: i32, height: i32)
+}
+
+func processShape(shape: Shape) i32 {
+    return shape => {
+        Shape::Circle(r) -> 3 * r * r,
+        Shape::Rectangle(w, h) -> w * h,
+        Shape::Triangle(b, h) -> (b * h) / 2,
+        _ -> 0
+    };
+}
+
+func main() i32 {
+    def matrix: Matrix;
+    def color: Color = Color::Red;
+    def circle: Shape = Shape::Circle(5);
+    def area: i32 = processShape(circle);
+    
+    return 0;
+}
