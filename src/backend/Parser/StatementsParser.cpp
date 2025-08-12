@@ -96,33 +96,48 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 }
 
 Result<std::unique_ptr<FunctionArgument>> Parser::parseFunctionArgument() {
+	// Check for variadic argument: ...args: type
+	bool isVariadic = false;
+	Token::Position startPos = peek().position;
+	
+	if(peek().type == Token::Ellipsis) {
+		isVariadic = true;
+		Result<Token> ellipsis = advance();
+		if(ellipsis.hasError()) return { ellipsis.getErrorMsg(), ellipsis.getErrorNote(), Trace(ASTNodeType::FunctionArgument, startPos) };
+	}
+
 	Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
-	if(argIdentifier.hasError()) return { argIdentifier, Trace(ASTNodeType::FunctionArgument, argIdentifier.getValue().position) };
+	if(argIdentifier.hasError()) return { argIdentifier.getErrorMsg(), argIdentifier.getErrorNote(), Trace(ASTNodeType::FunctionArgument, startPos) };
 
 	std::unique_ptr<TypeNode> type;
 	std::unique_ptr<ExpressionNode> value;
 
 	if(peek().type == Token::Colon) {
 		Result<Token> colon = advance();
-		if(colon.hasError()) return { colon, Trace(ASTNodeType::FunctionArgument, colon.getValue().position) };
+		if(colon.hasError()) return { colon.getErrorMsg(), colon.getErrorNote(), Trace(ASTNodeType::FunctionArgument, startPos) };
 
 		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
-		if(typeRes.hasError()) return { std::move(typeRes), Trace(ASTNodeType::FunctionArgument, argIdentifier.getValue().position) };
+		if(typeRes.hasError()) return { typeRes.getErrorMsg(), typeRes.getErrorNote(), Trace(ASTNodeType::FunctionArgument, startPos) };
 
-		type = typeRes.moveValue();
+		// If this is a variadic argument, wrap the type in a VariadicTypeNode
+		if(isVariadic) {
+			type = std::make_unique<VariadicTypeNode>(startPos, typeRes.moveValue());
+		} else {
+			type = typeRes.moveValue();
+		}
 	}
 
 	if(peek().type == Token::Assign) {
 		Result<Token> assign = advance();
-		if(assign.hasError()) return { assign, Trace(ASTNodeType::FunctionArgument, assign.getValue().position) };
+		if(assign.hasError()) return { assign.getErrorMsg(), assign.getErrorNote(), Trace(ASTNodeType::FunctionArgument, startPos) };
 		
 		Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
-		if(valueRes.hasError()) return { std::move(valueRes), Trace(ASTNodeType::FunctionArgument, argIdentifier.getValue().position) };
+		if(valueRes.hasError()) return { valueRes.getErrorMsg(), valueRes.getErrorNote(), Trace(ASTNodeType::FunctionArgument, startPos) };
 
 		value = dynamic_unique_cast<ExpressionNode>(valueRes.moveValue());
 	}
 
-	return { std::make_unique<FunctionArgument>(argIdentifier.getValue().position, std::move(type), std::move(value), std::move(argIdentifier.getValue().value)) };
+	return { std::make_unique<FunctionArgument>(startPos, std::move(type), std::move(value), std::move(argIdentifier.getValue().value)) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {

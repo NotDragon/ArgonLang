@@ -182,3 +182,19 @@ ArgonLang::ImportStatementNode::ImportStatementNode(Token::Position position, st
 	std::vector<std::string> importedItems, std::string alias)
 	: moduleName(std::move(moduleName)), importedItems(std::move(importedItems)), alias(std::move(alias)), StatementNode(position) {}
 
+ArgonLang::FunctionTypeNode::FunctionTypeNode(Token::Position position, 
+	std::vector<std::unique_ptr<TypeNode>> paramTypes, 
+	std::unique_ptr<TypeNode> retType,
+	bool closure)
+	: parameterTypes(std::move(paramTypes)), returnType(std::move(retType)), isClosure(closure), TypeNode(position) {}
+
+ArgonLang::ArrayTypeNode::ArrayTypeNode(Token::Position position, 
+	std::unique_ptr<TypeNode> elemType, 
+	std::unique_ptr<ExpressionNode> arraySize)
+	: elementType(std::move(elemType)), size(std::move(arraySize)), TypeNode(position) {}
+
+
+
+ArgonLang::VariadicTypeNode::VariadicTypeNode(Token::Position position, std::unique_ptr<TypeNode> type)
+	: baseType(std::move(type)), TypeNode(position) {}
+

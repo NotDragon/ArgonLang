@@ -299,4 +299,38 @@ void ArgonLang::ImportStatementNode::print() const {
 	std::cout << "ImportStatementNode: " << moduleName << "\n";
 }
 
+void ArgonLang::FunctionTypeNode::print() const {
+	std::cout << "FunctionType: ";
+	if (isClosure) {
+		std::cout << "func ";
+		if (returnType) returnType->print();
+	} else {
+		std::cout << "func(";
+		for (int i = 0; i < parameterTypes.size(); ++i) {
+			parameterTypes[i]->print();
+			if (i < parameterTypes.size() - 1) std::cout << ", ";
+		}
+		std::cout << ")";
+		if (returnType) {
+			std::cout << " ";
+			returnType->print();
+		}
+	}
+}
+
+void ArgonLang::ArrayTypeNode::print() const {
+	std::cout << "ArrayType: ";
+	elementType->print();
+	std::cout << "[";
+	if (size) size->print();
+	std::cout << "]";
+}
+
+
+
+void ArgonLang::VariadicTypeNode::print() const {
+	std::cout << "VariadicType: ...";
+	baseType->print();
+}
+
 #endif

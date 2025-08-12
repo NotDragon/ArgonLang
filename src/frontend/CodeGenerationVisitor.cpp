@@ -138,6 +138,12 @@ Result<std::string> CodeGenerationVisitor::visit(const TypeNode& node) {
 			return visit(dynamic_cast<const SumTypeNode&>(node));
 		case ASTNodeType::IdentifierType:
 			return visit(dynamic_cast<const IdentifierTypeNode&>(node));
+		case ASTNodeType::FunctionType:
+			return visit(dynamic_cast<const FunctionTypeNode&>(node));
+		case ASTNodeType::ArrayType:
+			return visit(dynamic_cast<const ArrayTypeNode&>(node));
+		case ASTNodeType::VariadicType:
+			return visit(dynamic_cast<const VariadicTypeNode&>(node));
 		default:
 			return { 
 				ErrorFormatter::formatCodeGenError("Unexpected type", ASTNodeTypeToString(node.getNodeType())),
@@ -1028,4 +1034,72 @@ Result<std::string> CodeGenerationVisitor::visit(const ImportStatementNode &node
     code += "\n";
     code += "using namespace " + node.moduleName + ";\n";
     return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const FunctionTypeNode &node) {
+	std::string code;
+	
+	if (node.isClosure) {
+		// Closure type: func i32 -> std::function<i32()>
+		code += "std::function<";
+		if (node.returnType) {
+			auto retType = visit(*node.returnType);
+			if (retType.hasError()) return retType;
+			code += retType.getValue();
+		} else {
+			code += "void";
+		}
+		code += "()>";
+	} else {
+		// Function type: func(i32, i32) i32 -> std::function<i32(i32, i32)>
+		code += "std::function<";
+		if (node.returnType) {
+			auto retType = visit(*node.returnType);
+			if (retType.hasError()) return retType;
+			code += retType.getValue();
+		} else {
+			code += "void";
+		}
+		code += "(";
+		
+		for (size_t i = 0; i < node.parameterTypes.size(); ++i) {
+			auto paramType = visit(*node.parameterTypes[i]);
+			if (paramType.hasError()) return paramType;
+			code += paramType.getValue();
+			if (i < node.parameterTypes.size() - 1) {
+				code += ", ";
+			}
+		}
+		
+		code += ")>";
+	}
+	
+	return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const ArrayTypeNode &node) {
+	std::string code;
+	
+	auto elemType = visit(*node.elementType);
+	if (elemType.hasError()) return elemType;
+	
+	if (node.size) {
+		// Fixed-size array: i32[10] -> std::array<int32_t, 10>
+		auto sizeExpr = visit(*node.size);
+		if (sizeExpr.hasError()) return sizeExpr;
+		code += "std::array<" + elemType.getValue() + ", " + sizeExpr.getValue() + ">";
+	} else {
+		// Dynamic array: i32[] -> std::vector<int32_t>
+		code += "std::vector<" + elemType.getValue() + ">";
+	}
+	
+	return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const VariadicTypeNode &node) {
+	// Variadic type: ...i32 -> std::vector<i32> (or similar container)
+	auto baseType = visit(*node.baseType);
+	if (baseType.hasError()) return baseType;
+	
+	return { "std::vector<" + baseType.getValue() + ">" };
 }

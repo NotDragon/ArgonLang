@@ -71,6 +71,9 @@ namespace ArgonLang {
 		virtual T visit(const SumTypeNode &node) = 0;
 		virtual T visit(const IntersectionTypeNode &node) = 0;
 		virtual T visit(const PrefixedTypeNode &node) = 0;
+		virtual T visit(const FunctionTypeNode &node) = 0;
+		virtual T visit(const ArrayTypeNode &node) = 0;
+		virtual T visit(const VariadicTypeNode &node) = 0;
 	};
 }
 

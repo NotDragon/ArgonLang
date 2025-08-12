@@ -104,6 +104,7 @@ int main(int argc, char** argv) {
 	ArgonLang::Result<std::string> codeResult = codeGenerator.visit(*program.getValue());
 
 	if(codeResult.hasError()) {
+		std::cerr << codeResult.getErrorMsg() << "\n";
 		return 1;
 	}
 

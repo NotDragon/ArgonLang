@@ -419,7 +419,16 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 				case ';': tokens.emplace_back(Token::Semicolon, ";", currentLine, currentColumn); break;
 				case ':': tokens.emplace_back(Token::Colon, ":", currentLine, currentColumn); break;
 				case ',': tokens.emplace_back(Token::Comma, ",", currentLine, currentColumn); break;
-				case '.': tokens.emplace_back(Token::Dot, ".", currentLine, currentColumn); break;
+				case '.': 
+					// Check for ellipsis (...)
+					if (i + 2 < input.size() && input[i + 1] == '.' && input[i + 2] == '.') {
+						tokens.emplace_back(Token::Ellipsis, "...", currentLine, currentColumn);
+						i += 2; // Skip the next two dots
+						currentColumn += 2;
+					} else {
+						tokens.emplace_back(Token::Dot, ".", currentLine, currentColumn);
+					}
+					break;
 				case '?': tokens.emplace_back(Token::QuestionMark, "?", currentLine, currentColumn); break;
 				case '#': tokens.emplace_back(Token::Hash, "#", currentLine, currentColumn); break;
 				case '$': tokens.emplace_back(Token::Dollar, "$", currentLine, currentColumn); break;
@@ -537,6 +546,7 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
         case Token::DoubleHash: return "DoubleHash";
         case Token::ToEqual: return "ToEqual";
         case Token::Dollar: return "Dollar";
+        case Token::Ellipsis: return "Ellipsis";
 
 		case Token::FilterAssign: return "FilterAssign";
 		case Token::MapAssign: return "MapAssign";

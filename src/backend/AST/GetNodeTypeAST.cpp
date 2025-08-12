@@ -202,3 +202,17 @@ ArgonLang::ASTNodeType ArgonLang::ModuleDeclarationNode::getNodeType() const {
 ArgonLang::ASTNodeType ArgonLang::ImportStatementNode::getNodeType() const {
 	return ArgonLang::ASTNodeType::ImportStatement;
 }
+
+ArgonLang::ASTNodeType ArgonLang::FunctionTypeNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::FunctionType;
+}
+
+ArgonLang::ASTNodeType ArgonLang::ArrayTypeNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::ArrayType;
+}
+
+
+
+ArgonLang::ASTNodeType ArgonLang::VariadicTypeNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::VariadicType;
+}

@@ -21,6 +21,16 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		return type;
 	}
 
+	// Handle function types: func(i32, i32) i32 or func i32
+	if(left.getValue().type == Token::KeywordFunc) {
+		return parseFunctionType(left.getValue().position);
+	}
+
+	// Handle variadic types: ...i32
+	if(left.getValue().type == Token::Ellipsis) {
+		return parseVariadicType(left.getValue().position);
+	}
+
 	if(left.getValue().type != Token::Identifier && left.getValue().type != Token::PrimitiveType) {
 		return { "Expected type", "", Trace(ASTNodeType::IdentifierType, left.getValue().position) };
 	}
@@ -59,9 +69,48 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	return { std::make_unique<PrefixedTypeNode>(base.getValue()->position,  base.moveValue(), prefix) };
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseGenericType() {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseArrayType() {
 	Result<std::unique_ptr<TypeNode>> base = parsePrefixedType();
-	if(peek().type != Token::Less || base.hasError()) return base;
+	if(base.hasError()) return base;
+
+	// Check for array type: i32[10]
+	if(peek().type == Token::LeftBracket) {
+		Token::Position pos = peek().position;
+		Result<Token> leftBracket = advance();
+		if (leftBracket.hasError()) {
+			return { leftBracket.getErrorMsg(), leftBracket.getErrorNote(), Trace(ASTNodeType::ArrayType, pos) };
+		}
+
+		std::unique_ptr<ExpressionNode> size = nullptr;
+		if(peek().type != Token::RightBracket) {
+			// Parse array size expression
+			auto sizeResult = parseExpression();
+			if(sizeResult.hasError()) {
+				return { sizeResult.getErrorMsg(), sizeResult.getErrorNote(), Trace(ASTNodeType::ArrayType, pos) };
+			}
+			// We need to cast to ExpressionNode since parseExpression returns ASTNode
+			size = std::unique_ptr<ExpressionNode>(static_cast<ExpressionNode*>(sizeResult.moveValue().release()));
+		}
+
+		Result<Token> rightBracket = expect(Token::RightBracket, "Expected ']' after array size");
+		if (rightBracket.hasError()) {
+			return { rightBracket.getErrorMsg(), rightBracket.getErrorNote(), Trace(ASTNodeType::ArrayType, pos) };
+		}
+
+		return { std::make_unique<ArrayTypeNode>(pos, base.moveValue(), std::move(size)) };
+	}
+
+	// If not an array type, continue with generic type parsing
+	if(peek().type != Token::Less) return base;
+
+	return parseGenericTypeWithBase(base.moveValue());
+}
+
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseGenericType() {
+	return parseArrayType();
+}
+
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseGenericTypeWithBase(std::unique_ptr<TypeNode> base) {
 	Token::Position pos = peek().position;
 	Result<Token> less = advance();
 	if (less.hasError()) {
@@ -91,7 +140,7 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		return { greater.getErrorMsg(), greater.getErrorNote(), Trace(ASTNodeType::GenericType, pos) };
 	}
 
-	return { std::make_unique<GenericTypeNode>(base.getValue()->position, base.moveValue(), std::move(args)) };
+	return { std::make_unique<GenericTypeNode>(base->position, std::move(base), std::move(args)) };
 }
 
 ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseSumType() {
@@ -140,4 +189,73 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	}
 
 	return { std::make_unique<IntersectionTypeNode>(leftPos, std::move(types)) };
+}
+
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseFunctionType(Token::Position pos) {
+	// func(i32, i32) i32 or func i32 (closure)
+	
+	std::vector<std::unique_ptr<TypeNode>> paramTypes;
+	std::unique_ptr<TypeNode> returnType = nullptr;
+	bool isClosure = false;
+
+	// Check if it's a closure (func i32) or regular function (func(i32, i32) i32)
+	if(peek().type == Token::LeftParen) {
+		// Regular function type: func(i32, i32) i32
+		Result<Token> leftParen = advance();
+		if (leftParen.hasError()) {
+			return { leftParen.getErrorMsg(), leftParen.getErrorNote(), Trace(ASTNodeType::FunctionType, pos) };
+		}
+
+		// Parse parameter types
+		while(peek().type != Token::RightParen) {
+			auto paramType = parseType();
+			if(paramType.hasError()) {
+				return { paramType.getErrorMsg(), paramType.getErrorNote(), Trace(ASTNodeType::FunctionType, pos) };
+			}
+			paramTypes.push_back(paramType.moveValue());
+
+			if(peek().type == Token::RightParen) break;
+
+			Result<Token> comma = expect(Token::Comma, "Expected ',' between parameter types");
+			if (comma.hasError()) {
+				return { comma.getErrorMsg(), comma.getErrorNote(), Trace(ASTNodeType::FunctionType, pos) };
+			}
+		}
+
+		Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after parameter types");
+		if (rightParen.hasError()) {
+			return { rightParen.getErrorMsg(), rightParen.getErrorNote(), Trace(ASTNodeType::FunctionType, pos) };
+		}
+
+		// Parse optional return type
+		if(peek().type != Token::Semicolon && peek().type != Token::Comma && 
+		   peek().type != Token::RightParen && peek().type != Token::RightBrace && 
+		   peek().type != Token::FilterRange && peek().type != Token::MapRange) {
+			auto retType = parseType();
+			if(retType.hasError()) {
+				return { retType.getErrorMsg(), retType.getErrorNote(), Trace(ASTNodeType::FunctionType, pos) };
+			}
+			returnType = retType.moveValue();
+		}
+	} else {
+		// Closure type: func i32
+		isClosure = true;
+		auto retType = parseType();
+		if(retType.hasError()) {
+			return { retType.getErrorMsg(), retType.getErrorNote(), Trace(ASTNodeType::FunctionType, pos) };
+		}
+		returnType = retType.moveValue();
+	}
+
+	return { std::make_unique<FunctionTypeNode>(pos, std::move(paramTypes), std::move(returnType), isClosure) };
+}
+
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseVariadicType(Token::Position pos) {
+	// ...i32
+	auto baseType = parseType();
+	if(baseType.hasError()) {
+		return { baseType.getErrorMsg(), baseType.getErrorNote(), Trace(ASTNodeType::VariadicType, pos) };
+	}
+
+	return { std::make_unique<VariadicTypeNode>(pos, baseType.moveValue()) };
 }

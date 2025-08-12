@@ -80,6 +80,9 @@ namespace ArgonLang {
 		Result<std::string> visit(const SumTypeNode &node) override;
 		Result<std::string> visit(const IntersectionTypeNode &node) override;
 		Result<std::string> visit(const PrefixedTypeNode &node) override;
+		Result<std::string> visit(const FunctionTypeNode &node) override;
+		Result<std::string> visit(const ArrayTypeNode &node) override;
+		Result<std::string> visit(const VariadicTypeNode &node) override;
 	};
 }
 

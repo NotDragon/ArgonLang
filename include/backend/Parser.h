@@ -108,6 +108,10 @@ namespace ArgonLang {
 		Result<std::unique_ptr<TypeNode>> parseType();
 		Result<std::unique_ptr<TypeNode>> parseIdentifierType();
 		Result<std::unique_ptr<TypeNode>> parseGenericType();
+		Result<std::unique_ptr<TypeNode>> parseGenericTypeWithBase(std::unique_ptr<TypeNode> base);
+		Result<std::unique_ptr<TypeNode>> parseArrayType();
+		Result<std::unique_ptr<TypeNode>> parseFunctionType(Token::Position pos);
+		Result<std::unique_ptr<TypeNode>> parseVariadicType(Token::Position pos);
 		Result<std::unique_ptr<TypeNode>> parseSumType();
 		Result<std::unique_ptr<TypeNode>> parseIntersectionType();
 		Result<std::unique_ptr<TypeNode>> parsePrefixedType();

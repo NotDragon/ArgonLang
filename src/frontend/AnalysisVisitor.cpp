@@ -420,3 +420,18 @@ Result<bool> AnalysisVisitor::visit(const ImportStatementNode &node) {
 	std::cout << "ImportStatementNode\n";
 	return {};
 }
+
+Result<bool> AnalysisVisitor::visit(const FunctionTypeNode &node) {
+	std::cout << "FunctionTypeNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const ArrayTypeNode &node) {
+	std::cout << "ArrayTypeNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const VariadicTypeNode &node) {
+	std::cout << "VariadicTypeNode\n";
+	return {};
+}

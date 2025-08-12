@@ -1,0 +1,48 @@
+// Type system test - testing new type constructs
+
+// Function types
+func processData(callback: func(i32, str) bool) i32 {
+    return 42;
+}
+
+func createClosure() func i32 {
+    return () -> 42;
+}
+
+// Array types
+func processArray(data: i32[10]) i32 {
+    return data[0];
+}
+
+func processDynamicArray(data: i32[]) i32 {
+    return data[0];
+}
+
+// Variadic types
+func print(format: str, ...args: str) {
+    // Print with variable arguments
+}
+
+// Complex combinations
+func complexFunction(
+    arrays: vec<i32[5]>, 
+    callbacks: vec<func(i32) bool>,
+    varargs: ...func(str) i32
+) func(i32[], str) bool {
+    return (arr: i32[], text: str) -> true;
+}
+
+func main() i32 {
+    def callback: func(i32, str) bool = (x: i32, s: str) -> x > 0;
+    def result: i32 = processData(callback);
+    
+    def closure: func i32 = createClosure();
+    def value: i32 = closure();
+    
+    def arr: i32[5] = [1, 2, 3, 4, 5];
+    def first: i32 = processArray(arr);
+    
+    print("Hello", "world", "test");
+    
+    return result + value + first;
+}

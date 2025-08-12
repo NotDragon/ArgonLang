@@ -80,7 +80,10 @@ namespace ArgonLang
 		PrefixedType,
 		GenericType,
 		SumType,
-		IdentifierType
+		IdentifierType,
+		FunctionType,
+		ArrayType,
+		VariadicType
 	};
 
 	enum class [[nodiscard]] ASTNodeGroup {
@@ -892,6 +895,53 @@ namespace ArgonLang
 		std::unique_ptr<TypeNode> type;
 
 		explicit PrefixedTypeNode(Token::Position position, std::unique_ptr<TypeNode> type, Prefix prefix);
+
+		ASTNodeType getNodeType() const override;
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
+	class FunctionTypeNode : public TypeNode { // func(i32, i32) i32
+	public:
+		std::vector<std::unique_ptr<TypeNode>> parameterTypes;
+		std::unique_ptr<TypeNode> returnType; // nullptr for void/no return
+		bool isClosure; // true for func i32 (closure), false for func(i32) i32
+
+		explicit FunctionTypeNode(Token::Position position, 
+			std::vector<std::unique_ptr<TypeNode>> paramTypes, 
+			std::unique_ptr<TypeNode> retType = nullptr,
+			bool closure = false);
+
+		ASTNodeType getNodeType() const override;
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
+	class ArrayTypeNode : public TypeNode { // i32[10]
+	public:
+		std::unique_ptr<TypeNode> elementType;
+		std::unique_ptr<ExpressionNode> size; // nullptr for dynamic arrays
+
+		explicit ArrayTypeNode(Token::Position position, 
+			std::unique_ptr<TypeNode> elemType, 
+			std::unique_ptr<ExpressionNode> arraySize = nullptr);
+
+		ASTNodeType getNodeType() const override;
+#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
+
+	class VariadicTypeNode : public TypeNode { // ...args: vec<any>
+	public:
+		std::unique_ptr<TypeNode> baseType;
+
+		explicit VariadicTypeNode(Token::Position position, std::unique_ptr<TypeNode> type);
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG

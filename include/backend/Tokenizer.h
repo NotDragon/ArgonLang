@@ -128,6 +128,7 @@ namespace ArgonLang {
 			// Additional operators for range expressions
 			ToEqual,  // to=
 			Dollar,   // $ for iterator syntax
+			Ellipsis, // ... for variadic types
 
 			End
 		} type;

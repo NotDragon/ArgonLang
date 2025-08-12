@@ -582,4 +582,48 @@ void ArgonLang::ImportStatementNode::toDot(std::ostream& os, int& nodeId) const 
 	os << "  node" << currentId << " [label=\"Import: " << moduleName << "\"];\n";
 }
 
+void ArgonLang::FunctionTypeNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	std::string label = isClosure ? "FunctionType (closure)" : "FunctionType";
+	os << "  node" << currentId << " [label=\"" << label << "\"];\n";
+	
+	for (const auto& paramType : parameterTypes) {
+		int paramId = nodeId;
+		paramType->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << paramId << " [label=\"param\"];\n";
+	}
+	
+	if (returnType) {
+		int retId = nodeId;
+		returnType->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << retId << " [label=\"return\"];\n";
+	}
+}
+
+void ArgonLang::ArrayTypeNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"ArrayType\"];\n";
+	
+	int elemId = nodeId;
+	elementType->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << elemId << " [label=\"element\"];\n";
+	
+	if (size) {
+		int sizeId = nodeId;
+		size->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << sizeId << " [label=\"size\"];\n";
+	}
+}
+
+
+
+void ArgonLang::VariadicTypeNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"VariadicType\"];\n";
+	
+	int baseId = nodeId;
+	baseType->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << baseId << " [label=\"base\"];\n";
+}
+
 #endif
