@@ -62,6 +62,7 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseBitwiseExpression();
 		Result<std::unique_ptr<ASTNode>> parseShiftExpression();
 		Result<std::unique_ptr<ASTNode>> parseAssignmentExpression();
+		Result<std::unique_ptr<ASTNode>> parsePipeExpression();
 		Result<std::unique_ptr<ASTNode>> parseParallelExpression();
 		Result<std::unique_ptr<ASTNode>> parseStructExpression();
 		Result<std::unique_ptr<ASTNode>> parseMatchExpression();
@@ -97,6 +98,10 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseImplStatement();
 		Result<std::unique_ptr<ASTNode>> parseYieldStatement();
 		Result<std::unique_ptr<ASTNode>> parseConstructorStatement();
+		Result<std::unique_ptr<ASTNode>> parseEnumDeclaration();
+		Result<std::unique_ptr<ASTNode>> parseTraitDeclaration();
+		Result<std::unique_ptr<ASTNode>> parseModuleDeclaration();
+		Result<std::unique_ptr<ASTNode>> parseImportStatement();
 
 		// Methods for parsing types
 		Result<std::unique_ptr<TypeNode>> parseType();

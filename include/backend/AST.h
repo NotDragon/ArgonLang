@@ -59,6 +59,10 @@ namespace ArgonLang
 		IfStatement,
 		ForStatement,
 		UnionDeclaration,
+		EnumDeclaration,
+		TraitDeclaration,
+		ModuleDeclaration,
+		ImportStatement,
 		YieldStatement,
 		WhileStatement,
 		BreakStatement,
@@ -581,19 +585,96 @@ namespace ArgonLang
     #endif
     };
 
-    class UnionDeclarationNode : public StatementNode {
+        class UnionDeclarationNode : public StatementNode {
     public:
         std::string unionName;
         std::vector<std::unique_ptr<TypeNode>> types;
 
         explicit UnionDeclarationNode(Token::Position position, std::string unionName, std::vector<std::unique_ptr<TypeNode>> types);
 
-		ASTNodeType getNodeType() const override;
+        ASTNodeType getNodeType() const override;
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;
     #endif
     };
+
+	class EnumDeclarationNode : public StatementNode {
+	public:
+		struct EnumVariant {
+			std::string name;
+			std::vector<std::unique_ptr<TypeNode>> fields;
+			Token::Position position;
+			
+			EnumVariant(Token::Position pos, std::string name, std::vector<std::unique_ptr<TypeNode>> fields) 
+				: position(pos), name(std::move(name)), fields(std::move(fields)) {}
+		};
+		
+		std::string enumName;
+		std::vector<EnumVariant> variants;
+		bool isUnion; // true for "enum union", false for plain "enum"
+
+		explicit EnumDeclarationNode(Token::Position position, std::string enumName, std::vector<EnumVariant> variants, bool isUnion = false);
+
+		ASTNodeType getNodeType() const override;
+	#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+	#endif
+	};
+
+	class TraitDeclarationNode : public StatementNode {
+	public:
+		std::string traitName;
+		std::vector<std::unique_ptr<TypeNode>> genericParams;
+		std::vector<std::unique_ptr<StatementNode>> methods;
+		std::unique_ptr<ExpressionNode> constraint; // for constraint expressions
+
+		explicit TraitDeclarationNode(Token::Position position, std::string traitName, 
+			std::vector<std::unique_ptr<TypeNode>> genericParams,
+			std::vector<std::unique_ptr<StatementNode>> methods,
+			std::unique_ptr<ExpressionNode> constraint = nullptr);
+
+		ASTNodeType getNodeType() const override;
+	#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+	#endif
+	};
+
+	class ModuleDeclarationNode : public StatementNode {
+	public:
+		std::string moduleName;
+		std::vector<std::unique_ptr<StatementNode>> body;
+		std::vector<std::string> exports;
+
+		explicit ModuleDeclarationNode(Token::Position position, std::string moduleName, 
+			std::vector<std::unique_ptr<StatementNode>> body,
+			std::vector<std::string> exports = {});
+
+		ASTNodeType getNodeType() const override;
+	#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+	#endif
+	};
+
+	class ImportStatementNode : public StatementNode {
+	public:
+		std::string moduleName;
+		std::vector<std::string> importedItems; // empty means import all
+		std::string alias; // for "import as" syntax
+
+		explicit ImportStatementNode(Token::Position position, std::string moduleName,
+			std::vector<std::string> importedItems = {},
+			std::string alias = "");
+
+		ASTNodeType getNodeType() const override;
+	#ifdef DEBUG
+		void print() const override;
+		void toDot(std::ostream& os, int& nodeId) const override;
+	#endif
+	};
 
 	class ImplStatementNode : public StatementNode {
 	public:
@@ -800,8 +881,12 @@ namespace ArgonLang
 	class PrefixedTypeNode : public TypeNode { // *i32
 	public:
 		enum Prefix {
-			Pointer,
-			Owned
+			Pointer,        // *T - raw pointer
+			Owned,          // ~T - unique_ptr
+			SharedRef,      // ref<T> - shared_ptr  
+			WeakRef,        // weak<T> - weak_ptr
+			ImmutableRef,   // &T - const reference
+			MutableRef      // &&T - mutable reference
 		} prefix;
 
 		std::unique_ptr<TypeNode> type;

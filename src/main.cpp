@@ -6,8 +6,8 @@
 #include "frontend/CodeGenerationVisitor.h"
 
 int main(int argc, char** argv) {
-	if(argc < 3) {
-		std::cerr << "Expected 2 arguments";
+	if(argc < 4) {
+		std::cerr << "Expected 3 arguments";
 		return 1;
 	}
 
@@ -24,13 +24,12 @@ int main(int argc, char** argv) {
 
 	if(program.hasError()) {
 		std::cerr << "Parsing error occurred \n\t" << program.getErrorMsg();
-		std::cerr << "\nAt: \n";
+		std::cerr << "\nAt: " << program.getTrace().position.line << ":" << program.getTrace().position.column << "\n";
 
 		size_t columnError = 0;
 		std::string space;
 		while(!program.getStackTrace().empty()) {
-			if(program.getTrace().type == ArgonLang::ASTNodeType::Program // Don't print global scope
-				|| (!verbose && program.getStackTrace().size() > 1)) { // If not verbose, only print the last one
+			if(!verbose && program.getStackTrace().size() > 1) { // If not verbose, only print the last one
 				program.popTrace();
 				continue;
 			}
@@ -88,13 +87,16 @@ int main(int argc, char** argv) {
 	ArgonLang::AnalysisVisitor analysis;
 	ArgonLang::CodeGenerationVisitor codeGenerator;
 	analysis.visit(*program.getValue());
-	ArgonLang::Result<std::string> code = codeGenerator.visit(*program.getValue());
+	ArgonLang::Result<std::string> codeResult = codeGenerator.visit(*program.getValue());
 
-	if(code.hasError()) {
+	if(codeResult.hasError()) {
 		return 1;
 	}
 
-	std::cout << code.getValue();
+	std::string code = codeResult.getValue();
+
+	std::ofstream codeFile(argv[3]);
+	codeFile << code;
 
 	std::ofstream dotFile(argv[2]);
 	dotFile << "digraph AST {\n";

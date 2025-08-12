@@ -99,6 +99,14 @@ Result<std::string> CodeGenerationVisitor::visit(const StatementNode& node) {
 			return visit(dynamic_cast<const ConstructorStatementNode&>(node));
 		case ASTNodeType::ImplStatement:
 			return visit(dynamic_cast<const ImplStatementNode&>(node));
+		case ASTNodeType::EnumDeclaration:
+			return visit(dynamic_cast<const EnumDeclarationNode&>(node));
+		case ASTNodeType::TraitDeclaration:
+			return visit(dynamic_cast<const TraitDeclarationNode&>(node));
+		case ASTNodeType::ModuleDeclaration:
+			return visit(dynamic_cast<const ModuleDeclarationNode&>(node));
+		case ASTNodeType::ImportStatement:
+			return visit(dynamic_cast<const ImportStatementNode&>(node));
 		default:
 			return { "Unexpected Statement", "", Trace() };
 	}
@@ -124,6 +132,21 @@ Result<std::string> CodeGenerationVisitor::visit(const TypeNode& node) {
 
 Result<std::string> CodeGenerationVisitor::visit(const ProgramNode &node) {
 	std::string code = "#include <cstdint>\n";
+	code += "#include <algorithm>\n";
+	code += "#include <numeric>\n";
+	code += "#include <ranges>\n";
+	code += "#include <memory>\n";
+	code += "#include <functional>\n";
+	code += "#include <utility>\n";
+	code += "#include <iterator>\n";
+	code += "#include <variant>\n";
+	code += "#include <vector>\n";
+	code += "#include <iostream>\n";
+	code += "#include <future>\n";
+	code += "#include <thread>\n";
+	code += "#include <chrono>\n";
+	code += "\n";
+	
 	for (const auto& child : node.nodes) {
 		auto result = visit(*child);
 		if (result.hasError()) return result;
@@ -178,16 +201,68 @@ Result<std::string> CodeGenerationVisitor::visit(const BinaryExpressionNode &nod
 	if(left.hasError()) return left;
 
 	Result<std::string> right = visit(*node.right);
-	if(left.hasError()) return right;
+	if(right.hasError()) return right;
 
-	return { left.getValue() + " " + node.op.value + " " + right.getValue() };
+	// Handle functional programming operators
+	if(node.op.value == "|>") {
+		// Pipe operator: left |> right becomes right(left)
+		return { right.getValue() + "(" + left.getValue() + ")" };
+	}
+	else if(node.op.value == "||>") {
+		// Map pipe: left ||> right becomes std::transform with right applied to each element
+		return { "std::transform(" + left.getValue() + ".begin(), " + left.getValue() + ".end(), " + left.getValue() + ".begin(), " + right.getValue() + ")" };
+	}
+	else if(node.op.value == "|") {
+		// Filter operator: left | right becomes std::copy_if with right as predicate
+		return { "[&]() { auto result = decltype(" + left.getValue() + "){}; std::copy_if(" + left.getValue() + ".begin(), " + left.getValue() + ".end(), std::back_inserter(result), " + right.getValue() + "); return result; }()" };
+	}
+	else if(node.op.value == "&") {
+		// Map operator: left & right becomes std::transform with right applied to each element
+		return { "[&]() { auto result = decltype(" + left.getValue() + "){}; std::transform(" + left.getValue() + ".begin(), " + left.getValue() + ".end(), std::back_inserter(result), " + right.getValue() + "); return result; }()" };
+	}
+	else if(node.op.value == "^") {
+		// Reduce operator: left ^ right becomes std::accumulate with right as binary operation
+		return { "std::accumulate(" + left.getValue() + ".begin(), " + left.getValue() + ".end(), typename decltype(" + left.getValue() + ")::value_type{}, " + right.getValue() + ")" };
+	}
+	else if(node.op.value == "^^") {
+		// Accumulate range: left ^^ right becomes std::accumulate with custom logic
+		return { "std::accumulate(" + left.getValue() + ".begin(), " + left.getValue() + ".end(), decltype(" + left.getValue() + "){}, " + right.getValue() + ")" };
+	}
+	else if(node.op.value == "to") {
+		// Range operator: handled by ToExpressionNode, but if it appears here as binary op
+		return { "std::ranges::iota_view(" + left.getValue() + ", " + right.getValue() + ")" };
+	}
+	else {
+		// Regular binary operators
+		return { left.getValue() + " " + node.op.value + " " + right.getValue() };
+	}
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const UnaryExpressionNode &node) {
 	Result<std::string> operand = visit(*node.operand);
 	if(operand.hasError()) return operand;
 
-	return { node.op.value + " " + operand.getValue() };
+	// Handle special unary operators
+	if(node.op.value == "$") {
+		// Iterator syntax: $arr becomes {arr.begin(), arr.end()}
+		return { "std::make_pair(" + operand.getValue() + ".begin(), " + operand.getValue() + ".end())" };
+	}
+	else if(node.op.value == "~") {
+		// Ownership operator: ~ptr becomes std::unique_ptr or move semantics
+		return { "std::make_unique<decltype(" + operand.getValue() + ")>(" + operand.getValue() + ")" };
+	}
+	else if(node.op.value == "&") {
+		// Reference operator (immutable reference)
+		return { "&" + operand.getValue() };
+	}
+	else if(node.op.value == "&&") {
+		// Mutable reference operator  
+		return { "&" + operand.getValue() };
+	}
+	else {
+		// Regular unary operators
+		return { node.op.value + " " + operand.getValue() };
+	}
 }
 
 
@@ -228,7 +303,7 @@ Result<std::string> CodeGenerationVisitor::visit(const ToExpressionNode &node) {
 	if(upperBound.hasError()) return upperBound;
 
 	return {
-		"std::ranges::iota_view(" + lowerBound.getValue() + "," + upperBound.getValue() + (node.isInclusive? "+1": "")
+		"std::ranges::iota_view(" + lowerBound.getValue() + "," + upperBound.getValue() + (node.isInclusive? "+1": "") + ")"
 	};
 }
 
@@ -307,6 +382,36 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
 	std::string code;
 	if (pattern == "_") {
 		code = "if (true) {";
+	} else if (pattern.find("to") != std::string::npos && pattern.find("=") != std::string::npos) {
+		// Handle range patterns like "1 to= 10"
+		size_t toPos = pattern.find(" to");
+		if (toPos != std::string::npos) {
+			std::string start = pattern.substr(0, toPos);
+			std::string end = pattern.substr(toPos + 4); // Skip " to="
+			code = "if(__match_val >= " + start + " && __match_val <= " + end + ") {";
+		} else {
+			code = "if(__match_val == " + pattern + ") {";
+		}
+	} else if (pattern.find("to") != std::string::npos) {
+		// Handle exclusive range patterns like "1 to 10"
+		size_t toPos = pattern.find(" to ");
+		if (toPos != std::string::npos) {
+			std::string start = pattern.substr(0, toPos);
+			std::string end = pattern.substr(toPos + 4);
+			code = "if(__match_val >= " + start + " && __match_val < " + end + ") {";
+		} else {
+			code = "if(__match_val == " + pattern + ") {";
+		}
+	} else if (pattern.find("&&") != std::string::npos) {
+		// Handle guard conditions like "x && x > 5"
+		size_t guardPos = pattern.find(" && ");
+		if (guardPos != std::string::npos) {
+			std::string var = pattern.substr(0, guardPos);
+			std::string condition = pattern.substr(guardPos + 4);
+			code = "if(auto " + var + " = __match_val; " + condition + ") {";
+		} else {
+			code = "if(__match_val == " + pattern + ") {";
+		}
 	} else {
 		code = "if(__match_val == " + pattern + ") {";
 	}
@@ -353,7 +458,7 @@ Result<std::string> CodeGenerationVisitor::visit(const TernaryExpressionNode &no
 Result<std::string> CodeGenerationVisitor::visit(const ParallelExpressionNode &node) {
         auto stmt = visit(*node.statementNode);
         if(stmt.hasError()) return stmt;
-        return { "std::async([&]() { " + stmt.getValue() + "; })" };
+        return { "std::async(std::launch::async, [&]() { " + stmt.getValue() + "; return 0; })" };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const StructField &node) {
@@ -759,9 +864,142 @@ Result<std::string> CodeGenerationVisitor::visit(const PrefixedTypeNode &node) {
     auto base = visit(*node.type);
     if(base.hasError()) return base;
     std::string code;
-    if(node.prefix == PrefixedTypeNode::Pointer)
-    	code = base.getValue() + "*";
-    else
-    	code = "std::unique_ptr<" + base.getValue() + ">";
+    
+    switch(node.prefix) {
+        case PrefixedTypeNode::Pointer:
+            code = base.getValue() + "*";
+            break;
+        case PrefixedTypeNode::Owned:
+            code = "std::unique_ptr<" + base.getValue() + ">";
+            break;
+        case PrefixedTypeNode::SharedRef:
+            code = "std::shared_ptr<" + base.getValue() + ">";
+            break;
+        case PrefixedTypeNode::WeakRef:
+            code = "std::weak_ptr<" + base.getValue() + ">";
+            break;
+        case PrefixedTypeNode::ImmutableRef:
+            code = "const " + base.getValue() + "&";
+            break;
+        case PrefixedTypeNode::MutableRef:
+            code = base.getValue() + "&";
+            break;
+        default:
+            code = base.getValue();
+            break;
+    }
+    return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const EnumDeclarationNode &node) {
+    std::string code;
+    
+    if (node.isUnion) {
+        // Generate tagged union using std::variant
+        code = "enum class " + node.enumName + "Type { ";
+        for (const auto& variant : node.variants) {
+            code += variant.name + ", ";
+        }
+        if (!node.variants.empty()) code.pop_back(), code.pop_back();
+        code += " };\n";
+        
+        code += "class " + node.enumName + " {\npublic:\n";
+        code += "    " + node.enumName + "Type type;\n";
+        code += "    std::variant<";
+        
+        for (const auto& variant : node.variants) {
+            if (variant.fields.empty()) {
+                code += "std::monostate, ";
+            } else {
+                code += "std::tuple<";
+                for (const auto& field : variant.fields) {
+                    auto fieldResult = visit(*field);
+                    if (fieldResult.hasError()) return fieldResult;
+                    code += fieldResult.getValue() + ", ";
+                }
+                if (!variant.fields.empty()) code.pop_back(), code.pop_back();
+                code += ">, ";
+            }
+        }
+        if (!node.variants.empty()) code.pop_back(), code.pop_back();
+        code += "> data;\n";
+        code += "};\n";
+    } else {
+        // Generate simple enum
+        code = "enum class " + node.enumName + " { ";
+        for (const auto& variant : node.variants) {
+            code += variant.name + ", ";
+        }
+        if (!node.variants.empty()) code.pop_back(), code.pop_back();
+        code += " };\n";
+    }
+    
+    return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const TraitDeclarationNode &node) {
+    std::string code = "// Trait " + node.traitName + "\n";
+    
+    // Generate generic parameters
+    std::string templateParams = "template<typename T";
+    for (const auto& param : node.genericParams) {
+        auto paramResult = visit(*param);
+        if (paramResult.hasError()) return paramResult;
+        templateParams += ", typename " + paramResult.getValue();
+    }
+    templateParams += ">\n";
+    
+    code += templateParams;
+    code += "concept " + node.traitName + " = requires(T t) {\n";
+    
+    // Generate requirements from methods
+    for (const auto& method : node.methods) {
+        if (method->getNodeType() == ASTNodeType::FunctionDefinition) {
+            const auto* funcDef = dynamic_cast<const FunctionDefinitionNode*>(method.get());
+            if (funcDef && funcDef->name) {
+                auto nameResult = visit(*funcDef->name);
+                if (nameResult.hasError()) continue;
+                code += "    { t." + nameResult.getValue() + "() };\n";
+            }
+        }
+    }
+    
+    // Add constraint if present
+    if (node.constraint) {
+        auto constraintResult = visit(*node.constraint);
+        if (!constraintResult.hasError()) {
+            code += "    // Constraint: " + constraintResult.getValue() + "\n";
+        }
+    }
+    
+    code += "};\n";
+    return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const ModuleDeclarationNode &node) {
+    std::string code = "// Module: " + node.moduleName + "\n";
+    code += "namespace " + node.moduleName + " {\n";
+    
+    for (const auto& stmt : node.body) {
+        auto stmtResult = visit(*stmt);
+        if (stmtResult.hasError()) return stmtResult;
+        code += stmtResult.getValue();
+    }
+    
+    code += "} // namespace " + node.moduleName + "\n";
+    return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const ImportStatementNode &node) {
+    std::string code = "// Import " + node.moduleName;
+    if (!node.importedItems.empty()) {
+        code += " -> ";
+        for (const auto& item : node.importedItems) {
+            code += item + ", ";
+        }
+        code.pop_back(), code.pop_back();
+    }
+    code += "\n";
+    code += "using namespace " + node.moduleName + ";\n";
     return { code };
 }

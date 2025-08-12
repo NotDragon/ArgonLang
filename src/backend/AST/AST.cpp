@@ -60,6 +60,10 @@ std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
 		case ASTNodeType::IfStatement: return "IfStatement";
 		case ASTNodeType::ForStatement: return "ForStatement";
 		case ASTNodeType::UnionDeclaration: return "UnionDeclaration";
+		case ASTNodeType::EnumDeclaration: return "EnumDeclaration";
+		case ASTNodeType::TraitDeclaration: return "TraitDeclaration";
+		case ASTNodeType::ModuleDeclaration: return "ModuleDeclaration";
+		case ASTNodeType::ImportStatement: return "ImportStatement";
 		case ASTNodeType::YieldStatement: return "YieldStatement";
 		case ASTNodeType::WhileStatement: return "WhileStatement";
 		case ASTNodeType::BreakStatement: return "BreakStatement";

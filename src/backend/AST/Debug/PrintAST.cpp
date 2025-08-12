@@ -279,4 +279,24 @@ void ArgonLang::MemberAccessExpressionNode::print() const {
 	std::cout << "MemberAccessExpressionNode: " << member << std::endl;
 }
 
+// New AST node print implementations
+void ArgonLang::EnumDeclarationNode::print() const {
+	std::cout << "EnumDeclarationNode: " << enumName << " (isUnion: " << isUnion << ")\n";
+	for (const auto& variant : variants) {
+		std::cout << "  Variant: " << variant.name << "\n";
+	}
+}
+
+void ArgonLang::TraitDeclarationNode::print() const {
+	std::cout << "TraitDeclarationNode: " << traitName << "\n";
+}
+
+void ArgonLang::ModuleDeclarationNode::print() const {
+	std::cout << "ModuleDeclarationNode: " << moduleName << "\n";
+}
+
+void ArgonLang::ImportStatementNode::print() const {
+	std::cout << "ImportStatementNode: " << moduleName << "\n";
+}
+
 #endif

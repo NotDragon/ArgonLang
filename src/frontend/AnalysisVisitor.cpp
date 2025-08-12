@@ -99,6 +99,14 @@ Result<bool> AnalysisVisitor::visit(const StatementNode& node) {
 			return visit(dynamic_cast<const ConstructorStatementNode&>(node));
 		case ASTNodeType::ImplStatement:
 			return visit(dynamic_cast<const ImplStatementNode&>(node));
+		case ASTNodeType::EnumDeclaration:
+			return visit(dynamic_cast<const EnumDeclarationNode&>(node));
+		case ASTNodeType::TraitDeclaration:
+			return visit(dynamic_cast<const TraitDeclarationNode&>(node));
+		case ASTNodeType::ModuleDeclaration:
+			return visit(dynamic_cast<const ModuleDeclarationNode&>(node));
+		case ASTNodeType::ImportStatement:
+			return visit(dynamic_cast<const ImportStatementNode&>(node));
 		default:
 			return { "Unexpected Statement", "", Trace() };
 	}
@@ -390,5 +398,24 @@ Result<bool> AnalysisVisitor::visit(const IntersectionTypeNode &node) {
 Result<bool> AnalysisVisitor::visit(const PrefixedTypeNode &node) {
 	std::cout << "PrefixedTypeNode\n";
 	return {};
+}
 
+Result<bool> AnalysisVisitor::visit(const EnumDeclarationNode &node) {
+	std::cout << "EnumDeclarationNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const TraitDeclarationNode &node) {
+	std::cout << "TraitDeclarationNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const ModuleDeclarationNode &node) {
+	std::cout << "ModuleDeclarationNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const ImportStatementNode &node) {
+	std::cout << "ImportStatementNode\n";
+	return {};
 }

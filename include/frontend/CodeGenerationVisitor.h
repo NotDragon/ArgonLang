@@ -61,6 +61,10 @@ namespace ArgonLang {
 		Result<std::string> visit(const ConstructorStatementNode::ConstructorArgument &node) override;
 		Result<std::string> visit(const ClassDeclarationNode &node) override;
 		Result<std::string> visit(const UnionDeclarationNode &node) override;
+		Result<std::string> visit(const EnumDeclarationNode &node) override;
+		Result<std::string> visit(const TraitDeclarationNode &node) override;
+		Result<std::string> visit(const ModuleDeclarationNode &node) override;
+		Result<std::string> visit(const ImportStatementNode &node) override;
 		Result<std::string> visit(const IfStatementNode &node) override;
 		Result<std::string> visit(const ForStatementNode &node) override;
 		Result<std::string> visit(const WhileStatementNode &node) override;

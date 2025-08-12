@@ -185,3 +185,20 @@ ArgonLang::ASTNodeType ArgonLang::IntersectionTypeNode::getNodeType() const {
 ArgonLang::ASTNodeType ArgonLang::PrefixedTypeNode::getNodeType() const {
 	return ArgonLang::ASTNodeType::PrefixedType;
 }
+
+// New AST node getNodeType implementations
+ArgonLang::ASTNodeType ArgonLang::EnumDeclarationNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::EnumDeclaration;
+}
+
+ArgonLang::ASTNodeType ArgonLang::TraitDeclarationNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::TraitDeclaration;
+}
+
+ArgonLang::ASTNodeType ArgonLang::ModuleDeclarationNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::ModuleDeclaration;
+}
+
+ArgonLang::ASTNodeType ArgonLang::ImportStatementNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::ImportStatement;
+}

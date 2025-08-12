@@ -21,6 +21,13 @@ Result<std::unique_ptr<ASTNode>> Parser::parsePrimary() {
 	} else if (token.type == Token::Identifier) {
 		return { std::make_unique<IdentifierNode>(token.position, token.value) };
 	}else if (token.type == Token::LeftParen) {
+		// Step back to check for lambda expression
+		current--;
+		if (isLambdaExpression()) {
+			return parseLambdaExpression();
+		}
+		// Not a lambda, parse as parenthesized expression
+		advance(); // consume the LeftParen again
 		Result<std::unique_ptr<ASTNode>> expr = parseExpression();
 		Result<Token> tokenError1 = expect(Token::RightParen, "Expected closing ')'");
 		if(tokenError1.hasError()) return { tokenError1, Trace(ASTNodeType::StringLiteral, tokenError1.getValue().position)};
@@ -228,7 +235,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseShiftExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseAssignmentExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parseParallelExpression();
+	Result<std::unique_ptr<ASTNode>> left = parsePipeExpression();
 	if(left.hasError()) return left;
 
 	while(peek().type == Token::Assign) {
@@ -236,13 +243,37 @@ Result<std::unique_ptr<ASTNode>> Parser::parseAssignmentExpression() {
 		if (assign.hasError()) return { assign, Trace(ASTNodeType::AssignmentExpression, assign.getValue().position) };
 
 		Token::Position pos = peek().position;
-		Result<std::unique_ptr<ASTNode>> right = parseParallelExpression();
+		Result<std::unique_ptr<ASTNode>> right = parsePipeExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::AssignmentExpression, pos) };
 		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<AssignmentExpressionNode>(
 				leftPos,
 				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
 				assign.getValue(),
+				dynamic_unique_cast<ExpressionNode>(right.moveValue())
+		);
+	}
+
+	return left;
+}
+
+Result<std::unique_ptr<ASTNode>> Parser::parsePipeExpression() {
+	Result<std::unique_ptr<ASTNode>> left = parseParallelExpression();
+	if(left.hasError()) return left;
+
+	while(peek().type == Token::Pipe) {
+		Result<Token> opError = advance();
+		if(opError.hasError()) return { opError, Trace(ASTNodeType::BinaryExpression, opError.getValue().position) };
+		Token op = opError.getValue();
+
+		Token::Position pos = peek().position;
+		Result<std::unique_ptr<ASTNode>> right = parseParallelExpression();
+		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::BinaryExpression, pos)};
+		Token::Position leftPos = left.getValue()->position;
+		left = std::make_unique<BinaryExpressionNode>(
+				leftPos,
+				dynamic_unique_cast<ExpressionNode>(left.moveValue()),
+				op,
 				dynamic_unique_cast<ExpressionNode>(right.moveValue())
 		);
 	}

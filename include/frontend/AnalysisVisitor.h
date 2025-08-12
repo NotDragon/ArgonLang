@@ -65,6 +65,11 @@ namespace ArgonLang {
 		Result<bool> visit(const SumTypeNode &node) override;
 		Result<bool> visit(const IntersectionTypeNode &node) override;
 		Result<bool> visit(const PrefixedTypeNode &node) override;
+
+		Result<bool> visit(const EnumDeclarationNode &node) override;
+		Result<bool> visit(const TraitDeclarationNode &node) override;
+		Result<bool> visit(const ModuleDeclarationNode &node) override;
+		Result<bool> visit(const ImportStatementNode &node) override;
 	};
 }
 

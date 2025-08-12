@@ -42,8 +42,26 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 			case Token::KeywordFunc:
 				statement = parseFunctionDeclaration();
 				break;
+			case Token::KeywordModule:
+				statement = parseModuleDeclaration();
+				break;
+			case Token::KeywordImport:
+				statement = parseImportStatement();
+				break;
+			case Token::KeywordUsing:
+				statement = parseTypeAlias();
+				break;
+			case Token::KeywordEnum:
+				statement = parseEnumDeclaration();
+				break;
+			case Token::KeywordTrait:
+				statement = parseTraitDeclaration();
+				break;
+			case Token::KeywordClass:
+				statement = parseClassDeclaration();
+				break;
 			default:
-				return { "Only Function and Variable declarations are allowed in the outer scope", "", Trace(ASTNodeType::Program, peek().position) };
+				return { "Only Function, Variable, Module, Import, Type Alias, Enum, Trait, and Class declarations are allowed in the outer scope, but got " + peek().value + "(" + Token::getTypeAsString(peek().type) + ")", "", Trace(ASTNodeType::Program, peek().position) };
 		}
 
 		if(statement.hasError()) {

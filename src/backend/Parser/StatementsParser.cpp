@@ -34,6 +34,14 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStatement() {
 			return { parseTypeAlias() };
 		case Token::KeywordYield:
 			return { parseYieldStatement() };
+		case Token::KeywordEnum:
+			return { parseEnumDeclaration() };
+		case Token::KeywordTrait:
+			return { parseTraitDeclaration() };
+		case Token::KeywordModule:
+			return { parseModuleDeclaration() };
+		case Token::KeywordImport:
+			return { parseImportStatement() };
 		case Token::KeywordPar:
 			return { parseParallelExpression() };
 		case Token::KeywordBreak:
@@ -358,6 +366,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {
 	Result<std::unique_ptr<TypeNode>> type = parseType();
 	if(type.hasError()) return { std::move(type), Trace(ASTNodeType::TypeAlias, pos) };
 
+	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';' after type alias");
+	if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::TypeAlias, semiColon.getValue().position) };
+
 	return { std::make_unique<TypeAliasNode>(
 			typeAlias.getValue().position,
 			identifier.getValue().value,
@@ -579,4 +590,156 @@ Result<std::unique_ptr<ASTNode>> Parser::parseYieldStatement() {
 					token.getValue().position,
 					dynamic_unique_cast<ExpressionNode>(expr.moveValue())
 			        ) };
+}
+
+Result<std::unique_ptr<ASTNode>> Parser::parseEnumDeclaration() {
+	Result<Token> enumKeyword = advance();
+	if(enumKeyword.hasError()) return { enumKeyword, Trace(ASTNodeType::EnumDeclaration, enumKeyword.getValue().position) };
+
+	bool isUnion = false;
+	if(peek().type == Token::KeywordUnion) {
+		isUnion = true;
+		Result<Token> unionKeyword = advance();
+		if(unionKeyword.hasError()) return { unionKeyword, Trace(ASTNodeType::EnumDeclaration, unionKeyword.getValue().position) };
+	}
+
+	Result<Token> enumName = expect(Token::Identifier, "Expected enum name");
+	if(enumName.hasError()) return { enumName, Trace(ASTNodeType::EnumDeclaration, enumName.getValue().position) };
+
+	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after enum name");
+	if(leftBrace.hasError()) return { leftBrace, Trace(ASTNodeType::EnumDeclaration, leftBrace.getValue().position) };
+
+	std::vector<EnumDeclarationNode::EnumVariant> variants;
+	while(peek().type != Token::RightBrace) {
+		Result<Token> variantName = expect(Token::Identifier, "Expected variant name");
+		if(variantName.hasError()) return { variantName, Trace(ASTNodeType::EnumDeclaration, variantName.getValue().position) };
+
+		std::vector<std::unique_ptr<TypeNode>> fields;
+		if(peek().type == Token::LeftParen) {
+			Result<Token> leftParen = advance();
+			if(leftParen.hasError()) return { leftParen, Trace(ASTNodeType::EnumDeclaration, leftParen.getValue().position) };
+
+			while(peek().type != Token::RightParen) {
+				Token::Position pos = peek().position;
+				Result<std::unique_ptr<TypeNode>> fieldType = parseType();
+				if(fieldType.hasError()) return { std::move(fieldType), Trace(ASTNodeType::EnumDeclaration, pos) };
+
+				fields.push_back(fieldType.moveValue());
+
+				if(peek().type == Token::RightParen) break;
+				Result<Token> comma = expect(Token::Comma, "Expected ',' between enum fields");
+				if(comma.hasError()) return { comma, Trace(ASTNodeType::EnumDeclaration, comma.getValue().position) };
+			}
+
+			Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after enum fields");
+			if(rightParen.hasError()) return { rightParen, Trace(ASTNodeType::EnumDeclaration, rightParen.getValue().position) };
+		}
+
+		variants.emplace_back(variantName.getValue().position, variantName.getValue().value, std::move(fields));
+
+		if(peek().type == Token::RightBrace) break;
+		Result<Token> comma = expect(Token::Comma, "Expected ',' between enum variants");
+		if(comma.hasError()) return { comma, Trace(ASTNodeType::EnumDeclaration, comma.getValue().position) };
+	}
+
+	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after enum declaration");
+	if(rightBrace.hasError()) return { rightBrace, Trace(ASTNodeType::EnumDeclaration, rightBrace.getValue().position) };
+
+	return { std::make_unique<EnumDeclarationNode>(enumKeyword.getValue().position, enumName.getValue().value, std::move(variants), isUnion) };
+}
+
+Result<std::unique_ptr<ASTNode>> Parser::parseTraitDeclaration() {
+	Result<Token> traitKeyword = advance();
+	if(traitKeyword.hasError()) return { traitKeyword, Trace(ASTNodeType::TraitDeclaration, traitKeyword.getValue().position) };
+
+	Result<Token> traitName = expect(Token::Identifier, "Expected trait name");
+	if(traitName.hasError()) return { traitName, Trace(ASTNodeType::TraitDeclaration, traitName.getValue().position) };
+
+	// Parse generic parameters if present
+	std::vector<std::unique_ptr<TypeNode>> genericParams;
+	if(peek().type == Token::Less) {
+		Result<Token> less = advance();
+		if(less.hasError()) return { less, Trace(ASTNodeType::TraitDeclaration, less.getValue().position) };
+
+		while(peek().type != Token::Greater) {
+			Token::Position pos = peek().position;
+			Result<std::unique_ptr<TypeNode>> param = parseType();
+			if(param.hasError()) return { std::move(param), Trace(ASTNodeType::TraitDeclaration, pos) };
+
+			genericParams.push_back(param.moveValue());
+
+			if(peek().type == Token::Greater) break;
+			Result<Token> comma = expect(Token::Comma, "Expected ',' between generic parameters");
+			if(comma.hasError()) return { comma, Trace(ASTNodeType::TraitDeclaration, comma.getValue().position) };
+		}
+
+		Result<Token> greater = expect(Token::Greater, "Expected '>' after generic parameters");
+		if(greater.hasError()) return { greater, Trace(ASTNodeType::TraitDeclaration, greater.getValue().position) };
+	}
+
+	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after trait declaration");
+	if(leftBrace.hasError()) return { leftBrace, Trace(ASTNodeType::TraitDeclaration, leftBrace.getValue().position) };
+
+	std::vector<std::unique_ptr<StatementNode>> methods;
+	while(peek().type != Token::RightBrace) {
+		Token::Position pos = peek().position;
+		Result<std::unique_ptr<ASTNode>> method = parseStatement();
+		if(method.hasError()) return { std::move(method), Trace(ASTNodeType::TraitDeclaration, pos) };
+
+		methods.push_back(dynamic_unique_cast<StatementNode>(method.moveValue()));
+	}
+
+	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after trait declaration");
+	if(rightBrace.hasError()) return { rightBrace, Trace(ASTNodeType::TraitDeclaration, rightBrace.getValue().position) };
+
+	return { std::make_unique<TraitDeclarationNode>(traitKeyword.getValue().position, traitName.getValue().value, std::move(genericParams), std::move(methods)) };
+}
+
+Result<std::unique_ptr<ASTNode>> Parser::parseModuleDeclaration() {
+	Result<Token> moduleKeyword = advance();
+	if(moduleKeyword.hasError()) return { moduleKeyword, Trace(ASTNodeType::ModuleDeclaration, moduleKeyword.getValue().position) };
+
+	Result<Token> moduleName = expect(Token::Identifier, "Expected module name");
+	if(moduleName.hasError()) return { moduleName, Trace(ASTNodeType::ModuleDeclaration, moduleName.getValue().position) };
+
+	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after module declaration");
+	if(semicolon.hasError()) return { semicolon, Trace(ASTNodeType::ModuleDeclaration, semicolon.getValue().position) };
+
+	// For now, we'll create a simple module declaration without body
+	// In a full implementation, we'd parse the module body
+	return { std::make_unique<ModuleDeclarationNode>(moduleKeyword.getValue().position, moduleName.getValue().value, std::vector<std::unique_ptr<StatementNode>>()) };
+}
+
+Result<std::unique_ptr<ASTNode>> Parser::parseImportStatement() {
+	Result<Token> importKeyword = advance();
+	if(importKeyword.hasError()) return { importKeyword, Trace(ASTNodeType::ImportStatement, importKeyword.getValue().position) };
+
+	Result<Token> moduleName = expect(Token::Identifier, "Expected module name");
+	if(moduleName.hasError()) return { moduleName, Trace(ASTNodeType::ImportStatement, moduleName.getValue().position) };
+
+	std::vector<std::string> importedItems;
+	if(peek().type == Token::Arrow) {
+		Result<Token> arrow = advance();
+		if(arrow.hasError()) return { arrow, Trace(ASTNodeType::ImportStatement, arrow.getValue().position) };
+
+		// Parse imported items
+		do {
+			Result<Token> item = expect(Token::Identifier, "Expected imported item name");
+			if(item.hasError()) return { item, Trace(ASTNodeType::ImportStatement, item.getValue().position) };
+
+			importedItems.push_back(item.getValue().value);
+
+			if(peek().type == Token::Comma) {
+				Result<Token> comma = advance();
+				if(comma.hasError()) return { comma, Trace(ASTNodeType::ImportStatement, comma.getValue().position) };
+			} else {
+				break;
+			}
+		} while(true);
+	}
+
+	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after import statement");
+	if(semicolon.hasError()) return { semicolon, Trace(ASTNodeType::ImportStatement, semicolon.getValue().position) };
+
+	return { std::make_unique<ImportStatementNode>(importKeyword.getValue().position, moduleName.getValue().value, std::move(importedItems)) };
 }

@@ -555,6 +555,31 @@ void ArgonLang::PrefixedTypeNode::toDot(std::ostream& os, int& nodeId) const {
 	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];";
 }
 
+// New AST node toDot implementations
+void ArgonLang::EnumDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"Enum: " << enumName << " (isUnion: " << isUnion << ")\"];\n";
+	
+	for (const auto& variant : variants) {
+		int variantId = nodeId++;
+		os << "  node" << variantId << " [label=\"Variant: " << variant.name << "\"];\n";
+		os << "  node" << currentId << " -> node" << variantId << " [label=\"variant\"];\n";
+	}
+}
 
+void ArgonLang::TraitDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"Trait: " << traitName << "\"];\n";
+}
+
+void ArgonLang::ModuleDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"Module: " << moduleName << "\"];\n";
+}
+
+void ArgonLang::ImportStatementNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"Import: " << moduleName << "\"];\n";
+}
 
 #endif

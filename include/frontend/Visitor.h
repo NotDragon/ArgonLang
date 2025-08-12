@@ -51,6 +51,11 @@ namespace ArgonLang {
 		virtual T visit(const ConstructorStatementNode::ConstructorArgument &node) = 0;
 		virtual T visit(const ClassDeclarationNode &node) = 0;
 		virtual T visit(const UnionDeclarationNode &node) = 0;
+		virtual T visit(const EnumDeclarationNode &node) = 0;
+		virtual T visit(const TraitDeclarationNode &node) = 0;
+		virtual T visit(const ModuleDeclarationNode &node) = 0;
+		virtual T visit(const ImportStatementNode &node) = 0;
+
 		virtual T visit(const IfStatementNode &node) = 0;
 		virtual T visit(const ForStatementNode &node) = 0;
 		virtual T visit(const WhileStatementNode &node) = 0;

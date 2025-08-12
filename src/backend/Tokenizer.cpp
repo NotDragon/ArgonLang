@@ -57,6 +57,21 @@ namespace ArgonLang {
 			{ "throws", Token::KeywordThrows },
 			{ "try", Token::KeywordTry },
 			{ "catch", Token::KeywordCatch },
+			
+			// Additional keywords from syntax
+			{ "true", Token::BooleanLiteral },
+			{ "false", Token::BooleanLiteral },
+			{ "vec", Token::Identifier },
+			{ "list", Token::Identifier },
+			{ "range", Token::Identifier },
+			{ "ref", Token::Identifier },
+			{ "weak", Token::Identifier },
+			{ "null", Token::Identifier },
+			{ "await", Token::KeywordAwait },
+			{ "module", Token::KeywordModule },
+			{ "import", Token::KeywordImport },
+			{ "trait", Token::KeywordTrait },
+			{ "where", Token::KeywordWhere },
     };
 }
 
@@ -171,6 +186,33 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 				continue;
 			}
 			tokens.emplace_back(Token::Identifier, identifier, currentLine, currentColumn);
+			continue;
+        } else if (c == '/' && input[i + 1] == '/') {
+			// Skip single-line comments
+			while (i < length && input[i] != '\n') {
+				i++;
+				currentColumn++;
+			}
+			continue;
+		} else if (c == '/' && input[i + 1] == '*') {
+			// Skip multi-line comments
+			i += 2;
+			currentColumn += 2;
+			while (i < length - 1) {
+				if (input[i] == '*' && input[i + 1] == '/') {
+					i += 2;
+					currentColumn += 2;
+					break;
+				}
+				if (input[i] == '\n') {
+					currentLine++;
+					currentColumn = 1;
+				} else {
+					currentColumn++;
+				}
+				i++;
+			}
+			continue;
         } else if (c == '=' && input[i + 1] == '=') {
 			tokens.emplace_back(Token::Equal, "==", currentLine, currentColumn);
 			i += 2;
@@ -364,6 +406,7 @@ std::vector<ArgonLang::Token> ArgonLang::tokenize(const std::string& input) {
 				case '.': tokens.emplace_back(Token::Dot, ".", currentLine, currentColumn); break;
 				case '?': tokens.emplace_back(Token::QuestionMark, "?", currentLine, currentColumn); break;
 				case '#': tokens.emplace_back(Token::Hash, "#", currentLine, currentColumn); break;
+				case '$': tokens.emplace_back(Token::Dollar, "$", currentLine, currentColumn); break;
 				default: throw std::runtime_error(std::string("Unexpected character: ") + c);
 			}
 			i++;
@@ -405,6 +448,11 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::KeywordThrows: return "KeywordThrows";
 		case Token::KeywordTry: return "KeywordTry";
 		case Token::KeywordCatch: return "KeywordCatch";
+		case Token::KeywordAwait: return "KeywordAwait";
+		case Token::KeywordModule: return "KeywordModule";
+		case Token::KeywordImport: return "KeywordImport";
+		case Token::KeywordTrait: return "KeywordTrait";
+		case Token::KeywordWhere: return "KeywordWhere";
 
         case Token::IntegralLiteral: return "IntegralLiteral";
         case Token::FloatLiteral: return "FloatLiteral";
@@ -467,6 +515,8 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 
         case Token::Hash: return "Hash";
         case Token::DoubleHash: return "DoubleHash";
+        case Token::ToEqual: return "ToEqual";
+        case Token::Dollar: return "Dollar";
 
 		case Token::FilterAssign: return "FilterAssign";
 		case Token::MapAssign: return "MapAssign";

@@ -163,3 +163,22 @@ ArgonLang::PrefixedTypeNode::PrefixedTypeNode(Token::Position position, std::uni
 ArgonLang::BreakStatementNode::BreakStatementNode(Token::Position position): StatementNode(position) {}
 ArgonLang::ContinueStatementNode::ContinueStatementNode(Token::Position position): StatementNode(position) {}
 
+// New AST node constructors
+ArgonLang::EnumDeclarationNode::EnumDeclarationNode(Token::Position position, std::string enumName, std::vector<EnumVariant> variants, bool isUnion)
+	: enumName(std::move(enumName)), variants(std::move(variants)), isUnion(isUnion), StatementNode(position) {}
+
+ArgonLang::TraitDeclarationNode::TraitDeclarationNode(Token::Position position, std::string traitName, 
+	std::vector<std::unique_ptr<TypeNode>> genericParams,
+	std::vector<std::unique_ptr<StatementNode>> methods,
+	std::unique_ptr<ExpressionNode> constraint)
+	: traitName(std::move(traitName)), genericParams(std::move(genericParams)), 
+	  methods(std::move(methods)), constraint(std::move(constraint)), StatementNode(position) {}
+
+ArgonLang::ModuleDeclarationNode::ModuleDeclarationNode(Token::Position position, std::string moduleName, 
+	std::vector<std::unique_ptr<StatementNode>> body, std::vector<std::string> exports)
+	: moduleName(std::move(moduleName)), body(std::move(body)), exports(std::move(exports)), StatementNode(position) {}
+
+ArgonLang::ImportStatementNode::ImportStatementNode(Token::Position position, std::string moduleName,
+	std::vector<std::string> importedItems, std::string alias)
+	: moduleName(std::move(moduleName)), importedItems(std::move(importedItems)), alias(std::move(alias)), StatementNode(position) {}
+

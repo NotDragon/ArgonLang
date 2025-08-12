@@ -43,6 +43,11 @@ namespace ArgonLang {
 			KeywordThrows,
 			KeywordTry,
 			KeywordCatch,
+			KeywordAwait,
+			KeywordModule,
+			KeywordImport,
+			KeywordTrait,
+			KeywordWhere,
 
             IntegralLiteral,
             FloatLiteral,
@@ -119,6 +124,10 @@ namespace ArgonLang {
 
             Hash,
 			DoubleHash,
+			
+			// Additional operators for range expressions
+			ToEqual,  // to=
+			Dollar,   // $ for iterator syntax
 
 			End
 		} type;
