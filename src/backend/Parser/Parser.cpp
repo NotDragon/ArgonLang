@@ -7,6 +7,14 @@ Token Parser::peek() const {
 	return tokens[current];
 }
 
+Token Parser::peek(int offset) const {
+	size_t index = current + offset;
+	if(index >= tokens.size()) {
+		return tokens.back(); // Return end token if out of bounds
+	}
+	return tokens[index];
+}
+
 bool Parser::eos() const {
 	return current >= tokens.size() - 1;
 }

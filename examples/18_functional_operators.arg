@@ -1,0 +1,28 @@
+// Functional operators test
+func testFunctionalOperators() i32 {
+    // Filter operator: |
+    def numbers = 0 to 10;
+    def evens = numbers | (x) -> x % 2 == 0;
+    
+    // Map operator: &
+    def doubled = numbers & x -> x * 2;
+    
+    // Reduce operator: ^
+    def sum = numbers ^ (acc, x) -> acc + x;
+    
+    // Pipe operator: |>
+    def result1 = 5 |> double;
+    
+    // Map pipe operator: ||>
+    def transformed = numbers ||> double;
+    
+    return 0;
+}
+
+func double(x: i32) i32 {
+    return x * 2;
+}
+
+func main() i32 {
+    return testFunctionalOperators();
+}

@@ -380,12 +380,17 @@ void ArgonLang::StructField::toDot(std::ostream &os, int &nodeId) const {
 	int filedId = nodeId++;
 	os << " node" << filedId << " [label=\"Name: " << name << "\"];\n";
 
-	int typeId = nodeId;
-	type->toDot(os, nodeId);
-	os << "  node" << filedId << " -> node" << typeId << " [label=\"Type\"];\n";
-	int expressionId = nodeId;
-	value->toDot(os, nodeId);
-	os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
+	if(type) {
+		int typeId = nodeId;
+		type->toDot(os, nodeId);
+		os << "  node" << filedId << " -> node" << typeId << " [label=\"Type\"];\n";
+	}
+
+	if(value) {
+		int expressionId = nodeId;
+		value->toDot(os, nodeId);
+		os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
+	}
 }
 
 void ArgonLang::FunctionArgument::toDot(std::ostream &os, int &nodeId) const {
@@ -624,6 +629,87 @@ void ArgonLang::VariadicTypeNode::toDot(std::ostream& os, int& nodeId) const {
 	int baseId = nodeId;
 	baseType->toDot(os, nodeId);
 	os << "  node" << currentId << " -> node" << baseId << " [label=\"base\"];\n";
+}
+
+// Pattern node toDot methods
+void ArgonLang::WildcardPatternNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"_\"];\n";
+}
+
+void ArgonLang::LiteralPatternNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"LiteralPattern\"];\n";
+	
+	int literalId = nodeId;
+	literal->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << literalId << " [label=\"literal\"];\n";
+}
+
+void ArgonLang::IdentifierPatternNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"" << name << "\"];\n";
+}
+
+void ArgonLang::ArrayPatternNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"ArrayPattern\"];\n";
+	
+	for (size_t i = 0; i < elements.size(); ++i) {
+		int elemId = nodeId;
+		elements[i]->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << elemId << " [label=\"elem" << i << "\"];\n";
+	}
+	
+	if (rest) {
+		int restId = nodeId;
+		rest->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << restId << " [label=\"rest\"];\n";
+	}
+}
+
+void ArgonLang::StructPatternNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"StructPattern\"];\n";
+	
+	for (size_t i = 0; i < fields.size(); ++i) {
+		int fieldId = nodeId;
+		fields[i].second->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << fieldId << " [label=\"" << fields[i].first << "\"];\n";
+	}
+}
+
+void ArgonLang::ConstructorPatternNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"" << constructorName << "\"];\n";
+	
+	for (size_t i = 0; i < arguments.size(); ++i) {
+		int argId = nodeId;
+		arguments[i]->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << argId << " [label=\"arg" << i << "\"];\n";
+	}
+}
+
+void ArgonLang::TypePatternNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"TypePattern\"];\n";
+	
+	int typeId = nodeId;
+	type->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
+}
+
+void ArgonLang::RangePatternNode::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"RangePattern\"];\n";
+	
+	int startId = nodeId;
+	start->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << startId << " [label=\"start\"];\n";
+	
+	int endId = nodeId;
+	end->toDot(os, nodeId);
+	os << "  node" << currentId << " -> node" << endId << " [label=\"end\"];\n";
 }
 
 #endif

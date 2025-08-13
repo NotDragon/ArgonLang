@@ -1,0 +1,36 @@
+digraph AST {
+  node0 [label="Program"];
+  node1 [label="Function Declaration"];
+  node2 [label="Identifier(testStructDestructuring)"];
+  node1 -> node2 [label="Name"];
+  node3 [label="Block"];
+  node4 [label="VariableDeclarationNode(): "];
+  node5 [label="StructExpressionNode"];
+ node7 [label="Name: x"];
+  node8 [label="Identifier(a)"];
+  node7 -> node8 [label="Value"];
+  node5 -> node6;
+ node10 [label="Name: y"];
+  node11 [label="IntegralLiteral: 20 (i32)"];
+  node10 -> node11 [label="Value"];
+  node5 -> node9;
+  node4 -> node5 [label="value"];
+  node3 -> node4;
+  node3 -> node12;
+  node1 -> node3 [label="body"];
+  node12 [label="IdentifierType: i32"];  node1 -> node12 [label="type"];
+  node0 -> node1 [label="node"];
+  node13 [label="Function Declaration"];
+  node14 [label="Identifier(main)"];
+  node13 -> node14 [label="Name"];
+  node15 [label="Block"];
+  node16 [label="FunctionCallExpression"];
+  node17 [label="Identifier(testStructDestructuring)"];
+  node16 -> node17 [label="Name"];
+  node18 [label="IntegralLiteral: 10 (i32)"];
+  node16 -> node18 [label="Argument"];
+  node15 -> node16;
+  node13 -> node15 [label="body"];
+  node19 [label="IdentifierType: i32"];  node13 -> node19 [label="type"];
+  node0 -> node13 [label="node"];
+}

@@ -1,0 +1,6 @@
+// Functional operators with parenthesized lambdas
+func main() i32 {
+    def numbers = 1 to 5;
+    def evens = numbers | (x -> x % 2 == 0);
+    return 0;
+}

@@ -1,0 +1,10 @@
+// Test ||> operator
+func double(x: i32) i32 {
+    return x * 2;
+}
+
+func main() i32 {
+    def numbers = 1 to 5;
+    def result = numbers ||> double;
+    return 0;
+}

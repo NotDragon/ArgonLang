@@ -1,0 +1,11 @@
+// Struct destructuring tests
+
+func testStructDestructuring() i32 {
+    // Simple struct destructuring
+    def { x, y } = struct {x = a, y = 20};
+    return 0;
+}
+
+func main() i32 {
+    testStructDestructuring(10);
+}

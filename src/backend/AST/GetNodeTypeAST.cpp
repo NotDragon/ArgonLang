@@ -216,3 +216,36 @@ ArgonLang::ASTNodeType ArgonLang::ArrayTypeNode::getNodeType() const {
 ArgonLang::ASTNodeType ArgonLang::VariadicTypeNode::getNodeType() const {
 	return ArgonLang::ASTNodeType::VariadicType;
 }
+
+// Pattern node getNodeType implementations
+ArgonLang::ASTNodeType ArgonLang::WildcardPatternNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::WildcardPattern;
+}
+
+ArgonLang::ASTNodeType ArgonLang::LiteralPatternNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::LiteralPattern;
+}
+
+ArgonLang::ASTNodeType ArgonLang::IdentifierPatternNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::IdentifierPattern;
+}
+
+ArgonLang::ASTNodeType ArgonLang::ArrayPatternNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::ArrayPattern;
+}
+
+ArgonLang::ASTNodeType ArgonLang::StructPatternNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::StructPattern;
+}
+
+ArgonLang::ASTNodeType ArgonLang::ConstructorPatternNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::ConstructorPattern;
+}
+
+ArgonLang::ASTNodeType ArgonLang::TypePatternNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::TypePattern;
+}
+
+ArgonLang::ASTNodeType ArgonLang::RangePatternNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::RangePattern;
+}

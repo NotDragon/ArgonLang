@@ -38,10 +38,12 @@ namespace ArgonLang {
 
 		int getMainCounter() const;
 		Token peek() const;
+		Token peek(int offset) const;
 		bool eos() const;
 		void synchronize();
 
 		bool isLambdaExpression();
+		bool isSingleParameterLambda();
 		Result<Token> advance();
 		Result<Token> expect(Token::Type type, const std::string& errorMessage);
 
@@ -67,6 +69,18 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseParallelExpression();
 		Result<std::unique_ptr<ASTNode>> parseStructExpression();
 		Result<std::unique_ptr<ASTNode>> parseMatchExpression();
+		
+		// Pattern parsing methods
+		Result<std::unique_ptr<PatternNode>> parsePattern();
+		Result<std::unique_ptr<PatternNode>> parseWildcardPattern();
+		Result<std::unique_ptr<PatternNode>> parseLiteralPattern();
+		Result<std::unique_ptr<PatternNode>> parseIdentifierPattern();
+		Result<std::unique_ptr<PatternNode>> parseArrayPattern();
+		Result<std::unique_ptr<PatternNode>> parseStructPattern();
+		Result<std::unique_ptr<PatternNode>> parseConstructorPattern();
+		Result<std::unique_ptr<PatternNode>> parseTypePattern();
+		Result<std::unique_ptr<PatternNode>> parseRangePattern();
+		
 		Result<std::unique_ptr<ASTNode>> parseToExpression();
 		Result<std::unique_ptr<ASTNode>> parseDerefExpression();
 		Result<std::unique_ptr<ASTNode>> parseReferenceExpression();

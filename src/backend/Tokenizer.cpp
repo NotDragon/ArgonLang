@@ -270,6 +270,18 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 			i += 2;
 			currentColumn += 2;
         } else if (c == '|' && input[i + 1] == '|') {
+			if(input[i + 2] == '>') {
+				if(input[i + 3] == '=') {
+					tokens.emplace_back(Token::MapPipeAssign, "||>=", currentLine, currentColumn);
+					i += 4;
+					currentColumn += 4;
+					continue;
+				}
+				tokens.emplace_back(Token::MapPipe, "||>", currentLine, currentColumn);
+				i += 3;
+				currentColumn += 3;
+				continue;
+			}
 			tokens.emplace_back(Token::LogicalOr, "||", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
@@ -315,16 +327,6 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 			tokens.emplace_back(Token::ReduceAssign, "^=", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
-		}  else if (c == '|' && input[i + 1] == '>') {
-			if(input[i + 2] == '=') {
-				tokens.emplace_back(Token::PipeAssign, "|>=", currentLine, currentColumn);
-				i += 3;
-				currentColumn += 3;
-				continue;
-			}
-			tokens.emplace_back(Token::Pipe, "|>", currentLine, currentColumn);
-			i += 2;
-			currentColumn += 2;
 		}   else if (c == '|' && input[i + 1] == '|' && input[i + 2] == '>') {
 			if(input[i + 3] == '=') {
 				tokens.emplace_back(Token::MapPipeAssign, "||>=", currentLine, currentColumn);
@@ -335,8 +337,18 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 			tokens.emplace_back(Token::MapPipe, "||>", currentLine, currentColumn);
 			i += 3;
 			currentColumn += 3;
+		}  else if (c == '|' && input[i + 1] == '>') {
+			if(input[i + 2] == '=') {
+				tokens.emplace_back(Token::PipeAssign, "|>=", currentLine, currentColumn);
+				i += 3;
+				currentColumn += 3;
+				continue;
+			}
+			tokens.emplace_back(Token::Pipe, "|>", currentLine, currentColumn);
+			i += 2;
+			currentColumn += 2;
 		} else if(c == '=' && input[i + 1] == '>') {
-			tokens.emplace_back(Token::MatchArrow, "=+", currentLine, currentColumn);
+			tokens.emplace_back(Token::MatchArrow, "=>", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
 		} else if (c == '^' && input[i + 1] == '^') {

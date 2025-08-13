@@ -435,3 +435,49 @@ Result<bool> AnalysisVisitor::visit(const VariadicTypeNode &node) {
 	std::cout << "VariadicTypeNode\n";
 	return {};
 }
+
+// Pattern node implementations
+Result<bool> AnalysisVisitor::visit(const PatternNode &node) {
+	std::cout << "PatternNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const WildcardPatternNode &node) {
+	std::cout << "WildcardPatternNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const LiteralPatternNode &node) {
+	std::cout << "LiteralPatternNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const IdentifierPatternNode &node) {
+	std::cout << "IdentifierPatternNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const ArrayPatternNode &node) {
+	std::cout << "ArrayPatternNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const StructPatternNode &node) {
+	std::cout << "StructPatternNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const ConstructorPatternNode &node) {
+	std::cout << "ConstructorPatternNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const TypePatternNode &node) {
+	std::cout << "TypePatternNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const RangePatternNode &node) {
+	std::cout << "RangePatternNode\n";
+	return {};
+}

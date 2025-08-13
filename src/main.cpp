@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
 	if(program.hasError()) {
 		std::cerr << "Parsing error occurred:\n\t" << program.getErrorMsg() << "\n";
-		
+
 		// Get initial trace information safely
 		if (auto currentTrace = program.tryGetTrace()) {
 			std::cerr << "At: " << currentTrace->position.line << ":" << currentTrace->position.column << "\n";
@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 		auto traceStack = program.getStackTrace();
 		size_t columnError = 0;
 		std::string space;
-		
+
 		while(!traceStack.empty()) {
 			if(!verbose && traceStack.size() > 1) {
 				traceStack.pop();
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 			std::string line = " ";
 			int lineCounter = 0;
 			bool whiteSpace = true;
-			
+
 			for(size_t i = 0; i < str.size(); i++) {
 				if(str[i] == '\n') {
 					lineCounter++;

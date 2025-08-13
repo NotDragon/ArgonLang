@@ -34,6 +34,17 @@ namespace ArgonLang {
 		Result<bool> visit(const IndexExpressionNode &node) override;
 		Result<bool> visit(const MatchBranch &node) override;
 		Result<bool> visit(const MatchExpressionNode &node) override;
+		
+		// Pattern node visitors
+		Result<bool> visit(const PatternNode &node) override;
+		Result<bool> visit(const WildcardPatternNode &node) override;
+		Result<bool> visit(const LiteralPatternNode &node) override;
+		Result<bool> visit(const IdentifierPatternNode &node) override;
+		Result<bool> visit(const ArrayPatternNode &node) override;
+		Result<bool> visit(const StructPatternNode &node) override;
+		Result<bool> visit(const ConstructorPatternNode &node) override;
+		Result<bool> visit(const TypePatternNode &node) override;
+		Result<bool> visit(const RangePatternNode &node) override;
 		Result<bool> visit(const TernaryExpressionNode &node) override;
 		Result<bool> visit(const ParallelExpressionNode &node) override;
 		Result<bool> visit(const StructField &node) override;

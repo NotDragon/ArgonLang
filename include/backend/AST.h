@@ -10,6 +10,9 @@
 #define DEBUG
 namespace ArgonLang
 {
+	// Forward declarations
+	class PatternNode;
+
 	enum PrimitiveType {
         INT8 = 0,
         INT16,
@@ -45,6 +48,16 @@ namespace ArgonLang
 		IndexExpression,
 		MatchExpression,
 		MatchBranch,
+		
+		// Pattern types
+		WildcardPattern,
+		LiteralPattern,
+		IdentifierPattern,
+		ArrayPattern,
+		StructPattern,
+		ConstructorPattern,
+		TypePattern,
+		RangePattern,
 		TernaryExpression,
 		ParallelExpression,
 		StructField,
@@ -384,12 +397,12 @@ namespace ArgonLang
 
     class MatchBranch {
     public:
-        std::unique_ptr<ExpressionNode> pattern;
-        std::unique_ptr<ExpressionNode> condition;
+        std::unique_ptr<PatternNode> pattern;
+        std::unique_ptr<ExpressionNode> condition; // guard condition
         std::unique_ptr<ASTNode> body;
 		Token::Position position;
 
-        explicit MatchBranch(Token::Position position, std::unique_ptr<ExpressionNode> pattern, std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ASTNode> body);
+        explicit MatchBranch(Token::Position position, std::unique_ptr<PatternNode> pattern, std::unique_ptr<ExpressionNode> condition, std::unique_ptr<ASTNode> body);
 
 		ASTNodeType getNodeType() const;
 #ifdef DEBUG
@@ -407,6 +420,119 @@ namespace ArgonLang
         explicit MatchExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> value, std::vector<std::unique_ptr<MatchBranch>> branches);
 
 		ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    // Pattern nodes
+    class PatternNode : public ExpressionNode {
+    public:
+        explicit PatternNode(Token::Position position) : ExpressionNode(position) {}
+        virtual ~PatternNode() = default;
+    };
+
+    class WildcardPatternNode : public PatternNode {
+    public:
+        explicit WildcardPatternNode(Token::Position position);
+        
+        ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class LiteralPatternNode : public PatternNode {
+    public:
+        std::unique_ptr<ExpressionNode> literal;
+        
+        explicit LiteralPatternNode(Token::Position position, std::unique_ptr<ExpressionNode> literal);
+        
+        ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class IdentifierPatternNode : public PatternNode {
+    public:
+        std::string name;
+        
+        explicit IdentifierPatternNode(Token::Position position, std::string name);
+        
+        ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class ArrayPatternNode : public PatternNode {
+    public:
+        std::vector<std::unique_ptr<PatternNode>> elements;
+        std::unique_ptr<PatternNode> rest; // for [a, b, ...rest] patterns
+        
+        explicit ArrayPatternNode(Token::Position position, std::vector<std::unique_ptr<PatternNode>> elements, std::unique_ptr<PatternNode> rest = nullptr);
+        
+        ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class StructPatternNode : public PatternNode {
+    public:
+        std::vector<std::pair<std::string, std::unique_ptr<PatternNode>>> fields;
+        
+        explicit StructPatternNode(Token::Position position, std::vector<std::pair<std::string, std::unique_ptr<PatternNode>>> fields);
+        
+        ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class ConstructorPatternNode : public PatternNode {
+    public:
+        std::string constructorName;
+        std::vector<std::unique_ptr<PatternNode>> arguments;
+        
+        explicit ConstructorPatternNode(Token::Position position, std::string constructorName, std::vector<std::unique_ptr<PatternNode>> arguments);
+        
+        ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class TypePatternNode : public PatternNode {
+    public:
+        std::unique_ptr<TypeNode> type;
+        
+        explicit TypePatternNode(Token::Position position, std::unique_ptr<TypeNode> type);
+        
+        ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class RangePatternNode : public PatternNode {
+    public:
+        std::unique_ptr<ExpressionNode> start;
+        std::unique_ptr<ExpressionNode> end;
+        bool isInclusive;
+        
+        explicit RangePatternNode(Token::Position position, std::unique_ptr<ExpressionNode> start, std::unique_ptr<ExpressionNode> end, bool isInclusive);
+        
+        ASTNodeType getNodeType() const override;
     #ifdef DEBUG
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;
@@ -515,9 +641,14 @@ namespace ArgonLang
         bool isConst;
         std::unique_ptr<TypeNode> type;
         std::unique_ptr<ExpressionNode> value;
-        std::string name;
+        std::string name; // For simple declarations
+        std::unique_ptr<PatternNode> pattern; // For destructuring declarations
 
+        // Constructor for simple declarations
         explicit VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
+        
+        // Constructor for destructuring declarations
+        explicit VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::unique_ptr<PatternNode> pattern);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG

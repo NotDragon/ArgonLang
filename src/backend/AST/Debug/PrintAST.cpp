@@ -333,4 +333,65 @@ void ArgonLang::VariadicTypeNode::print() const {
 	baseType->print();
 }
 
+// Pattern node print methods
+void ArgonLang::WildcardPatternNode::print() const {
+	std::cout << "WildcardPattern(_)";
+}
+
+void ArgonLang::LiteralPatternNode::print() const {
+	std::cout << "LiteralPattern(";
+	literal->print();
+	std::cout << ")";
+}
+
+void ArgonLang::IdentifierPatternNode::print() const {
+	std::cout << "IdentifierPattern(" << name << ")";
+}
+
+void ArgonLang::ArrayPatternNode::print() const {
+	std::cout << "ArrayPattern([";
+	for (size_t i = 0; i < elements.size(); ++i) {
+		if (i > 0) std::cout << ", ";
+		elements[i]->print();
+	}
+	if (rest) {
+		std::cout << ", ...";
+		rest->print();
+	}
+	std::cout << "])";
+}
+
+void ArgonLang::StructPatternNode::print() const {
+	std::cout << "StructPattern({";
+	for (size_t i = 0; i < fields.size(); ++i) {
+		if (i > 0) std::cout << ", ";
+		std::cout << fields[i].first << ": ";
+		fields[i].second->print();
+	}
+	std::cout << "})";
+}
+
+void ArgonLang::ConstructorPatternNode::print() const {
+	std::cout << "ConstructorPattern(" << constructorName << "(";
+	for (size_t i = 0; i < arguments.size(); ++i) {
+		if (i > 0) std::cout << ", ";
+		arguments[i]->print();
+	}
+	std::cout << "))";
+}
+
+void ArgonLang::TypePatternNode::print() const {
+	std::cout << "TypePattern(";
+	type->print();
+	std::cout << ")";
+}
+
+void ArgonLang::RangePatternNode::print() const {
+	std::cout << "RangePattern(";
+	start->print();
+	std::cout << (isInclusive ? " to= " : " to ");
+	end->print();
+	std::cout << ")";
+}
+
 #endif

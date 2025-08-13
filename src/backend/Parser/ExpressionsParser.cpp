@@ -1,5 +1,4 @@
 #include "backend/Parser.h"
-#include <stdexcept>
 
 using namespace ArgonLang;
 
@@ -16,9 +15,14 @@ Result<std::unique_ptr<ASTNode>> Parser::parsePrimary() {
 		return { std::make_unique<StringLiteralNode>(token.position, token.value) };
 	}  else if(token.type == Token::CharLiteral) {
 		return { std::make_unique<CharLiteralNode>(token.position, token.value[0]) };
-	} else if (token.type == Token::BooleanLiteral) {
+	} else if(token.type == Token::BooleanLiteral) {
 		return { std::make_unique<BooleanLiteralNode>(token.position, token.value == "true") };
-	} else if (token.type == Token::Identifier) {
+	} else if(token.type == Token::Identifier) {
+		current--;
+		if(isSingleParameterLambda()) {
+			return parseLambdaExpression();
+		}
+		current++;
 		return { std::make_unique<IdentifierNode>(token.position, token.value) };
 	}else if (token.type == Token::LeftParen) {
 		// Step back to check for lambda expression
@@ -26,8 +30,10 @@ Result<std::unique_ptr<ASTNode>> Parser::parsePrimary() {
 		if (isLambdaExpression()) {
 			return parseLambdaExpression();
 		}
+		// Check for single parameter lambda inside parentheses: (x -> ...)
+		advance(); // consume the LeftParen
+		
 		// Not a lambda, parse as parenthesized expression
-		advance(); // consume the LeftParen again
 		Result<std::unique_ptr<ASTNode>> expr = parseExpression();
 		Result<Token> tokenError1 = expect(Token::RightParen, "Expected closing ')'");
 		if(tokenError1.hasError()) return { tokenError1, Trace(ASTNodeType::StringLiteral, tokenError1.getValue().position)};
@@ -235,7 +241,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseShiftExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseAssignmentExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parsePipeExpression();
+	Result<std::unique_ptr<ASTNode>> left = parseMatchExpression();
 	if(left.hasError()) return left;
 
 	while(peek().type == Token::Assign) {
@@ -243,7 +249,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseAssignmentExpression() {
 		if (assign.hasError()) return { assign, Trace(ASTNodeType::AssignmentExpression, assign.getValue().position) };
 
 		Token::Position pos = peek().position;
-		Result<std::unique_ptr<ASTNode>> right = parsePipeExpression();
+		Result<std::unique_ptr<ASTNode>> right = parseMatchExpression();
 		if(right.hasError()) return { std::move(right), Trace(ASTNodeType::AssignmentExpression, pos) };
 		Token::Position leftPos = left.getValue()->position;
 		left = std::make_unique<AssignmentExpressionNode>(
@@ -261,7 +267,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parsePipeExpression() {
 	Result<std::unique_ptr<ASTNode>> left = parseParallelExpression();
 	if(left.hasError()) return left;
 
-	while(peek().type == Token::Pipe) {
+	while(peek().type == Token::Pipe || peek().type == Token::MapPipe) {
 		Result<Token> opError = advance();
 		if(opError.hasError()) return { opError, Trace(ASTNodeType::BinaryExpression, opError.getValue().position) };
 		Token op = opError.getValue();
@@ -382,7 +388,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseReduceExpression() {
 	Result<std::unique_ptr<ASTNode>> left = parseLogicalOrExpression();
 	if(left.hasError()) return left;
 
-	while(peek().type == Token::ReduceRange) {
+	while(peek().type == Token::ReduceRange || peek().type == Token::AccumulateRange) {
 		Result<Token> opError = advance();
 		if(opError.hasError()) return { opError, Trace(ASTNodeType::BinaryExpression, opError.getValue().position) };
 		Token op = opError.getValue();
@@ -431,7 +437,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseRangeExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseFunctionCallExpression() {
-	Result<std::unique_ptr<ASTNode>> left = parseIndexExpression();
+	Result<std::unique_ptr<ASTNode>> left = parseStructExpression();
 	if(left.hasError()) return left;
 
 	while(peek().type == Token::LeftParen) {
@@ -625,7 +631,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBitwiseNotExpression() {
 
 
 Result<std::unique_ptr<ASTNode>> Parser::parseParallelExpression() {
-	if(peek().type != Token::KeywordPar) return parseLambdaExpression();
+	if(peek().type != Token::KeywordPar) return parseFilterExpression();
 
 	Result<Token> token = advance();
 	if(token.hasError()) return { token, Trace(ASTNodeType::UnaryExpression, token.getValue().position) };
@@ -641,7 +647,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseParallelExpression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseStructExpression() {
-	if(peek().type != Token::KeywordStruct) return parseMatchExpression();
+	if(peek().type != Token::KeywordStruct) return parseIndexExpression();
 
 	Result<Token> token = advance();
 	if(token.hasError()) return { token, Trace(ASTNodeType::StructExpression, token.getValue().position) };
@@ -651,25 +657,28 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStructExpression() {
 
 	std::vector<StructField> fields;
 	while(peek().type != Token::RightBrace) {
+		Token::Position namePos = peek().position;
 		Result<Token> nameError = expect(Token::Identifier, "Expected fields base");
-		if(nameError.hasError()) return { nameError, Trace(ASTNodeType::StructExpression, nameError.getValue().position) };
+		if(nameError.hasError()) return { nameError, Trace(ASTNodeType::StructExpression, namePos) };
 		Token name = nameError.getValue();
 
 		Result<std::unique_ptr<TypeNode>> type;
 		Result<std::unique_ptr<ASTNode>> expression;
 
 		if(peek().type == Token::Colon) {
+			Token::Position colonPos = peek().position;
 			Result<Token> token1 = advance();
-			if(token1.hasError()) return { token1, Trace(ASTNodeType::StructExpression, token1.getValue().position) };
+			if(token1.hasError()) return { token1, Trace(ASTNodeType::StructExpression, colonPos) };
 
 			Token::Position pos = peek().position;
 			type = parseType();
 			if(type.hasError()) return { std::move(type), Trace(ASTNodeType::StructExpression, pos) };
 		}
 
-		if(peek().type == Token::Equal) {
+		if(peek().type == Token::Assign) {
+			Token::Position assignPos = peek().position;
 			Result<Token> token1 = advance();
-			if(token1.hasError()) return { token1, Trace(ASTNodeType::StructExpression, token1.getValue().position) };
+			if(token1.hasError()) return { token1, Trace(ASTNodeType::StructExpression, assignPos) };
 
 			Token::Position pos = peek().position;
 			expression = parseExpression();
@@ -678,6 +687,12 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStructExpression() {
 
 		if(type.isNull() && expression.isNull()) {
 			return { "Cannot have field without value or type", "", Trace(ASTNodeType::StructExpression, peek().position) };
+		}
+
+		if(peek().type != Token::RightBrace) {
+			Token::Position commaPos = peek().position;
+			Result<Token> comma = expect(Token::Comma, "Expected ',' between fields");
+			if(comma.hasError()) return { comma, Trace(ASTNodeType::StructExpression, commaPos) };
 		}
 
 		std::unique_ptr<TypeNode> typeValue = !type.isNull() ? type.moveValue() : nullptr;
@@ -690,12 +705,14 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStructExpression() {
 				std::move(expressionValue));
 	}
 
+	advance();
+
 	return { std::make_unique<StructExpressionNode>(token.getValue().position, std::move(fields)) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseMatchExpression() {
 	Token::Position pos = peek().position;
-	Result<std::unique_ptr<ASTNode>> value = parseFilterExpression();
+	Result<std::unique_ptr<ASTNode>> value = parsePipeExpression();
 	if(value.hasError()) return { std::move(value), Trace(ASTNodeType::MatchExpression, pos) };
 	if(peek().type != Token::MatchArrow) return value;
 	
@@ -709,21 +726,29 @@ Result<std::unique_ptr<ASTNode>> Parser::parseMatchExpression() {
 	while(peek().type != Token::RightBrace) {
 
 		Token::Position patternPos = peek().position;
-		Result<std::unique_ptr<ASTNode>> pattern = parseExpression();
-		if(pattern.hasError()) return { std::move(pattern), Trace(ASTNodeType::MatchExpression, patternPos) };
+		Result<std::unique_ptr<PatternNode>> parsedPattern = parsePattern();
+		if(parsedPattern.hasError()) return { std::move(parsedPattern), Trace(ASTNodeType::MatchExpression, patternPos) };
+		
+		// Parse optional guard condition (&&)
+		std::unique_ptr<ExpressionNode> condition = nullptr;
+		if(peek().type == Token::LogicalAnd) {
+			advance(); // consume &&
+			Result<std::unique_ptr<ASTNode>> guardExpr = parseExpression();
+			if(guardExpr.hasError()) return { std::move(guardExpr), Trace(ASTNodeType::MatchExpression, peek().position) };
+			condition = dynamic_unique_cast<ExpressionNode>(guardExpr.moveValue());
+		}
 
 		Result<Token> arrow = expect(Token::Arrow, "Expected '->' after pattern");
 		if(arrow.hasError()) return { arrow, Trace(ASTNodeType::MatchExpression, arrow.getValue().position) };
 
 		Result<std::unique_ptr<ASTNode>> body = parseExpression();
-
 		Token::Position bodyPos = peek().position;
 		if(body.hasError()) return { std::move(body), Trace(ASTNodeType::MatchExpression, bodyPos) };
-
+		
 		branches.push_back(std::make_unique<MatchBranch>(
 				patternPos,
-				dynamic_unique_cast<ExpressionNode>(pattern.moveValue()),
-				nullptr,
+				parsedPattern.moveValue(),
+				std::move(condition),
 				dynamic_unique_cast<ExpressionNode>(body.moveValue())));
 
 		if(peek().type == Token::RightBrace) break;
@@ -775,48 +800,298 @@ bool Parser::isLambdaExpression() {
 	return true;
 }
 
+bool Parser::isSingleParameterLambda() {
+	if (peek().type != Token::Identifier) return false;
+	
+	size_t startIndex = current;
+	
+	// Skip the identifier
+	Result<Token> identifier = advance();
+	if (identifier.hasError()) {
+		current = startIndex;
+		return false;
+	}
+	
+	// Check if next token is arrow
+	bool isLambda = peek().type == Token::Arrow;
+	
+	current = startIndex;
+	return isLambda;
+}
+
 
 Result<std::unique_ptr<ASTNode>> Parser::parseLambdaExpression() {
-	if(!isLambdaExpression()) return parseStructExpression();
-	Result<Token> leftParen = expect(Token::LeftParen, "Expected '('");
-	if(leftParen.hasError()) return { leftParen, Trace(ASTNodeType::LambdaExpression, leftParen.getValue().position) };
+	if(!isLambdaExpression() && !isSingleParameterLambda()) return parseStructExpression();
+	
 	std::vector<std::unique_ptr<FunctionArgument>> args;
+	Token::Position startPos = peek().position;
+	
+	if(peek().type == Token::LeftParen) {
+		// Handle (x) -> ... or (x, y) -> ... syntax
+		Result<Token> leftParen = advance();
+		if(leftParen.hasError()) return { leftParen, Trace(ASTNodeType::LambdaExpression, leftParen.getValue().position) };
+		startPos = leftParen.getValue().position;
 
-	while(peek().type != Token::RightParen) {
-		Token::Position argPos = peek().position;
-		Result<std::unique_ptr<FunctionArgument>> arg = parseFunctionArgument();
-		if(arg.hasError()) return { std::move(arg), Trace(ASTNodeType::LambdaExpression, argPos) };
+		while(peek().type != Token::RightParen) {
+			Token::Position argPos = peek().position;
+			Result<std::unique_ptr<FunctionArgument>> arg = parseFunctionArgument();
+			if(arg.hasError()) return { std::move(arg), Trace(ASTNodeType::LambdaExpression, argPos) };
 
-		args.push_back(arg.moveValue());
+			args.push_back(arg.moveValue());
 
-		if(peek().type == Token::RightParen) break;
+			if(peek().type == Token::RightParen) break;
 
-		Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
-		if(comma.hasError()) return { comma, Trace(ASTNodeType::LambdaExpression, comma.getValue().position) };
+			Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
+			if(comma.hasError()) return { comma, Trace(ASTNodeType::LambdaExpression, comma.getValue().position) };
+		}
+
+		Result<Token> rightParen = expect(Token::RightParen, "Expected ')'");
+		if(rightParen.hasError()) return { rightParen, Trace(ASTNodeType::LambdaExpression, rightParen.getValue().position) };
+	} else {
+		// Handle x -> ... syntax (single parameter without parentheses)
+		Result<Token> identifier = expect(Token::Identifier, "Expected parameter name");
+		if(identifier.hasError()) return { identifier, Trace(ASTNodeType::LambdaExpression, identifier.getValue().position) };
+		startPos = identifier.getValue().position;
+		
+		auto arg = std::make_unique<FunctionArgument>(identifier.getValue().position);
+		arg->name = identifier.getValue().value;
+		arg->type = nullptr;
+		args.push_back(std::move(arg));
 	}
-
-	Result<Token> rightParen = expect(Token::RightParen, "Expected ')'");
-	if(rightParen.hasError()) return { rightParen, Trace(ASTNodeType::LambdaExpression, rightParen.getValue().position) };
 
 	Result<Token> arrow = expect(Token::Arrow, "Expected '->'");
 	if(arrow.hasError()) return { arrow, Trace(ASTNodeType::LambdaExpression, arrow.getValue().position) };
 
-	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	Result<std::unique_ptr<ASTNode>> body = parseExpression();
 	if (body.hasError()) return { std::move(body), Trace(ASTNodeType::LambdaExpression, body.getValue()->position) };
 
-	if(body.getValue()->getNodeGroup() == ASTNodeGroup::Expression) {
-		auto bodyPosition = body.getValue()->position;
-		return {std::make_unique<LambdaExpressionNode>(
-				leftParen.getValue().position,
-				std::move(args),
-				std::make_unique<ReturnStatementNode>(bodyPosition,
-													  dynamic_unique_cast<ExpressionNode>(body.moveValue()), false))
-		};
-	}
-
-	return { std::make_unique<LambdaExpressionNode>(
-			leftParen.getValue().position,
+	auto bodyPosition = body.getValue()->position;
+			return {std::make_unique<LambdaExpressionNode>(
+			startPos,
 			std::move(args),
-			body.moveValue())
+			std::make_unique<ReturnStatementNode>(bodyPosition,
+												  dynamic_unique_cast<ExpressionNode>(body.moveValue()), false))
 	};
+}
+
+// Pattern parsing implementations
+Result<std::unique_ptr<PatternNode>> Parser::parsePattern() {
+	Token::Position pos = peek().position;
+
+	
+	switch(peek().type) {
+		case Token::Identifier:
+			// Could be identifier pattern, constructor pattern, or type pattern
+			if (peek(1).type == Token::LeftParen) {
+				// Constructor pattern: Point(x, y)
+				return parseConstructorPattern();
+			} else if (peek(1).type == Token::DoubleColon) {
+				// Enum constructor: Shape::Circle(r)
+				return parseConstructorPattern();
+			} else if (peek().value == "_") {
+				// Wildcard pattern
+				return parseWildcardPattern();
+			} else {
+				// Identifier pattern or type pattern
+				return parseIdentifierPattern();
+			}
+		case Token::IntegralLiteral:
+		case Token::FloatLiteral:
+		case Token::StringLiteral:
+		case Token::BooleanLiteral:
+		case Token::CharLiteral:
+			return parseLiteralPattern();
+		case Token::LeftBracket:
+			return parseArrayPattern();
+		case Token::LeftBrace:
+			return parseStructPattern();
+		case Token::PrimitiveType:
+			return parseTypePattern();
+		default:
+			// Try to parse as range pattern or fallback to literal
+			return parseLiteralPattern();
+	}
+}
+
+Result<std::unique_ptr<PatternNode>> Parser::parseWildcardPattern() {
+	Result<Token> underscore = expect(Token::Identifier, "Expected '_'");
+	if(underscore.hasError()) return { underscore, Trace(ASTNodeType::WildcardPattern, underscore.getValue().position) };
+	
+	if(underscore.getValue().value != "_") {
+		return { "Expected '_' for wildcard pattern", "", Trace(ASTNodeType::WildcardPattern, underscore.getValue().position) };
+	}
+	
+	return { std::make_unique<WildcardPatternNode>(underscore.getValue().position) };
+}
+
+Result<std::unique_ptr<PatternNode>> Parser::parseLiteralPattern() {
+	Result<std::unique_ptr<ASTNode>> literal = parsePrimary();
+	if(literal.hasError()) return { std::move(literal), Trace(ASTNodeType::LiteralPattern, peek().position) };
+	
+	// Check if this is a range pattern (literal to literal)
+	if(peek().type == Token::KeywordTo) {
+		current--; // Go back to re-parse as range
+		return parseRangePattern();
+	}
+	
+	Token::Position literalPos = literal.getValue()->position;
+	return { std::make_unique<LiteralPatternNode>(
+		literalPos,
+		dynamic_unique_cast<ExpressionNode>(literal.moveValue())
+	) };
+}
+
+Result<std::unique_ptr<PatternNode>> Parser::parseIdentifierPattern() {
+	Result<Token> identifier = expect(Token::Identifier, "Expected identifier");
+	if(identifier.hasError()) return { identifier, Trace(ASTNodeType::IdentifierPattern, identifier.getValue().position) };
+	
+	return { std::make_unique<IdentifierPatternNode>(
+		identifier.getValue().position,
+		identifier.getValue().value
+	) };
+}
+
+Result<std::unique_ptr<PatternNode>> Parser::parseArrayPattern() {
+	Token::Position pos = peek().position;
+	Result<Token> leftBracket = expect(Token::LeftBracket, "Expected '['");
+	if(leftBracket.hasError()) return { leftBracket, Trace(ASTNodeType::ArrayPattern, leftBracket.getValue().position) };
+	
+	std::vector<std::unique_ptr<PatternNode>> elements;
+	std::unique_ptr<PatternNode> rest = nullptr;
+	
+	while(peek().type != Token::RightBracket) {
+		if(peek().type == Token::Ellipsis) {
+			// Rest pattern: ...rest
+			advance(); // consume ...
+			if(peek().type == Token::Identifier) {
+				Result<std::unique_ptr<PatternNode>> restPattern = parsePattern();
+				if(restPattern.hasError()) return { std::move(restPattern), Trace(ASTNodeType::ArrayPattern, peek().position) };
+				rest = restPattern.moveValue();
+			}
+			break;
+		}
+		
+		Result<std::unique_ptr<PatternNode>> element = parsePattern();
+		if(element.hasError()) return { std::move(element), Trace(ASTNodeType::ArrayPattern, peek().position) };
+		elements.push_back(element.moveValue());
+		
+		if(peek().type == Token::RightBracket) break;
+		
+		Result<Token> comma = expect(Token::Comma, "Expected ',' or ']'");
+		if(comma.hasError()) return { comma, Trace(ASTNodeType::ArrayPattern, comma.getValue().position) };
+	}
+	
+	Result<Token> rightBracket = expect(Token::RightBracket, "Expected ']'");
+	if(rightBracket.hasError()) return { rightBracket, Trace(ASTNodeType::ArrayPattern, rightBracket.getValue().position) };
+	
+	return { std::make_unique<ArrayPatternNode>(pos, std::move(elements), std::move(rest)) };
+}
+
+Result<std::unique_ptr<PatternNode>> Parser::parseStructPattern() {
+	Token::Position pos = peek().position;
+	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{'");
+	if(leftBrace.hasError()) return { leftBrace, Trace(ASTNodeType::StructPattern, leftBrace.getValue().position) };
+	
+	std::vector<std::pair<std::string, std::unique_ptr<PatternNode>>> fields;
+	
+	while(peek().type != Token::RightBrace) {
+		Result<Token> fieldName = expect(Token::Identifier, "Expected field name");
+		if(fieldName.hasError()) return { fieldName, Trace(ASTNodeType::StructPattern, fieldName.getValue().position) };
+		
+		std::unique_ptr<PatternNode> pattern;
+		if(peek().type == Token::Colon) {
+			advance(); // consume :
+			Result<std::unique_ptr<PatternNode>> fieldPattern = parsePattern();
+			if(fieldPattern.hasError()) return { std::move(fieldPattern), Trace(ASTNodeType::StructPattern, peek().position) };
+			pattern = fieldPattern.moveValue();
+		} else {
+			// Shorthand: {x} is equivalent to {x: x}
+			pattern = std::make_unique<IdentifierPatternNode>(fieldName.getValue().position, fieldName.getValue().value);
+		}
+		
+		fields.emplace_back(fieldName.getValue().value, std::move(pattern));
+		
+		if(peek().type == Token::RightBrace) break;
+		
+		Result<Token> comma = expect(Token::Comma, "Expected ',' or '}'");
+		if(comma.hasError()) return { comma, Trace(ASTNodeType::StructPattern, comma.getValue().position) };
+	}
+	
+	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}'");
+	if(rightBrace.hasError()) return { rightBrace, Trace(ASTNodeType::StructPattern, rightBrace.getValue().position) };
+	
+	return { std::make_unique<StructPatternNode>(pos, std::move(fields)) };
+}
+
+Result<std::unique_ptr<PatternNode>> Parser::parseConstructorPattern() {
+	Token::Position pos = peek().position;
+	Result<Token> name = expect(Token::Identifier, "Expected constructor name");
+	if(name.hasError()) return { name, Trace(ASTNodeType::ConstructorPattern, name.getValue().position) };
+	
+	std::string constructorName = name.getValue().value;
+	
+	// Handle enum constructors: Shape::Circle
+	if(peek().type == Token::DoubleColon) {
+		advance(); // consume ::
+		Result<Token> enumName = expect(Token::Identifier, "Expected enum variant name");
+		if(enumName.hasError()) return { enumName, Trace(ASTNodeType::ConstructorPattern, enumName.getValue().position) };
+		constructorName += "::" + enumName.getValue().value;
+	}
+	
+	std::vector<std::unique_ptr<PatternNode>> arguments;
+	
+	if(peek().type == Token::LeftParen) {
+		advance(); // consume (
+		
+		while(peek().type != Token::RightParen) {
+			Result<std::unique_ptr<PatternNode>> arg = parsePattern();
+			if(arg.hasError()) return { std::move(arg), Trace(ASTNodeType::ConstructorPattern, peek().position) };
+			arguments.push_back(arg.moveValue());
+			
+			if(peek().type == Token::RightParen) break;
+			
+			Result<Token> comma = expect(Token::Comma, "Expected ',' or ')'");
+			if(comma.hasError()) return { comma, Trace(ASTNodeType::ConstructorPattern, comma.getValue().position) };
+		}
+		
+		Result<Token> rightParen = expect(Token::RightParen, "Expected ')'");
+		if(rightParen.hasError()) return { rightParen, Trace(ASTNodeType::ConstructorPattern, rightParen.getValue().position) };
+	}
+	
+	return { std::make_unique<ConstructorPatternNode>(pos, constructorName, std::move(arguments)) };
+}
+
+Result<std::unique_ptr<PatternNode>> Parser::parseTypePattern() {
+	Token::Position pos = peek().position;
+	Result<std::unique_ptr<TypeNode>> type = parseType();
+	if(type.hasError()) return { std::move(type), Trace(ASTNodeType::TypePattern, pos) };
+	
+	return { std::make_unique<TypePatternNode>(pos, type.moveValue()) };
+}
+
+Result<std::unique_ptr<PatternNode>> Parser::parseRangePattern() {
+	Token::Position pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> start = parsePrimary();
+	if(start.hasError()) return { std::move(start), Trace(ASTNodeType::RangePattern, pos) };
+	
+	bool isInclusive = false;
+	if(peek().type == Token::KeywordTo) {
+		advance(); // consume 'to'
+		if(peek().type == Token::Assign) {
+			advance(); // consume '='
+			isInclusive = true;
+		}
+	} else {
+		return { "Expected 'to' in range pattern", "", Trace(ASTNodeType::RangePattern, peek().position) };
+	}
+	
+	Result<std::unique_ptr<ASTNode>> end = parsePrimary();
+	if(end.hasError()) return { std::move(end), Trace(ASTNodeType::RangePattern, peek().position) };
+	
+	return { std::make_unique<RangePatternNode>(
+		pos,
+		dynamic_unique_cast<ExpressionNode>(start.moveValue()),
+		dynamic_unique_cast<ExpressionNode>(end.moveValue()),
+		isInclusive
+	) };
 }

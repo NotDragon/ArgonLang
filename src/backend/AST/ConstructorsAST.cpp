@@ -63,7 +63,7 @@ ArgonLang::AssignmentExpressionNode::AssignmentExpressionNode(Token::Position po
 ArgonLang::IndexExpressionNode::IndexExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr,
 													std::unique_ptr<ExpressionNode> i): array(std::move(arr)), index(std::move(i)), ExpressionNode(position) {}
 
-ArgonLang::MatchBranch::MatchBranch(Token::Position position, std::unique_ptr<ExpressionNode> pattern, std::unique_ptr<ExpressionNode> condition,
+ArgonLang::MatchBranch::MatchBranch(Token::Position position, std::unique_ptr<PatternNode> pattern, std::unique_ptr<ExpressionNode> condition,
 									std::unique_ptr<ASTNode> body): pattern(std::move(pattern)), condition(std::move(condition)), body(std::move(body)), position(position) {}
 
 ArgonLang::MatchExpressionNode::MatchExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> value,
@@ -77,7 +77,10 @@ ArgonLang::TernaryExpressionNode::TernaryExpressionNode(Token::Position position
 ArgonLang::ReturnStatementNode::ReturnStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> returnExpression, bool isSuper): returnExpression(std::move(returnExpression)), isSuper(isSuper), StatementNode(position) {}
 
 ArgonLang::VariableDeclarationNode::VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type,
-															std::unique_ptr<ExpressionNode> value, std::string name): isConst(isConst), type(std::move(type)), value(std::move(value)), name(std::move(name)), StatementNode(position) {}
+															std::unique_ptr<ExpressionNode> value, std::string name): isConst(isConst), type(std::move(type)), value(std::move(value)), name(std::move(name)), pattern(nullptr), StatementNode(position) {}
+
+ArgonLang::VariableDeclarationNode::VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type,
+															std::unique_ptr<ExpressionNode> value, std::unique_ptr<PatternNode> pattern): isConst(isConst), type(std::move(type)), value(std::move(value)), name(""), pattern(std::move(pattern)), StatementNode(position) {}
 
 ArgonLang::TypeAliasNode::TypeAliasNode(Token::Position position, std::string aliasName, std::unique_ptr<TypeNode> targetType): aliasName(std::move(aliasName)), targetType(std::move(targetType)), StatementNode(position) {}
 
@@ -197,4 +200,36 @@ ArgonLang::ArrayTypeNode::ArrayTypeNode(Token::Position position,
 
 ArgonLang::VariadicTypeNode::VariadicTypeNode(Token::Position position, std::unique_ptr<TypeNode> type)
 	: baseType(std::move(type)), TypeNode(position) {}
+
+// Pattern node constructors
+ArgonLang::WildcardPatternNode::WildcardPatternNode(Token::Position position) : PatternNode(position) {}
+
+ArgonLang::LiteralPatternNode::LiteralPatternNode(Token::Position position, std::unique_ptr<ExpressionNode> literal)
+	: literal(std::move(literal)), PatternNode(position) {}
+
+ArgonLang::IdentifierPatternNode::IdentifierPatternNode(Token::Position position, std::string name)
+	: name(std::move(name)), PatternNode(position) {}
+
+ArgonLang::ArrayPatternNode::ArrayPatternNode(Token::Position position, 
+	std::vector<std::unique_ptr<PatternNode>> elements, 
+	std::unique_ptr<PatternNode> rest)
+	: elements(std::move(elements)), rest(std::move(rest)), PatternNode(position) {}
+
+ArgonLang::StructPatternNode::StructPatternNode(Token::Position position, 
+	std::vector<std::pair<std::string, std::unique_ptr<PatternNode>>> fields)
+	: fields(std::move(fields)), PatternNode(position) {}
+
+ArgonLang::ConstructorPatternNode::ConstructorPatternNode(Token::Position position, 
+	std::string constructorName, 
+	std::vector<std::unique_ptr<PatternNode>> arguments)
+	: constructorName(std::move(constructorName)), arguments(std::move(arguments)), PatternNode(position) {}
+
+ArgonLang::TypePatternNode::TypePatternNode(Token::Position position, std::unique_ptr<TypeNode> type)
+	: type(std::move(type)), PatternNode(position) {}
+
+ArgonLang::RangePatternNode::RangePatternNode(Token::Position position, 
+	std::unique_ptr<ExpressionNode> start, 
+	std::unique_ptr<ExpressionNode> end, 
+	bool isInclusive)
+	: start(std::move(start)), end(std::move(end)), isInclusive(isInclusive), PatternNode(position) {}
 

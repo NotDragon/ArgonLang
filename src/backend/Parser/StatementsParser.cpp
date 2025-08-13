@@ -60,9 +60,23 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 	if(keywordError.hasError()) return { keywordError, Trace(ASTNodeType::VariableDeclaration, keywordError.getValue().position) };
 	Token keyword = keywordError.getValue();
 
-	Result<Token> identifierError = expect(Token::Identifier, "Expected identifier after declaration");
-	if(identifierError.hasError()) return { identifierError, Trace(ASTNodeType::VariableDeclaration, identifierError.getValue().position) };
-	Token identifier = identifierError.getValue();
+	// Check if this is a destructuring declaration
+	bool isDestructuring = false;
+	std::unique_ptr<PatternNode> pattern = nullptr;
+	std::string name = "";
+	
+	if(peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
+		// This is a destructuring declaration: def [a, b] = ... or def {x, y} = ...
+		isDestructuring = true;
+		Result<std::unique_ptr<PatternNode>> patternResult = parsePattern();
+		if(patternResult.hasError()) return { std::move(patternResult), Trace(ASTNodeType::VariableDeclaration, keyword.position) };
+		pattern = patternResult.moveValue();
+	} else {
+		// This is a simple declaration: def name = ...
+		Result<Token> identifierError = expect(Token::Identifier, "Expected identifier after declaration");
+		if(identifierError.hasError()) return { identifierError, Trace(ASTNodeType::VariableDeclaration, identifierError.getValue().position) };
+		name = identifierError.getValue().value;
+	}
 
 	Result<std::unique_ptr<TypeNode>> type;
 	Result<std::unique_ptr<ASTNode>> value;
@@ -82,17 +96,25 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 		value = parseExpression();
 		if(value.hasError()) return { std::move(value), Trace(ASTNodeType::VariableDeclaration, keyword.position) };
 	}
-
+	Token::Position smiColonPos = peek().position;
 	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::VariableDeclaration, semiColon.getValue().position) };
+	if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::VariableDeclaration, smiColonPos) };
 
 	if(type.isNull() && value.isNull()) {
 //		return { "Expected either value or type, in variable declaration" };
 	}
 
-	return { std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), !type.isNull() ? type.moveValue() : nullptr,
-													   !value.isNull() ? dynamic_unique_cast<ExpressionNode>(value.moveValue()) : nullptr,
-													   std::move(identifier.value)) };
+	if(isDestructuring) {
+		return { std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), 
+														   !type.isNull() ? type.moveValue() : nullptr,
+														   !value.isNull() ? dynamic_unique_cast<ExpressionNode>(value.moveValue()) : nullptr,
+														   std::move(pattern)) };
+	} else {
+		return { std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), 
+														   !type.isNull() ? type.moveValue() : nullptr,
+														   !value.isNull() ? dynamic_unique_cast<ExpressionNode>(value.moveValue()) : nullptr,
+														   name) };
+	}
 }
 
 Result<std::unique_ptr<FunctionArgument>> Parser::parseFunctionArgument() {
@@ -144,7 +166,6 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<Token> token = advance();
 	if(token.hasError()) return { token, Trace(ASTNodeType::FunctionDefinition, token.getValue().position) };
 
-	
 	Result<std::unique_ptr<ASTNode>> identifier = parseMemberAccessExpression();
 	if(identifier.hasError()) return { std::move(identifier), Trace(ASTNodeType::FunctionDefinition, token.getValue().position) };
 
@@ -153,8 +174,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 		if(tempIdentifier->identifier == "main") mainCounter++;
 	}
 
+	Token::Position leftParenPos = peek().position;
 	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after function declaration");
-	if(leftParen.hasError()) return { leftParen, Trace(ASTNodeType::FunctionDefinition, leftParen.getValue().position) };
+	if(leftParen.hasError()) return { leftParen, Trace(ASTNodeType::FunctionDefinition, leftParenPos) };
 
 	std::vector<std::unique_ptr<FunctionArgument>> args;
 	while(peek().type != Token::RightParen) {
@@ -246,7 +268,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
 			token.getValue().position,
 			dynamic_unique_cast<ExpressionNode>(condition.moveValue()),
 	        dynamic_unique_cast<StatementNode>(body.moveValue()),
-			dynamic_unique_cast<StatementNode>(elseStatement.moveValue())) };
+			!elseStatement.isNull()? dynamic_unique_cast<StatementNode>(elseStatement.moveValue()): nullptr) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseForStatement() {

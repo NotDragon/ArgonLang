@@ -1,0 +1,5 @@
+// Debug lambda - test just the lambda expression
+func main() i32 {
+    def a = 5;
+    return a;
+}

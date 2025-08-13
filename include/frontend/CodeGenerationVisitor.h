@@ -45,6 +45,17 @@ namespace ArgonLang {
 		Result<std::string> visit(const IndexExpressionNode &node) override;
 		Result<std::string> visit(const MatchBranch &node) override;
 		Result<std::string> visit(const MatchExpressionNode &node) override;
+		
+		// Pattern node visitors
+		Result<std::string> visit(const PatternNode &node) override;
+		Result<std::string> visit(const WildcardPatternNode &node) override;
+		Result<std::string> visit(const LiteralPatternNode &node) override;
+		Result<std::string> visit(const IdentifierPatternNode &node) override;
+		Result<std::string> visit(const ArrayPatternNode &node) override;
+		Result<std::string> visit(const StructPatternNode &node) override;
+		Result<std::string> visit(const ConstructorPatternNode &node) override;
+		Result<std::string> visit(const TypePatternNode &node) override;
+		Result<std::string> visit(const RangePatternNode &node) override;
 		Result<std::string> visit(const TernaryExpressionNode &node) override;
 		Result<std::string> visit(const ParallelExpressionNode &node) override;
 		Result<std::string> visit(const StructField &node) override;
@@ -83,6 +94,10 @@ namespace ArgonLang {
 		Result<std::string> visit(const FunctionTypeNode &node) override;
 		Result<std::string> visit(const ArrayTypeNode &node) override;
 		Result<std::string> visit(const VariadicTypeNode &node) override;
+		
+	private:
+		// Helper method for generating destructuring assignments
+		Result<std::string> generateDestructuring(const PatternNode* pattern, const std::string& sourceVar);
 	};
 }
 

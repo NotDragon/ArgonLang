@@ -66,6 +66,25 @@ Result<std::string> CodeGenerationVisitor::visit(const ExpressionNode& node) {
 			return visit(dynamic_cast<const StructExpressionNode&>(node));
 		case ASTNodeType::RangeExpression:
 			return visit(dynamic_cast<const RangeExpressionNode&>(node));
+		
+		// Pattern node cases
+		case ASTNodeType::WildcardPattern:
+			return visit(dynamic_cast<const WildcardPatternNode&>(node));
+		case ASTNodeType::LiteralPattern:
+			return visit(dynamic_cast<const LiteralPatternNode&>(node));
+		case ASTNodeType::IdentifierPattern:
+			return visit(dynamic_cast<const IdentifierPatternNode&>(node));
+		case ASTNodeType::ArrayPattern:
+			return visit(dynamic_cast<const ArrayPatternNode&>(node));
+		case ASTNodeType::StructPattern:
+			return visit(dynamic_cast<const StructPatternNode&>(node));
+		case ASTNodeType::ConstructorPattern:
+			return visit(dynamic_cast<const ConstructorPatternNode&>(node));
+		case ASTNodeType::TypePattern:
+			return visit(dynamic_cast<const TypePatternNode&>(node));
+		case ASTNodeType::RangePattern:
+			return visit(dynamic_cast<const RangePatternNode&>(node));
+		
 		default:
 			return { 
 				ErrorFormatter::formatCodeGenError("Unexpected expression type", ASTNodeTypeToString(node.getNodeType())),
@@ -304,13 +323,14 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionCallExpressionNod
 
 	std::string code = functionName.getValue() + "(";
 
-	for (const auto &arg: node.arguments) {
+	for (int i = 0; i < node.arguments.size(); i++) {
+		const auto &arg = node.arguments[i];
 		Result<std::string> argResult = visit(*arg);
 		
 		if (argResult.hasError()) return argResult;
-		code += argResult.getValue() + ", ";
+		if (i != node.arguments.size() - 1)
+			code += argResult.getValue() + ", ";
 	}
-	code.erase(code.size() - 2);
 	code += ")";
 
 	if(this->isStatementContext) code += ";";
@@ -340,11 +360,14 @@ Result<std::string> CodeGenerationVisitor::visit(const ToExpressionNode &node) {
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const FunctionArgument &node) {
-	Result<std::string> type = visit(*node.type);
-	if(type.hasError()) return type;
+	std::string type = "auto";
+	if(node.type) {
+		Result<std::string> typeResult = visit(*node.type);
+		if(typeResult.hasError()) return typeResult;
+		type = typeResult.getValue();
+	}
 
-
-	return { type.getValue() + " " + node.name };
+	return { type + " " + node.name };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const LambdaExpressionNode &node) {
@@ -411,18 +434,29 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
     auto body = visit(*node.body);
     if(body.hasError()) return body;
 
+    // Handle guard condition if present
+    std::string guardCondition;
+    if(node.condition) {
+        auto guard = visit(*node.condition);
+        if(guard.hasError()) return guard;
+        guardCondition = guard.getValue();
+    }
+
 	std::string code;
+	std::string patternCondition;
+	
+	// Generate pattern matching condition
 	if (pattern == "_") {
-		code = "if (true) {";
+		patternCondition = "true";
 	} else if (pattern.find("to") != std::string::npos && pattern.find("=") != std::string::npos) {
 		// Handle range patterns like "1 to= 10"
 		size_t toPos = pattern.find(" to");
 		if (toPos != std::string::npos) {
 			std::string start = pattern.substr(0, toPos);
 			std::string end = pattern.substr(toPos + 4); // Skip " to="
-			code = "if(__match_val >= " + start + " && __match_val <= " + end + ") {";
+			patternCondition = "__match_val >= " + start + " && __match_val <= " + end;
 		} else {
-			code = "if(__match_val == " + pattern + ") {";
+			patternCondition = "__match_val == " + pattern;
 		}
 	} else if (pattern.find("to") != std::string::npos) {
 		// Handle exclusive range patterns like "1 to 10"
@@ -430,22 +464,33 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
 		if (toPos != std::string::npos) {
 			std::string start = pattern.substr(0, toPos);
 			std::string end = pattern.substr(toPos + 4);
-			code = "if(__match_val >= " + start + " && __match_val < " + end + ") {";
+			patternCondition = "__match_val >= " + start + " && __match_val < " + end;
 		} else {
-			code = "if(__match_val == " + pattern + ") {";
-		}
-	} else if (pattern.find("&&") != std::string::npos) {
-		// Handle guard conditions like "x && x > 5"
-		size_t guardPos = pattern.find(" && ");
-		if (guardPos != std::string::npos) {
-			std::string var = pattern.substr(0, guardPos);
-			std::string condition = pattern.substr(guardPos + 4);
-			code = "if(auto " + var + " = __match_val; " + condition + ") {";
-		} else {
-			code = "if(__match_val == " + pattern + ") {";
+			patternCondition = "__match_val == " + pattern;
 		}
 	} else {
-		code = "if(__match_val == " + pattern + ") {";
+		// Check if this is an identifier pattern (should capture, not compare)
+		// Identifier patterns should always match and capture the value
+		if(node.pattern && node.pattern->getNodeType() == ASTNodeType::IdentifierPattern) {
+			patternCondition = "true"; // Always matches
+		} else {
+			patternCondition = "__match_val == " + pattern;
+		}
+	}
+	
+	// Handle variable binding for identifier patterns in guard conditions
+	if(node.pattern && node.pattern->getNodeType() == ASTNodeType::IdentifierPattern && !guardCondition.empty()) {
+		const IdentifierPatternNode* identifierPattern = dynamic_cast<const IdentifierPatternNode*>(node.pattern.get());
+		if(identifierPattern) {
+			// Use C++17 structured binding in if statement: if(auto var = value; condition)
+			code = "if(auto " + identifierPattern->name + " = __match_val; " + guardCondition + ") {";
+		} else {
+			code = "if(" + patternCondition + " && (" + guardCondition + ")) {";
+		}
+	} else if(!guardCondition.empty()) {
+		code = "if(" + patternCondition + " && (" + guardCondition + ")) {";
+	} else {
+		code = "if(" + patternCondition + ") {";
 	}
 
 	if((*node.body).getNodeGroup() == ASTNodeGroup::Expression) {
@@ -532,6 +577,29 @@ Result<std::string> CodeGenerationVisitor::visit(const RangeExpressionNode &node
 
 Result<std::string> CodeGenerationVisitor::visit(const VariableDeclarationNode &node) {
 	std::string code;
+	
+	// Handle destructuring declarations
+	if(node.pattern) {
+		if(!node.value) {
+			return { "Destructuring declaration must have a value", "", Trace(ASTNodeType::VariableDeclaration, node.position) };
+		}
+		
+		Result<std::string> value = visit(*node.value);
+		if(value.hasError()) return value;
+		
+		// Generate temporary variable for the value
+		std::string tempVar = "__destructure_temp";
+		code += "auto " + tempVar + " = " + value.getValue() + ";";
+		
+		// Generate destructuring assignments
+		Result<std::string> destructuring = generateDestructuring(node.pattern.get(), tempVar);
+		if(destructuring.hasError()) return destructuring;
+		
+		code += destructuring.getValue();
+		return { code };
+	}
+	
+	// Handle simple declarations
 	if(node.type) {
 		Result<std::string> type = visit(*node.type);
 		if(type.hasError()) return type;
@@ -1102,4 +1170,203 @@ Result<std::string> CodeGenerationVisitor::visit(const VariadicTypeNode &node) {
 	if (baseType.hasError()) return baseType;
 	
 	return { "std::vector<" + baseType.getValue() + ">" };
+}
+
+// Pattern node implementations
+Result<std::string> CodeGenerationVisitor::visit(const PatternNode &node) {
+	// Dispatch to specific pattern types
+	switch(node.getNodeType()) {
+		case ASTNodeType::WildcardPattern:
+			return visit(dynamic_cast<const WildcardPatternNode&>(node));
+		case ASTNodeType::LiteralPattern:
+			return visit(dynamic_cast<const LiteralPatternNode&>(node));
+		case ASTNodeType::IdentifierPattern:
+			return visit(dynamic_cast<const IdentifierPatternNode&>(node));
+		case ASTNodeType::ArrayPattern:
+			return visit(dynamic_cast<const ArrayPatternNode&>(node));
+		case ASTNodeType::StructPattern:
+			return visit(dynamic_cast<const StructPatternNode&>(node));
+		case ASTNodeType::ConstructorPattern:
+			return visit(dynamic_cast<const ConstructorPatternNode&>(node));
+		case ASTNodeType::TypePattern:
+			return visit(dynamic_cast<const TypePatternNode&>(node));
+		case ASTNodeType::RangePattern:
+			return visit(dynamic_cast<const RangePatternNode&>(node));
+		default:
+			return { 
+				ErrorFormatter::formatCodeGenError("Unknown pattern type", ASTNodeTypeToString(node.getNodeType())),
+				"",
+				Trace(node.getNodeType(), node.position)
+			};
+	}
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const WildcardPatternNode &node) {
+	// Wildcard pattern "_" matches anything
+	return { "_" };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const LiteralPatternNode &node) {
+	// Generate code for the literal expression
+	return visit(*node.literal);
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const IdentifierPatternNode &node) {
+	// Identifier pattern captures the value
+	return { node.name };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const ArrayPatternNode &node) {
+	// Array pattern [a, b, c] - would need destructuring logic
+	std::string code = "[";
+	bool first = true;
+	for (const auto& pattern : node.elements) {
+		if (!first) code += ", ";
+		auto patternCode = visit(*pattern);
+		if (patternCode.hasError()) return patternCode;
+		code += patternCode.getValue();
+		first = false;
+	}
+	code += "]";
+	return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const StructPatternNode &node) {
+	// Struct pattern {field1: pattern1, field2: pattern2}
+	std::string code = "{";
+	bool first = true;
+	for (const auto& field : node.fields) {
+		if (!first) code += ", ";
+		code += field.first + ": ";
+		auto patternCode = visit(*field.second);
+		if (patternCode.hasError()) return patternCode;
+		code += patternCode.getValue();
+		first = false;
+	}
+	code += "}";
+	return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const ConstructorPatternNode &node) {
+	// Constructor pattern Type(args...)
+	std::string code = node.constructorName + "(";
+	bool first = true;
+	for (const auto& arg : node.arguments) {
+		if (!first) code += ", ";
+		auto argCode = visit(*arg);
+		if (argCode.hasError()) return argCode;
+		code += argCode.getValue();
+		first = false;
+	}
+	code += ")";
+	return { code };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const TypePatternNode &node) {
+	// Type pattern - check if value is of specific type
+	auto typeCode = visit(*node.type);
+	if (typeCode.hasError()) return typeCode;
+	return { typeCode.getValue() };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const RangePatternNode &node) {
+	// Range pattern start to end or start to= end
+	auto startCode = visit(*node.start);
+	if (startCode.hasError()) return startCode;
+	
+	auto endCode = visit(*node.end);
+	if (endCode.hasError()) return endCode;
+	
+	std::string code = startCode.getValue() + (node.isInclusive ? " to= " : " to ") + endCode.getValue();
+	return { code };
+}
+
+// Helper method for generating destructuring assignments
+Result<std::string> CodeGenerationVisitor::generateDestructuring(const PatternNode* pattern, const std::string& sourceVar) {
+	std::string code;
+	
+	switch(pattern->getNodeType()) {
+		case ASTNodeType::ArrayPattern: {
+			const ArrayPatternNode* arrayPattern = dynamic_cast<const ArrayPatternNode*>(pattern);
+			if(!arrayPattern) {
+				return { "Failed to cast to ArrayPatternNode", "", Trace(ASTNodeType::ArrayPattern, pattern->position) };
+			}
+			
+			// Generate assignments for each element: auto elem = sourceVar[index];
+			for(size_t i = 0; i < arrayPattern->elements.size(); ++i) {
+				const PatternNode* element = arrayPattern->elements[i].get();
+				
+				if(element->getNodeType() == ASTNodeType::IdentifierPattern) {
+					const IdentifierPatternNode* identifierPattern = dynamic_cast<const IdentifierPatternNode*>(element);
+					if(identifierPattern) {
+						code += "auto " + identifierPattern->name + " = " + sourceVar + "[" + std::to_string(i) + "];";
+					}
+				} else {
+					// Nested destructuring - create a temporary variable for the element
+					std::string elementVar = "__destructure_elem_" + std::to_string(i);
+					code += "auto " + elementVar + " = " + sourceVar + "[" + std::to_string(i) + "];";
+					
+					Result<std::string> nestedDestructuring = generateDestructuring(element, elementVar);
+					if(nestedDestructuring.hasError()) return nestedDestructuring;
+					code += nestedDestructuring.getValue();
+				}
+			}
+			
+			// Handle rest pattern if present
+			if(arrayPattern->rest) {
+				if(arrayPattern->rest->getNodeType() == ASTNodeType::IdentifierPattern) {
+					const IdentifierPatternNode* restPattern = dynamic_cast<const IdentifierPatternNode*>(arrayPattern->rest.get());
+					if(restPattern) {
+						// Generate code to slice the remaining elements
+						code += "auto " + restPattern->name + " = std::vector<decltype(" + sourceVar + "[0])>(" + 
+								sourceVar + ".begin() + " + std::to_string(arrayPattern->elements.size()) + ", " + sourceVar + ".end());";
+					}
+				}
+			}
+			break;
+		}
+		
+		case ASTNodeType::StructPattern: {
+			const StructPatternNode* structPattern = dynamic_cast<const StructPatternNode*>(pattern);
+			if(!structPattern) {
+				return { "Failed to cast to StructPatternNode", "", Trace(ASTNodeType::StructPattern, pattern->position) };
+			}
+			
+			// Generate assignments for each field: auto field = sourceVar.fieldName;
+			for(const auto& field : structPattern->fields) {
+				const std::string& fieldName = field.first;
+				const PatternNode* fieldPattern = field.second.get();
+				
+				if(fieldPattern->getNodeType() == ASTNodeType::IdentifierPattern) {
+					const IdentifierPatternNode* identifierPattern = dynamic_cast<const IdentifierPatternNode*>(fieldPattern);
+					if(identifierPattern) {
+						code += "auto " + identifierPattern->name + " = " + sourceVar + "." + fieldName + ";";
+					}
+				} else {
+					// Nested destructuring - create a temporary variable for the field
+					std::string fieldVar = "__destructure_field_" + fieldName;
+					code += "auto " + fieldVar + " = " + sourceVar + "." + fieldName + ";";
+					
+					Result<std::string> nestedDestructuring = generateDestructuring(fieldPattern, fieldVar);
+					if(nestedDestructuring.hasError()) return nestedDestructuring;
+					code += nestedDestructuring.getValue();
+				}
+			}
+			break;
+		}
+		
+		case ASTNodeType::IdentifierPattern: {
+			const IdentifierPatternNode* identifierPattern = dynamic_cast<const IdentifierPatternNode*>(pattern);
+			if(identifierPattern) {
+				code += "auto " + identifierPattern->name + " = " + sourceVar + ";";
+			}
+			break;
+		}
+		
+		default:
+			return { "Unsupported pattern type for destructuring: " + std::string(ASTNodeTypeToString(pattern->getNodeType())), 
+					"", Trace(pattern->getNodeType(), pattern->position) };
+	}
+	
+	return { code };
 }

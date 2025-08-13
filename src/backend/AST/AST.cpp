@@ -88,6 +88,16 @@ std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
 		case ASTNodeType::FunctionType: return "FunctionType";
 		case ASTNodeType::ArrayType: return "ArrayType";
 		case ASTNodeType::VariadicType: return "VariadicType";
+		
+		// Pattern types
+		case ASTNodeType::WildcardPattern: return "WildcardPattern";
+		case ASTNodeType::LiteralPattern: return "LiteralPattern";
+		case ASTNodeType::IdentifierPattern: return "IdentifierPattern";
+		case ASTNodeType::ArrayPattern: return "ArrayPattern";
+		case ASTNodeType::StructPattern: return "StructPattern";
+		case ASTNodeType::ConstructorPattern: return "ConstructorPattern";
+		case ASTNodeType::TypePattern: return "TypePattern";
+		case ASTNodeType::RangePattern: return "RangePattern";
 	}
 	return "Unknown";
 }
