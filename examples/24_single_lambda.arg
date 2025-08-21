@@ -1,5 +1,0 @@
-// Single parameter lambda test
-func main() i32 {
-    def lambda = x -> x * 2;
-    return 0;
-}

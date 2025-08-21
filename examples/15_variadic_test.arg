@@ -1,9 +1,0 @@
-// Simple variadic test
-func print(...args: str) {
-    // Print with variable arguments
-}
-
-func main() i32 {
-    print("hello", "world");
-    return 0;
-}
