@@ -1,0 +1,11 @@
+// Rest pattern destructuring tests
+
+func testRestDestructuring() i32 {
+    // Array destructuring with rest pattern
+    def [first, second], rest = [1, 2, 3, 4, 5];
+    return 0;
+}
+
+func main() i32 {
+    return testRestDestructuring();
+}

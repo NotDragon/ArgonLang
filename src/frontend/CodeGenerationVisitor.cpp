@@ -549,19 +549,54 @@ Result<std::string> CodeGenerationVisitor::visit(const StructField &node) {
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const StructExpressionNode &node) {
-        std::string code = "{";
+        // Generate a unique struct name based on position
+        std::string structName = "AnonymousStruct_" + std::to_string(node.position.line) + "_" + std::to_string(node.position.column);
+        
+        // Generate an immediately invoked lambda that creates and returns the struct
+        std::string code = "([&]() {";
+        
+        // Define the struct type
+        code += "struct " + structName + " {";
         for(const auto &field : node.fields) {
-                auto fieldCode = visit(field);
-                if(fieldCode.hasError()) return fieldCode;
-                code += fieldCode.getValue() + ",";
+                if(field.type) {
+                        auto typeCode = visit(*field.type);
+                        if(typeCode.hasError()) return typeCode;
+                        code += typeCode.getValue() + " " + field.name + ";";
+                } else {
+                        // If no explicit type, try to infer from the value
+                        // For now, we'll use a generic approach - this could be improved with type inference
+                        code += "decltype(";
+                        if(field.value) {
+                                auto valueCode = visit(*field.value);
+                                if(valueCode.hasError()) return valueCode;
+                                code += valueCode.getValue();
+                        } else {
+                                code += "0"; // Default to int if no value provided
+                        }
+                        code += ") " + field.name + ";";
+                }
         }
-        if(!node.fields.empty()) code.pop_back();
-        code += "}";
+        code += "};";
+        
+        // Create and initialize an instance
+        code += structName + " instance{};";
+        for(const auto &field : node.fields) {
+                if(field.value) {
+                        auto valueCode = visit(*field.value);
+                        if(valueCode.hasError()) return valueCode;
+                        code += "instance." + field.name + " = " + valueCode.getValue() + ";";
+                }
+        }
+        
+        // Return the instance
+        code += "return instance;";
+        code += "}())";
+        
         return { code };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const RangeExpressionNode &node) {
-	std::string code = "{";
+	std::string code = "vector{";
 
 	for(const auto& i: node.range) {
 		Result<std::string> item = visit(*i);
@@ -578,7 +613,28 @@ Result<std::string> CodeGenerationVisitor::visit(const RangeExpressionNode &node
 Result<std::string> CodeGenerationVisitor::visit(const VariableDeclarationNode &node) {
 	std::string code;
 	
-	// Handle destructuring declarations
+	// Handle compound destructuring declarations (def [first], rest = arr)
+	if(!node.compoundPatterns.empty()) {
+		if(!node.value) {
+			return { "Compound destructuring declaration must have a value", "", Trace(ASTNodeType::VariableDeclaration, node.position) };
+		}
+		
+		Result<std::string> value = visit(*node.value);
+		if(value.hasError()) return value;
+		
+		// Generate temporary variable for the value
+		std::string tempVar = "__compound_temp";
+		code += "auto " + tempVar + " = " + value.getValue() + ";";
+		
+		// Generate compound destructuring assignments
+		Result<std::string> compoundDestructuring = generateCompoundDestructuring(node.compoundPatterns, tempVar);
+		if(compoundDestructuring.hasError()) return compoundDestructuring;
+		
+		code += compoundDestructuring.getValue();
+		return { code };
+	}
+	
+	// Handle single pattern destructuring declarations
 	if(node.pattern) {
 		if(!node.value) {
 			return { "Destructuring declaration must have a value", "", Trace(ASTNodeType::VariableDeclaration, node.position) };
@@ -1366,6 +1422,95 @@ Result<std::string> CodeGenerationVisitor::generateDestructuring(const PatternNo
 		default:
 			return { "Unsupported pattern type for destructuring: " + std::string(ASTNodeTypeToString(pattern->getNodeType())), 
 					"", Trace(pattern->getNodeType(), pattern->position) };
+	}
+	
+	return { code };
+}
+
+// Helper method for generating compound destructuring assignments
+Result<std::string> CodeGenerationVisitor::generateCompoundDestructuring(const std::vector<std::unique_ptr<PatternNode>>& patterns, const std::string& sourceVar) {
+	std::string code;
+	
+	// Analyze the patterns to determine the destructuring strategy
+	int arrayPatternIndex = -1;
+	std::vector<int> identifierIndices;
+	
+	for(size_t i = 0; i < patterns.size(); ++i) {
+		if(patterns[i]->getNodeType() == ASTNodeType::ArrayPattern) {
+			if(arrayPatternIndex != -1) {
+				return { "Only one array pattern allowed in compound destructuring", "", Trace(ASTNodeType::VariableDeclaration, patterns[i]->position) };
+			}
+			arrayPatternIndex = static_cast<int>(i);
+		} else if(patterns[i]->getNodeType() == ASTNodeType::IdentifierPattern) {
+			identifierIndices.push_back(static_cast<int>(i));
+		} else {
+			return { "Compound destructuring only supports array patterns and identifier patterns", "", Trace(ASTNodeType::VariableDeclaration, patterns[i]->position) };
+		}
+	}
+	
+	if(arrayPatternIndex == -1) {
+		return { "Compound destructuring requires at least one array pattern", "", Trace(ASTNodeType::VariableDeclaration, patterns[0]->position) };
+	}
+	
+	const ArrayPatternNode* arrayPattern = dynamic_cast<const ArrayPatternNode*>(patterns[arrayPatternIndex].get());
+	if(!arrayPattern) {
+		return { "Failed to cast to ArrayPatternNode", "", Trace(ASTNodeType::ArrayPattern, patterns[arrayPatternIndex]->position) };
+	}
+	
+	size_t arrayElementCount = arrayPattern->elements.size();
+	
+	// Generate destructuring based on position of array pattern
+	if(arrayPatternIndex == 0) {
+		// Pattern: [first, second], rest = arr
+		// Extract array elements first
+		for(size_t i = 0; i < arrayElementCount; ++i) {
+			const PatternNode* element = arrayPattern->elements[i].get();
+			if(element->getNodeType() == ASTNodeType::IdentifierPattern) {
+				const IdentifierPatternNode* identifierPattern = dynamic_cast<const IdentifierPatternNode*>(element);
+				if(identifierPattern) {
+					code += "auto " + identifierPattern->name + " = " + sourceVar + "[" + std::to_string(i) + "];";
+				}
+			}
+		}
+		
+		// Generate rest variables (everything after the array elements)
+		for(int restIndex : identifierIndices) {
+			const IdentifierPatternNode* restPattern = dynamic_cast<const IdentifierPatternNode*>(patterns[restIndex].get());
+			if(restPattern) {
+				code += "auto " + restPattern->name + " = std::vector<decltype(" + sourceVar + "[0])>(" + 
+						sourceVar + ".begin() + " + std::to_string(arrayElementCount) + ", " + sourceVar + ".end());";
+			}
+		}
+	} else {
+		// Pattern: rest, [last] = arr or rest1, rest2, [last] = arr
+		// Generate rest variables first (everything except the last N elements)
+		for(int i = 0; i < arrayPatternIndex; ++i) {
+			const IdentifierPatternNode* restPattern = dynamic_cast<const IdentifierPatternNode*>(patterns[i].get());
+			if(restPattern) {
+				if(i == arrayPatternIndex - 1) {
+					// Last rest pattern gets everything except the array elements at the end
+					code += "auto " + restPattern->name + " = std::vector<decltype(" + sourceVar + "[0])>(" + 
+							sourceVar + ".begin(), " + sourceVar + ".end() - " + std::to_string(arrayElementCount) + ");";
+				} else {
+					// For multiple rest patterns, we'd need more complex logic
+					// For now, just assign empty vectors to intermediate rest patterns
+					code += "auto " + restPattern->name + " = std::vector<decltype(" + sourceVar + "[0])>();";
+				}
+			}
+		}
+		
+		// Extract array elements from the end
+		for(size_t i = 0; i < arrayElementCount; ++i) {
+			const PatternNode* element = arrayPattern->elements[i].get();
+			if(element->getNodeType() == ASTNodeType::IdentifierPattern) {
+				const IdentifierPatternNode* identifierPattern = dynamic_cast<const IdentifierPatternNode*>(element);
+				if(identifierPattern) {
+					// Access from the end: arr[arr.size() - arrayElementCount + i]
+					code += "auto " + identifierPattern->name + " = " + sourceVar + "[" + sourceVar + ".size() - " + 
+							std::to_string(arrayElementCount) + " + " + std::to_string(i) + "];";
+				}
+			}
+		}
 	}
 	
 	return { code };

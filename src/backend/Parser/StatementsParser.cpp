@@ -60,22 +60,82 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 	if(keywordError.hasError()) return { keywordError, Trace(ASTNodeType::VariableDeclaration, keywordError.getValue().position) };
 	Token keyword = keywordError.getValue();
 
-	// Check if this is a destructuring declaration
-	bool isDestructuring = false;
-	std::unique_ptr<PatternNode> pattern = nullptr;
+	// Parse the left-hand side (can be simple name, single pattern, or compound patterns)
+	bool isSimple = false;
+	bool isSinglePattern = false;
+	bool isCompoundPattern = false;
 	std::string name = "";
+	std::unique_ptr<PatternNode> pattern = nullptr;
+	std::vector<std::unique_ptr<PatternNode>> compoundPatterns;
 	
+	// Parse first element
 	if(peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
-		// This is a destructuring declaration: def [a, b] = ... or def {x, y} = ...
-		isDestructuring = true;
-		Result<std::unique_ptr<PatternNode>> patternResult = parsePattern();
-		if(patternResult.hasError()) return { std::move(patternResult), Trace(ASTNodeType::VariableDeclaration, keyword.position) };
-		pattern = patternResult.moveValue();
+		// Starts with a pattern
+		Result<std::unique_ptr<PatternNode>> firstPattern = parsePattern();
+		if(firstPattern.hasError()) return { std::move(firstPattern), Trace(ASTNodeType::VariableDeclaration, keyword.position) };
+		
+		// Check if there's a comma (compound pattern)
+		if(peek().type == Token::Comma) {
+			// This is compound destructuring: [first], rest = ...
+			isCompoundPattern = true;
+			compoundPatterns.push_back(firstPattern.moveValue());
+			
+			// Parse remaining patterns
+			while(peek().type == Token::Comma) {
+				advance(); // consume comma
+				
+				if(peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
+					// Another pattern
+					Result<std::unique_ptr<PatternNode>> nextPattern = parsePattern();
+					if(nextPattern.hasError()) return { std::move(nextPattern), Trace(ASTNodeType::VariableDeclaration, keyword.position) };
+					compoundPatterns.push_back(nextPattern.moveValue());
+				} else if(peek().type == Token::Identifier) {
+					// Rest identifier
+					Result<Token> restId = advance();
+					if(restId.hasError()) return { restId, Trace(ASTNodeType::VariableDeclaration, restId.getValue().position) };
+					compoundPatterns.push_back(std::make_unique<IdentifierPatternNode>(restId.getValue().position, restId.getValue().value));
+				} else {
+					return { "Expected pattern or identifier after comma in compound destructuring", "", Trace(ASTNodeType::VariableDeclaration, peek().position) };
+				}
+			}
+		} else {
+			// Single pattern destructuring: def [a, b] = ...
+			isSinglePattern = true;
+			pattern = firstPattern.moveValue();
+		}
+	} else if(peek().type == Token::Identifier) {
+		// Could be simple declaration or compound starting with identifier
+		Result<Token> firstId = advance();
+		if(firstId.hasError()) return { firstId, Trace(ASTNodeType::VariableDeclaration, firstId.getValue().position) };
+		
+		if(peek().type == Token::Comma) {
+			// Compound destructuring starting with identifier: def rest, [last] = ...
+			isCompoundPattern = true;
+			compoundPatterns.push_back(std::make_unique<IdentifierPatternNode>(firstId.getValue().position, firstId.getValue().value));
+			
+			// Parse remaining patterns
+			while(peek().type == Token::Comma) {
+				advance(); // consume comma
+				
+				if(peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
+					Result<std::unique_ptr<PatternNode>> nextPattern = parsePattern();
+					if(nextPattern.hasError()) return { std::move(nextPattern), Trace(ASTNodeType::VariableDeclaration, keyword.position) };
+					compoundPatterns.push_back(nextPattern.moveValue());
+				} else if(peek().type == Token::Identifier) {
+					Result<Token> restId = advance();
+					if(restId.hasError()) return { restId, Trace(ASTNodeType::VariableDeclaration, restId.getValue().position) };
+					compoundPatterns.push_back(std::make_unique<IdentifierPatternNode>(restId.getValue().position, restId.getValue().value));
+				} else {
+					return { "Expected pattern or identifier after comma in compound destructuring", "", Trace(ASTNodeType::VariableDeclaration, peek().position) };
+				}
+			}
+		} else {
+			// Simple declaration: def name = ...
+			isSimple = true;
+			name = firstId.getValue().value;
+		}
 	} else {
-		// This is a simple declaration: def name = ...
-		Result<Token> identifierError = expect(Token::Identifier, "Expected identifier after declaration");
-		if(identifierError.hasError()) return { identifierError, Trace(ASTNodeType::VariableDeclaration, identifierError.getValue().position) };
-		name = identifierError.getValue().value;
+		return { "Expected identifier or pattern after 'def'", "", Trace(ASTNodeType::VariableDeclaration, keyword.position) };
 	}
 
 	Result<std::unique_ptr<TypeNode>> type;
@@ -104,7 +164,12 @@ Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
 //		return { "Expected either value or type, in variable declaration" };
 	}
 
-	if(isDestructuring) {
+	if(isCompoundPattern) {
+		return { std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), 
+														   !type.isNull() ? type.moveValue() : nullptr,
+														   !value.isNull() ? dynamic_unique_cast<ExpressionNode>(value.moveValue()) : nullptr,
+														   std::move(compoundPatterns)) };
+	} else if(isSinglePattern) {
 		return { std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), 
 														   !type.isNull() ? type.moveValue() : nullptr,
 														   !value.isNull() ? dynamic_unique_cast<ExpressionNode>(value.moveValue()) : nullptr,

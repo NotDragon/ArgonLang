@@ -77,10 +77,13 @@ ArgonLang::TernaryExpressionNode::TernaryExpressionNode(Token::Position position
 ArgonLang::ReturnStatementNode::ReturnStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> returnExpression, bool isSuper): returnExpression(std::move(returnExpression)), isSuper(isSuper), StatementNode(position) {}
 
 ArgonLang::VariableDeclarationNode::VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type,
-															std::unique_ptr<ExpressionNode> value, std::string name): isConst(isConst), type(std::move(type)), value(std::move(value)), name(std::move(name)), pattern(nullptr), StatementNode(position) {}
+															std::unique_ptr<ExpressionNode> value, std::string name): isConst(isConst), type(std::move(type)), value(std::move(value)), name(std::move(name)), pattern(nullptr), compoundPatterns(), StatementNode(position) {}
 
 ArgonLang::VariableDeclarationNode::VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type,
-															std::unique_ptr<ExpressionNode> value, std::unique_ptr<PatternNode> pattern): isConst(isConst), type(std::move(type)), value(std::move(value)), name(""), pattern(std::move(pattern)), StatementNode(position) {}
+															std::unique_ptr<ExpressionNode> value, std::unique_ptr<PatternNode> pattern): isConst(isConst), type(std::move(type)), value(std::move(value)), name(""), pattern(std::move(pattern)), compoundPatterns(), StatementNode(position) {}
+
+ArgonLang::VariableDeclarationNode::VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type,
+															std::unique_ptr<ExpressionNode> value, std::vector<std::unique_ptr<PatternNode>> compoundPatterns): isConst(isConst), type(std::move(type)), value(std::move(value)), name(""), pattern(nullptr), compoundPatterns(std::move(compoundPatterns)), StatementNode(position) {}
 
 ArgonLang::TypeAliasNode::TypeAliasNode(Token::Position position, std::string aliasName, std::unique_ptr<TypeNode> targetType): aliasName(std::move(aliasName)), targetType(std::move(targetType)), StatementNode(position) {}
 

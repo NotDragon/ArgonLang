@@ -96,8 +96,9 @@ namespace ArgonLang {
 		Result<std::string> visit(const VariadicTypeNode &node) override;
 		
 	private:
-		// Helper method for generating destructuring assignments
+		// Helper methods for generating destructuring assignments
 		Result<std::string> generateDestructuring(const PatternNode* pattern, const std::string& sourceVar);
+		Result<std::string> generateCompoundDestructuring(const std::vector<std::unique_ptr<PatternNode>>& patterns, const std::string& sourceVar);
 	};
 }
 

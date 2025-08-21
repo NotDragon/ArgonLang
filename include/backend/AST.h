@@ -642,13 +642,17 @@ namespace ArgonLang
         std::unique_ptr<TypeNode> type;
         std::unique_ptr<ExpressionNode> value;
         std::string name; // For simple declarations
-        std::unique_ptr<PatternNode> pattern; // For destructuring declarations
+        std::unique_ptr<PatternNode> pattern; // For single pattern destructuring
+        std::vector<std::unique_ptr<PatternNode>> compoundPatterns; // For compound destructuring like [first], rest
 
         // Constructor for simple declarations
         explicit VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
         
-        // Constructor for destructuring declarations
+        // Constructor for single pattern destructuring
         explicit VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::unique_ptr<PatternNode> pattern);
+        
+        // Constructor for compound destructuring
+        explicit VariableDeclarationNode(Token::Position position, bool isConst, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::vector<std::unique_ptr<PatternNode>> compoundPatterns);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
