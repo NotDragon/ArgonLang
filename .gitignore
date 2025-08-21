@@ -3,3 +3,4 @@ build
 in.c
 syntax.txt
 cmake-build-debug
+examples

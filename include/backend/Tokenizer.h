@@ -46,8 +46,8 @@ namespace ArgonLang {
 			KeywordAwait,
 			KeywordModule,
 			KeywordImport,
-			KeywordTrait,
 			KeywordWhere,
+			KeywordConstraint,
 
             IntegralLiteral,
             FloatLiteral,

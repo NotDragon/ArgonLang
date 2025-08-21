@@ -113,11 +113,21 @@ void ArgonLang::ToExpressionNode::toDot(std::ostream& os, int& nodeId) const {
 
 void ArgonLang::FunctionCallExpressionNode::toDot(std::ostream &os, int &nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"FunctionCallExpression\"];\n";
+	std::string label = "FunctionCallExpression";
+	if (!genericTypeArgs.empty()) {
+		label += "<" + std::to_string(genericTypeArgs.size()) + " types>";
+	}
+	os << "  node" << currentId << " [label=\"" << label << "\"];\n";
 
 	int nameId = nodeId;
 	function->toDot(os, nodeId);
 	os << "  node" << currentId << " -> node" << nameId << " [label=\"Name\"];\n";
+
+	for(size_t i = 0; i < genericTypeArgs.size(); ++i) {
+		int typeId = nodeId;
+		genericTypeArgs[i]->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << typeId << " [label=\"TypeArg" << i << "\"];\n";
+	}
 
 	for(const auto& argument: arguments) {
 		int argumentId = nodeId;
@@ -471,7 +481,22 @@ void ArgonLang::ClassDeclarationNode::ClassMember::toDot(std::ostream &os, int &
 }
 
 void ArgonLang::ClassDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
-
+	int currentId = nodeId++;
+	std::string label = "Class: " + className;
+	if (!genericParams.empty()) {
+		label += "<";
+		for (size_t i = 0; i < genericParams.size(); ++i) {
+			if (i > 0) label += ", ";
+			label += genericParams[i]->name;
+		}
+		label += ">";
+	}
+	os << "  node" << currentId << " [label=\"" << label << "\"];\n";
+	
+	for (const auto& member : body) {
+		member.toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << (nodeId-1) << ";\n";
+	}
 }
 
 void ArgonLang::MemberAccessExpressionNode::toDot(std::ostream &os, int &nodeId) const {
@@ -572,9 +597,21 @@ void ArgonLang::EnumDeclarationNode::toDot(std::ostream& os, int& nodeId) const 
 	}
 }
 
-void ArgonLang::TraitDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
+
+
+void ArgonLang::ConstraintDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"Trait: " << traitName << "\"];\n";
+	os << "  node" << currentId << " [label=\"Constraint: " << constraintName << "\"];\n";
+}
+
+void ArgonLang::GenericParameter::toDot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	std::string label = "GenericParam: " + name;
+	if (constraint) {
+		// For simplicity, just show that there's a constraint
+		label += " : <constraint>";
+	}
+	os << "  node" << currentId << " [label=\"" << label << "\"];\n";
 }
 
 void ArgonLang::ModuleDeclarationNode::toDot(std::ostream& os, int& nodeId) const {

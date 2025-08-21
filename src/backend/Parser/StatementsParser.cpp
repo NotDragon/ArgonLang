@@ -36,8 +36,8 @@ Result<std::unique_ptr<ASTNode>> Parser::parseStatement() {
 			return { parseYieldStatement() };
 		case Token::KeywordEnum:
 			return { parseEnumDeclaration() };
-		case Token::KeywordTrait:
-			return { parseTraitDeclaration() };
+		case Token::KeywordConstraint:
+			return { parseConstraintDeclaration() };
 		case Token::KeywordModule:
 			return { parseModuleDeclaration() };
 		case Token::KeywordImport:
@@ -231,6 +231,31 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	Result<Token> token = advance();
 	if(token.hasError()) return { token, Trace(ASTNodeType::FunctionDefinition, token.getValue().position) };
 
+	// Parse generic parameters if present: func<T, U>
+	std::vector<std::unique_ptr<GenericParameter>> genericParams;
+	if(peek().type == Token::Less) {
+		Token::Position lessPos = peek().position;
+		Result<Token> less = advance();
+		if(less.hasError()) return { less, Trace(ASTNodeType::FunctionDefinition, lessPos) };
+
+		while(peek().type != Token::Greater) {
+			Token::Position pos = peek().position;
+			Result<std::unique_ptr<GenericParameter>> param = parseGenericParameter();
+			if(param.hasError()) return { std::move(param), Trace(ASTNodeType::FunctionDefinition, pos) };
+
+			genericParams.push_back(param.moveValue());
+
+			if(peek().type == Token::Greater) break;
+			Token::Position commaPos = peek().position;
+			Result<Token> comma = expect(Token::Comma, "Expected ',' between generic parameters");
+			if(comma.hasError()) return { comma, Trace(ASTNodeType::FunctionDefinition, commaPos) };
+		}
+
+		Token::Position greaterPos = peek().position;
+		Result<Token> greater = expect(Token::Greater, "Expected '>' after generic parameters");
+		if(greater.hasError()) return { greater, Trace(ASTNodeType::FunctionDefinition, greaterPos) };
+	}
+
 	Result<std::unique_ptr<ASTNode>> identifier = parseMemberAccessExpression();
 	if(identifier.hasError()) return { std::move(identifier), Trace(ASTNodeType::FunctionDefinition, token.getValue().position) };
 
@@ -261,23 +286,35 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 	if(rightParen.hasError()) return { rightParen, Trace(ASTNodeType::FunctionDefinition, rightParen.getValue().position) };
 
 	Result<std::unique_ptr<TypeNode>> returnType;
-	if(peek().type != Token::LeftBrace) {
+	
+	// Handle function syntax patterns:
+	// 1. func name(args) ReturnType -> expression;  (inline expression with return type)
+	// 2. func name(args) -> expression;             (inline expression without return type)
+	// 3. func name(args) ReturnType { body }        (function with return type and body)
+	// 4. func name(args) { body }                   (function without return type)
+	// 5. func name(args);                           (declaration only)
+	
+	// First, check if we have a return type (not immediately -> or { or ;)
+	if(peek().type != Token::Arrow && peek().type != Token::LeftBrace && peek().type != Token::Semicolon) {
+		// Parse return type: func name(args) ReturnType ...
 		Token::Position typePos = peek().position;
-		returnType = parseType();
-		if (returnType.hasError()) return { std::move(returnType), Trace(ASTNodeType::FunctionDefinition, typePos) };
+		
+		Result<std::unique_ptr<TypeNode>> typeResult = parseType();
+		if (!typeResult.hasError()) {
+			returnType = std::move(typeResult);
+		}
+		// If type parsing failed, we'll continue and let the arrow/body/semicolon parsing handle it
 	}
-
-	if(peek().type == Token::Semicolon) {
-		Result<Token> semicolon = advance();
-		if(semicolon.hasError()) return { semicolon, Trace(ASTNodeType::FunctionDefinition, semicolon.getValue().position) };
-		return { std::make_unique<FunctionDefinitionNode>(token.getValue().position, returnType.moveValue(), std::move(args), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
-	}
-
+	
+	// Now check for arrow (inline expression)
 	if(peek().type == Token::Arrow) {
+		// Arrow syntax for inline expression: -> expression;
 		Result<Token> arrow = advance();
-		if(arrow.hasError()) return { arrow, Trace(ASTNodeType::FunctionDeclaration, arrow.getValue().position) };
-
+		if(arrow.hasError()) return { arrow, Trace(ASTNodeType::FunctionDefinition, arrow.getValue().position) };
+		
 		Token::Position exprPos = peek().position;
+		
+		// Parse the inline expression
 		Result<std::unique_ptr<ASTNode>> expr = parseExpression();
 		if(expr.hasError()) return { std::move(expr), Trace(ASTNodeType::FunctionDeclaration, exprPos) };
 
@@ -286,7 +323,13 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 		Result<Token> semiColon = expect(Token::Semicolon, "Expected ';' after inline function");
 		if(semiColon.hasError()) return { semiColon, Trace(ASTNodeType::FunctionDeclaration, semiColon.getValue().position) };
 
-		return { std::make_unique<FunctionDeclarationNode>(token.getValue().position, returnType.moveValue(), std::move(args), std::move(body), dynamic_unique_cast<ExpressionNode>(identifier.moveValue())) };
+		return { std::make_unique<FunctionDeclarationNode>(token.getValue().position, returnType.moveValue(), std::move(args), std::move(body), dynamic_unique_cast<ExpressionNode>(identifier.moveValue()), std::move(genericParams)) };
+	}
+
+	if(peek().type == Token::Semicolon) {
+		Result<Token> semicolon = advance();
+		if(semicolon.hasError()) return { semicolon, Trace(ASTNodeType::FunctionDefinition, semicolon.getValue().position) };
+		return { std::make_unique<FunctionDefinitionNode>(token.getValue().position, returnType.moveValue(), std::move(args), dynamic_unique_cast<ExpressionNode>(identifier.moveValue()), std::move(genericParams)) };
 	}
 
 	Result<std::unique_ptr<ASTNode>> body = parseStatement();
@@ -297,7 +340,8 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 			returnType.isNull()? nullptr :returnType.moveValue(),
 			std::move(args),
 			body.moveValue(),
-			dynamic_unique_cast<ExpressionNode>(identifier.moveValue()))
+			dynamic_unique_cast<ExpressionNode>(identifier.moveValue()),
+			std::move(genericParams))
 	};
 }
 
@@ -409,7 +453,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseWhileStatement() {
 			keyword.value == "dowhile",
 			dynamic_unique_cast<ExpressionNode>(condition.moveValue()),
 			dynamic_unique_cast<StatementNode>(body.moveValue()),
-			dynamic_unique_cast<StatementNode>(elseStatement.moveValue())) };
+			!elseStatement.isNull()? dynamic_unique_cast<StatementNode>(elseStatement.moveValue()): nullptr) };
 }
 
 
@@ -485,6 +529,35 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 	Result<Token> className = advance();
 	if(className.hasError()) return { className, Trace(ASTNodeType::ClassDeclaration, className.getValue().position) };
 
+	// Parse generic parameters if present: class Name<T, U> { ... }
+	std::vector<std::unique_ptr<GenericParameter>> genericParams;
+	if(peek().type == Token::Less) {
+		Token::Position lessPos = peek().position;
+		Result<Token> less = advance();
+		if(less.hasError()) return { less, Trace(ASTNodeType::ClassDeclaration, lessPos) };
+
+		// Parse generic parameters
+		do {
+			Token::Position paramPos = peek().position;
+			Result<std::unique_ptr<GenericParameter>> param = parseGenericParameter();
+			if(param.hasError()) return { std::move(param), Trace(ASTNodeType::ClassDeclaration, paramPos) };
+			
+			genericParams.push_back(param.moveValue());
+
+			if(peek().type == Token::Comma) {
+				Token::Position commaPos = peek().position;
+				Result<Token> comma = advance();
+				if(comma.hasError()) return { comma, Trace(ASTNodeType::ClassDeclaration, commaPos) };
+			} else {
+				break;
+			}
+		} while(true);
+
+		Token::Position greaterPos = peek().position;
+		Result<Token> greater = expect(Token::Greater, "Expected '>' after generic parameters");
+		if(greater.hasError()) return { greater, Trace(ASTNodeType::ClassDeclaration, greaterPos) };
+	}
+
 	std::vector<ConstructorStatementNode> constructors;
 	std::vector<ClassDeclarationNode::ClassMember> members;
 
@@ -512,7 +585,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 		}
 
 		if(peek().type != Token::KeywordDef &&
-		   peek().type == Token::KeywordFunc &&
+		   peek().type != Token::KeywordFunc &&
 		   peek().type != Token::KeywordConstructor)
 			return {
 			"Expected either function declaration, variable declaration or constructor declaration",
@@ -529,7 +602,12 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after class declaration");
 	if(rightBrace.hasError()) return { rightBrace, Trace(ASTNodeType::ClassDeclaration, rightBrace.getValue().position) };
 
-	return std::unique_ptr<ASTNode>();
+	return { std::make_unique<ClassDeclarationNode>(
+		classKeyword.getValue().position,
+		className.getValue().value,
+		std::move(members),
+		std::move(genericParams)
+	) };
 }
 
 Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::parseConstructorArgument() {
@@ -750,51 +828,80 @@ Result<std::unique_ptr<ASTNode>> Parser::parseEnumDeclaration() {
 	return { std::make_unique<EnumDeclarationNode>(enumKeyword.getValue().position, enumName.getValue().value, std::move(variants), isUnion) };
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseTraitDeclaration() {
-	Result<Token> traitKeyword = advance();
-	if(traitKeyword.hasError()) return { traitKeyword, Trace(ASTNodeType::TraitDeclaration, traitKeyword.getValue().position) };
 
-	Result<Token> traitName = expect(Token::Identifier, "Expected trait name");
-	if(traitName.hasError()) return { traitName, Trace(ASTNodeType::TraitDeclaration, traitName.getValue().position) };
+
+Result<std::unique_ptr<ASTNode>> Parser::parseConstraintDeclaration() {
+	Token::Position startPos = peek().position;
+	Result<Token> constraintKeyword = advance();
+	if(constraintKeyword.hasError()) return { constraintKeyword, Trace(ASTNodeType::ConstraintDeclaration, startPos) };
+
+	Token::Position namePos = peek().position;
+	Result<Token> constraintName = expect(Token::Identifier, "Expected constraint name");
+	if(constraintName.hasError()) return { constraintName, Trace(ASTNodeType::ConstraintDeclaration, namePos) };
 
 	// Parse generic parameters if present
-	std::vector<std::unique_ptr<TypeNode>> genericParams;
+	std::vector<std::unique_ptr<GenericParameter>> genericParams;
 	if(peek().type == Token::Less) {
+		Token::Position lessPos = peek().position;
 		Result<Token> less = advance();
-		if(less.hasError()) return { less, Trace(ASTNodeType::TraitDeclaration, less.getValue().position) };
+		if(less.hasError()) return { less, Trace(ASTNodeType::ConstraintDeclaration, lessPos) };
 
 		while(peek().type != Token::Greater) {
 			Token::Position pos = peek().position;
-			Result<std::unique_ptr<TypeNode>> param = parseType();
-			if(param.hasError()) return { std::move(param), Trace(ASTNodeType::TraitDeclaration, pos) };
+			Result<std::unique_ptr<GenericParameter>> param = parseGenericParameter();
+			if(param.hasError()) return { std::move(param), Trace(ASTNodeType::ConstraintDeclaration, pos) };
 
 			genericParams.push_back(param.moveValue());
 
 			if(peek().type == Token::Greater) break;
+			Token::Position commaPos = peek().position;
 			Result<Token> comma = expect(Token::Comma, "Expected ',' between generic parameters");
-			if(comma.hasError()) return { comma, Trace(ASTNodeType::TraitDeclaration, comma.getValue().position) };
+			if(comma.hasError()) return { comma, Trace(ASTNodeType::ConstraintDeclaration, commaPos) };
 		}
 
+		Token::Position greaterPos = peek().position;
 		Result<Token> greater = expect(Token::Greater, "Expected '>' after generic parameters");
-		if(greater.hasError()) return { greater, Trace(ASTNodeType::TraitDeclaration, greater.getValue().position) };
+		if(greater.hasError()) return { greater, Trace(ASTNodeType::ConstraintDeclaration, greaterPos) };
 	}
 
-	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after trait declaration");
-	if(leftBrace.hasError()) return { leftBrace, Trace(ASTNodeType::TraitDeclaration, leftBrace.getValue().position) };
+	Token::Position assignPos = peek().position;
+	Result<Token> assign = expect(Token::Assign, "Expected '=' after constraint declaration");
+	if(assign.hasError()) return { assign, Trace(ASTNodeType::ConstraintDeclaration, assignPos) };
 
-	std::vector<std::unique_ptr<StatementNode>> methods;
-	while(peek().type != Token::RightBrace) {
-		Token::Position pos = peek().position;
-		Result<std::unique_ptr<ASTNode>> method = parseStatement();
-		if(method.hasError()) return { std::move(method), Trace(ASTNodeType::TraitDeclaration, pos) };
+	Token::Position exprPos = peek().position;
+	Result<std::unique_ptr<ASTNode>> constraintExpressionRes = parseExpression();
+	if(constraintExpressionRes.hasError()) return { std::move(constraintExpressionRes), Trace(ASTNodeType::ConstraintDeclaration, exprPos) };
+	
+	std::unique_ptr<ExpressionNode> constraintExpression = dynamic_unique_cast<ExpressionNode>(constraintExpressionRes.moveValue());
 
-		methods.push_back(dynamic_unique_cast<StatementNode>(method.moveValue()));
+	Token::Position semicolonPos = peek().position;
+	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after constraint expression");
+	if(semicolon.hasError()) return { semicolon, Trace(ASTNodeType::ConstraintDeclaration, semicolonPos) };
+
+	return { std::make_unique<ConstraintDeclarationNode>(constraintKeyword.getValue().position, constraintName.getValue().value, std::move(genericParams), std::move(constraintExpression)) };
+}
+
+Result<std::unique_ptr<GenericParameter>> Parser::parseGenericParameter() {
+	Token::Position namePos = peek().position;
+	Result<Token> name = expect(Token::Identifier, "Expected generic parameter name");
+	if(name.hasError()) return { name, Trace(ASTNodeType::GenericParameter, namePos) };
+
+	std::unique_ptr<TypeNode> constraint = nullptr;
+	
+	// Check for constraint: T: Number
+	if(peek().type == Token::Colon) {
+		Token::Position colonPos = peek().position;
+		Result<Token> colon = advance();
+		if(colon.hasError()) return { colon, Trace(ASTNodeType::GenericParameter, colonPos) };
+
+		Token::Position constraintPos = peek().position;
+		Result<std::unique_ptr<TypeNode>> constraintResult = parseType();
+		if(constraintResult.hasError()) return { std::move(constraintResult), Trace(ASTNodeType::GenericParameter, constraintPos) };
+
+		constraint = constraintResult.moveValue();
 	}
 
-	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after trait declaration");
-	if(rightBrace.hasError()) return { rightBrace, Trace(ASTNodeType::TraitDeclaration, rightBrace.getValue().position) };
-
-	return { std::make_unique<TraitDeclarationNode>(traitKeyword.getValue().position, traitName.getValue().value, std::move(genericParams), std::move(methods)) };
+	return { std::make_unique<GenericParameter>(namePos, name.getValue().value, std::move(constraint)) };
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parseModuleDeclaration() {

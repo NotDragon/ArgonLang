@@ -61,7 +61,8 @@ std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
 		case ASTNodeType::ForStatement: return "ForStatement";
 		case ASTNodeType::UnionDeclaration: return "UnionDeclaration";
 		case ASTNodeType::EnumDeclaration: return "EnumDeclaration";
-		case ASTNodeType::TraitDeclaration: return "TraitDeclaration";
+		case ASTNodeType::ConstraintDeclaration: return "ConstraintDeclaration";
+		case ASTNodeType::GenericParameter: return "GenericParameter";
 		case ASTNodeType::ModuleDeclaration: return "ModuleDeclaration";
 		case ASTNodeType::ImportStatement: return "ImportStatement";
 		case ASTNodeType::YieldStatement: return "YieldStatement";

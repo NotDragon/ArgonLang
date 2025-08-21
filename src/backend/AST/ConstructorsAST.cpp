@@ -43,7 +43,7 @@ ArgonLang::ProgramNode::ProgramNode(Token::Position position, std::vector<std::u
 ArgonLang::NullExpressionNode::NullExpressionNode(Token::Position position): ExpressionNode(position) {}
 
 ArgonLang::FunctionCallExpressionNode::FunctionCallExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> func,
-																  std::vector<std::unique_ptr<ExpressionNode>> args): arguments(std::move(args)), function(std::move(func)), ExpressionNode(position) {}
+																  std::vector<std::unique_ptr<ExpressionNode>> args, std::vector<std::unique_ptr<TypeNode>> genericTypeArgs): arguments(std::move(args)), function(std::move(func)), genericTypeArgs(std::move(genericTypeArgs)), ExpressionNode(position) {}
 
 ArgonLang::ToExpressionNode::ToExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> lowerBound, std::unique_ptr<ExpressionNode> upperBound, bool isInclusive): lowerBound(std::move(lowerBound)), upperBound(std::move(upperBound)), isInclusive(isInclusive), ExpressionNode(position) {}
 
@@ -140,10 +140,10 @@ ArgonLang::FunctionArgument::FunctionArgument(Token::Position position): type(),
 
 ArgonLang::FunctionDeclarationNode::FunctionDeclarationNode(Token::Position position, std::unique_ptr<TypeNode> returnType,
 															std::vector<std::unique_ptr<FunctionArgument>> args,
-															std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name): returnType(std::move(returnType)), args(std::move(args)), body(std::move(body)), name(std::move(name)), StatementNode(position) {}
+															std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name, std::vector<std::unique_ptr<GenericParameter>> genericParams): returnType(std::move(returnType)), args(std::move(args)), body(std::move(body)), name(std::move(name)), genericParams(std::move(genericParams)), StatementNode(position) {}
 
 ArgonLang::FunctionDefinitionNode::FunctionDefinitionNode(Token::Position position, std::unique_ptr<TypeNode> returnType,
-														  std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name): returnType(std::move(returnType)), args(std::move(args)), name(std::move(name)), StatementNode(position) {}
+														  std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name, std::vector<std::unique_ptr<GenericParameter>> genericParams): returnType(std::move(returnType)), args(std::move(args)), name(std::move(name)), genericParams(std::move(genericParams)), StatementNode(position) {}
 ArgonLang::ImplStatementNode::ImplStatementNode(Token::Position position, std::string className, std::unique_ptr<StatementNode> body,
 												ArgonLang::MemberVisibility visibility): className(std::move(className)), body(std::move(body)), visibility(visibility), StatementNode(position) {}
 
@@ -156,7 +156,7 @@ ArgonLang::ConstructorStatementNode::ConstructorStatementNode(Token::Position po
 ArgonLang::ClassDeclarationNode::ClassMember::ClassMember(Token::Position position, std::unique_ptr<StatementNode> declaration,
 														  ArgonLang::MemberVisibility visibility): declaration(std::move(declaration)), visibility(visibility), position(position) {}
 
-ArgonLang::ClassDeclarationNode::ClassDeclarationNode(Token::Position position, std::string className, std::vector<ClassMember> body): className(std::move(className)), body(std::move(body)), StatementNode(position) {}
+ArgonLang::ClassDeclarationNode::ClassDeclarationNode(Token::Position position, std::string className, std::vector<ClassMember> body, std::vector<std::unique_ptr<GenericParameter>> genericParams): className(std::move(className)), body(std::move(body)), genericParams(std::move(genericParams)), StatementNode(position) {}
 
 ArgonLang::MemberAccessExpressionNode::MemberAccessExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> leftExpression, Token accessType, std::unique_ptr<ExpressionNode> member)
 : parent(std::move(leftExpression)), member(std::move(member)), accessType(std::move(accessType)), ExpressionNode(position) {}
@@ -173,12 +173,16 @@ ArgonLang::ContinueStatementNode::ContinueStatementNode(Token::Position position
 ArgonLang::EnumDeclarationNode::EnumDeclarationNode(Token::Position position, std::string enumName, std::vector<EnumVariant> variants, bool isUnion)
 	: enumName(std::move(enumName)), variants(std::move(variants)), isUnion(isUnion), StatementNode(position) {}
 
-ArgonLang::TraitDeclarationNode::TraitDeclarationNode(Token::Position position, std::string traitName, 
-	std::vector<std::unique_ptr<TypeNode>> genericParams,
-	std::vector<std::unique_ptr<StatementNode>> methods,
-	std::unique_ptr<ExpressionNode> constraint)
-	: traitName(std::move(traitName)), genericParams(std::move(genericParams)), 
-	  methods(std::move(methods)), constraint(std::move(constraint)), StatementNode(position) {}
+
+
+ArgonLang::GenericParameter::GenericParameter(Token::Position position, std::string name, std::unique_ptr<TypeNode> constraint)
+	: name(std::move(name)), constraint(std::move(constraint)), position(position) {}
+
+ArgonLang::ConstraintDeclarationNode::ConstraintDeclarationNode(Token::Position position, std::string constraintName, 
+	std::vector<std::unique_ptr<GenericParameter>> genericParams,
+	std::unique_ptr<ExpressionNode> constraintExpression)
+	: constraintName(std::move(constraintName)), genericParams(std::move(genericParams)), 
+	  constraintExpression(std::move(constraintExpression)), StatementNode(position) {}
 
 ArgonLang::ModuleDeclarationNode::ModuleDeclarationNode(Token::Position position, std::string moduleName, 
 	std::vector<std::unique_ptr<StatementNode>> body, std::vector<std::string> exports)

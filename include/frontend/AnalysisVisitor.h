@@ -81,7 +81,7 @@ namespace ArgonLang {
 		Result<bool> visit(const VariadicTypeNode &node) override;
 
 		Result<bool> visit(const EnumDeclarationNode &node) override;
-		Result<bool> visit(const TraitDeclarationNode &node) override;
+		Result<bool> visit(const ConstraintDeclarationNode &node) override;
 		Result<bool> visit(const ModuleDeclarationNode &node) override;
 		Result<bool> visit(const ImportStatementNode &node) override;
 	};

@@ -79,7 +79,17 @@ void ArgonLang::ToExpressionNode::print() const {
 }
 
 void ArgonLang::FunctionCallExpressionNode::print() const {
-    
+	std::cout << "FunctionCallExpressionNode: ";
+	function->print();
+	if (!genericTypeArgs.empty()) {
+		std::cout << " with generic args: <";
+		for (size_t i = 0; i < genericTypeArgs.size(); ++i) {
+			if (i > 0) std::cout << ", ";
+			genericTypeArgs[i]->print();
+		}
+		std::cout << ">";
+	}
+	std::cout << " with " << arguments.size() << " arguments\n";
 }
 
 void ArgonLang::LambdaExpressionNode::print() const {
@@ -272,7 +282,19 @@ void ArgonLang::ClassDeclarationNode::ClassMember::ClassMember::print() const {
 }
 
 void ArgonLang::ClassDeclarationNode::print() const {
-
+	std::cout << "ClassDeclarationNode: " << className;
+	if (!genericParams.empty()) {
+		std::cout << "<";
+		for (size_t i = 0; i < genericParams.size(); ++i) {
+			if (i > 0) std::cout << ", ";
+			genericParams[i]->print();
+		}
+		std::cout << ">";
+	}
+	std::cout << "\n";
+	for (const auto& member : body) {
+		member.print();
+	}
 }
 
 void ArgonLang::MemberAccessExpressionNode::print() const {
@@ -287,8 +309,19 @@ void ArgonLang::EnumDeclarationNode::print() const {
 	}
 }
 
-void ArgonLang::TraitDeclarationNode::print() const {
-	std::cout << "TraitDeclarationNode: " << traitName << "\n";
+
+
+void ArgonLang::ConstraintDeclarationNode::print() const {
+	std::cout << "ConstraintDeclarationNode: " << constraintName << "\n";
+}
+
+void ArgonLang::GenericParameter::print() const {
+	std::cout << "GenericParameterNode: " << name;
+	if (constraint) {
+		std::cout << " : ";
+		constraint->print();
+	}
+	std::cout << "\n";
 }
 
 void ArgonLang::ModuleDeclarationNode::print() const {

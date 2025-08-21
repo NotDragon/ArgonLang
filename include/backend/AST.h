@@ -73,7 +73,7 @@ namespace ArgonLang
 		ForStatement,
 		UnionDeclaration,
 		EnumDeclaration,
-		TraitDeclaration,
+		ConstraintDeclaration,
 		ModuleDeclaration,
 		ImportStatement,
 		YieldStatement,
@@ -88,6 +88,7 @@ namespace ArgonLang
 		FunctionDefinition,
 		ConstructorStatement,
 		ImplStatement,
+		GenericParameter,
 
 		IntersectionType,
 		PrefixedType,
@@ -277,8 +278,9 @@ namespace ArgonLang
     public:
         std::unique_ptr<ExpressionNode> function;
         std::vector<std::unique_ptr<ExpressionNode>> arguments;
+        std::vector<std::unique_ptr<TypeNode>> genericTypeArgs; // For func<Type1, Type2>(args)
 
-        explicit FunctionCallExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> func, std::vector<std::unique_ptr<ExpressionNode>> args);
+        explicit FunctionCallExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> func, std::vector<std::unique_ptr<ExpressionNode>> args, std::vector<std::unique_ptr<TypeNode>> genericTypeArgs = {});
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG
@@ -634,9 +636,24 @@ namespace ArgonLang
         void print() const override;
         void toDot(std::ostream& os, int& nodeId) const override;
     #endif
-    };
+         };
 
-    class VariableDeclarationNode : public StatementNode {
+	class GenericParameter {
+	public:
+		std::string name;
+		std::unique_ptr<TypeNode> constraint; // nullptr for unconstrained parameters
+		Token::Position position;
+		explicit GenericParameter(Token::Position position, std::string name, std::unique_ptr<TypeNode> constraint = nullptr);
+
+		static ASTNodeType getNodeType();
+		static ASTNodeGroup getNodeGroup();
+	#ifdef DEBUG
+		void print() const;
+		void toDot(std::ostream& os, int& nodeId) const;
+	#endif
+	};
+
+     class VariableDeclarationNode : public StatementNode {
     public:
         bool isConst;
         std::unique_ptr<TypeNode> type;
@@ -667,8 +684,9 @@ namespace ArgonLang
 		std::vector<std::unique_ptr<FunctionArgument>> args;
 		std::unique_ptr<ASTNode> body;
 		std::unique_ptr<ExpressionNode> name;
+		std::vector<std::unique_ptr<GenericParameter>> genericParams;
 
-		explicit FunctionDeclarationNode(Token::Position position, std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name);
+		explicit FunctionDeclarationNode(Token::Position position, std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ASTNode> body, std::unique_ptr<ExpressionNode> name, std::vector<std::unique_ptr<GenericParameter>> genericParams = {});
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -682,8 +700,9 @@ namespace ArgonLang
 		std::unique_ptr<TypeNode> returnType;
 		std::vector<std::unique_ptr<FunctionArgument>> args;
 		std::unique_ptr<ExpressionNode> name;
+		std::vector<std::unique_ptr<GenericParameter>> genericParams;
 
-		explicit FunctionDefinitionNode(Token::Position position, std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name);
+		explicit FunctionDefinitionNode(Token::Position position, std::unique_ptr<TypeNode> returnType, std::vector<std::unique_ptr<FunctionArgument>> args, std::unique_ptr<ExpressionNode> name, std::vector<std::unique_ptr<GenericParameter>> genericParams = {});
 
 		ASTNodeType getNodeType() const override;
 #ifdef DEBUG
@@ -761,17 +780,16 @@ namespace ArgonLang
 	#endif
 	};
 
-	class TraitDeclarationNode : public StatementNode {
-	public:
-		std::string traitName;
-		std::vector<std::unique_ptr<TypeNode>> genericParams;
-		std::vector<std::unique_ptr<StatementNode>> methods;
-		std::unique_ptr<ExpressionNode> constraint; // for constraint expressions
 
-		explicit TraitDeclarationNode(Token::Position position, std::string traitName, 
-			std::vector<std::unique_ptr<TypeNode>> genericParams,
-			std::vector<std::unique_ptr<StatementNode>> methods,
-			std::unique_ptr<ExpressionNode> constraint = nullptr);
+	class ConstraintDeclarationNode : public StatementNode {
+	public:
+		std::string constraintName;
+		std::vector<std::unique_ptr<GenericParameter>> genericParams;
+		std::unique_ptr<ExpressionNode> constraintExpression;
+
+		explicit ConstraintDeclarationNode(Token::Position position, std::string constraintName, 
+			std::vector<std::unique_ptr<GenericParameter>> genericParams,
+			std::unique_ptr<ExpressionNode> constraintExpression);
 
 		ASTNodeType getNodeType() const override;
 	#ifdef DEBUG
@@ -876,8 +894,9 @@ namespace ArgonLang
 
 		std::string className;
 		std::vector<ClassMember> body;
+		std::vector<std::unique_ptr<GenericParameter>> genericParams;
 
-		explicit ClassDeclarationNode(Token::Position position, std::string className, std::vector<ClassMember> body);
+		explicit ClassDeclarationNode(Token::Position position, std::string className, std::vector<ClassMember> body, std::vector<std::unique_ptr<GenericParameter>> genericParams = {});
 		ASTNodeType getNodeType() const override;
 
 #ifdef DEBUG

@@ -71,8 +71,11 @@ namespace ArgonLang {
 			{ "await", Token::KeywordAwait },
 			{ "module", Token::KeywordModule },
 			{ "import", Token::KeywordImport },
-			{ "trait", Token::KeywordTrait },
 			{ "where", Token::KeywordWhere },
+			{ "constraint", Token::KeywordConstraint },
+
+			{ "par", Token::KeywordPar },
+
     };
 }
 
@@ -492,7 +495,6 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		case Token::KeywordAwait: return "KeywordAwait";
 		case Token::KeywordModule: return "KeywordModule";
 		case Token::KeywordImport: return "KeywordImport";
-		case Token::KeywordTrait: return "KeywordTrait";
 		case Token::KeywordWhere: return "KeywordWhere";
 
         case Token::IntegralLiteral: return "IntegralLiteral";

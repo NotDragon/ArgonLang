@@ -71,8 +71,8 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 			case Token::KeywordEnum:
 				statement = parseEnumDeclaration();
 				break;
-			case Token::KeywordTrait:
-				statement = parseTraitDeclaration();
+			case Token::KeywordConstraint:
+				statement = parseConstraintDeclaration();
 				break;
 			case Token::KeywordClass:
 				statement = parseClassDeclaration();
@@ -81,7 +81,7 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 				Token currentToken = peek();
 				std::string errorMsg = ErrorFormatter::formatParseError(
 					"Invalid declaration at top level",
-					"function, variable, module, import, type alias, enum, trait, or class declaration",
+					"function, variable, module, import, type alias, enum, or class declaration",
 					currentToken
 				);
 				std::string note = ErrorFormatter::createContext("Only declarations are allowed at the top level");

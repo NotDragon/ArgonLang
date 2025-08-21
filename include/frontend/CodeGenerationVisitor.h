@@ -73,7 +73,7 @@ namespace ArgonLang {
 		Result<std::string> visit(const ClassDeclarationNode &node) override;
 		Result<std::string> visit(const UnionDeclarationNode &node) override;
 		Result<std::string> visit(const EnumDeclarationNode &node) override;
-		Result<std::string> visit(const TraitDeclarationNode &node) override;
+		Result<std::string> visit(const ConstraintDeclarationNode &node) override;
 		Result<std::string> visit(const ModuleDeclarationNode &node) override;
 		Result<std::string> visit(const ImportStatementNode &node) override;
 		Result<std::string> visit(const IfStatementNode &node) override;
@@ -96,9 +96,16 @@ namespace ArgonLang {
 		Result<std::string> visit(const VariadicTypeNode &node) override;
 		
 	private:
+		// Context flags
+		bool isConstraintContext = false;
+		
 		// Helper methods for generating destructuring assignments
 		Result<std::string> generateDestructuring(const PatternNode* pattern, const std::string& sourceVar);
 		Result<std::string> generateCompoundDestructuring(const std::vector<std::unique_ptr<PatternNode>>& patterns, const std::string& sourceVar);
+		
+		// Helper methods for generating generic parameters
+		Result<std::string> generateGenericParameters(const std::vector<std::unique_ptr<GenericParameter>>& genericParams);
+		Result<std::string> generateGenericParameter(const GenericParameter& param);
 	};
 }
 

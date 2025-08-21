@@ -191,8 +191,18 @@ ArgonLang::ASTNodeType ArgonLang::EnumDeclarationNode::getNodeType() const {
 	return ArgonLang::ASTNodeType::EnumDeclaration;
 }
 
-ArgonLang::ASTNodeType ArgonLang::TraitDeclarationNode::getNodeType() const {
-	return ArgonLang::ASTNodeType::TraitDeclaration;
+
+
+ArgonLang::ASTNodeType ArgonLang::ConstraintDeclarationNode::getNodeType() const {
+	return ArgonLang::ASTNodeType::ConstraintDeclaration;
+}
+
+ArgonLang::ASTNodeType ArgonLang::GenericParameter::getNodeType() {
+	return ArgonLang::ASTNodeType::GenericParameter;
+}
+
+ArgonLang::ASTNodeGroup ArgonLang::GenericParameter::getNodeGroup() {
+	return ArgonLang::ASTNodeGroup::Type;
 }
 
 ArgonLang::ASTNodeType ArgonLang::ModuleDeclarationNode::getNodeType() const {

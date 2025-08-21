@@ -83,8 +83,11 @@ namespace ArgonLang {
 		
 		Result<std::unique_ptr<ASTNode>> parseToExpression();
 		Result<std::unique_ptr<ASTNode>> parseDerefExpression();
+		Result<std::unique_ptr<ASTNode>> parseOwnershipExpression();
 		Result<std::unique_ptr<ASTNode>> parseReferenceExpression();
 		Result<std::unique_ptr<ASTNode>> parseIncrementExpression();
+		Result<std::unique_ptr<ASTNode>> parseAwaitExpression();
+		Result<std::unique_ptr<ASTNode>> parseIteratorExpression();
 		Result<std::unique_ptr<ASTNode>> parseUnaryMinusExpression();
 		Result<std::unique_ptr<ASTNode>> parseUnaryPlusExpression();
 		Result<std::unique_ptr<ASTNode>> parseLogicalNotExpression();
@@ -114,7 +117,8 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parseYieldStatement();
 		Result<std::unique_ptr<ASTNode>> parseConstructorStatement();
 		Result<std::unique_ptr<ASTNode>> parseEnumDeclaration();
-		Result<std::unique_ptr<ASTNode>> parseTraitDeclaration();
+		Result<std::unique_ptr<ASTNode>> parseConstraintDeclaration();
+		Result<std::unique_ptr<GenericParameter>> parseGenericParameter();
 		Result<std::unique_ptr<ASTNode>> parseModuleDeclaration();
 		Result<std::unique_ptr<ASTNode>> parseImportStatement();
 

@@ -102,8 +102,8 @@ Result<bool> AnalysisVisitor::visit(const StatementNode& node) {
 			return visit(dynamic_cast<const ImplStatementNode&>(node));
 		case ASTNodeType::EnumDeclaration:
 			return visit(dynamic_cast<const EnumDeclarationNode&>(node));
-		case ASTNodeType::TraitDeclaration:
-			return visit(dynamic_cast<const TraitDeclarationNode&>(node));
+		case ASTNodeType::ConstraintDeclaration:
+			return visit(dynamic_cast<const ConstraintDeclarationNode&>(node));
 		case ASTNodeType::ModuleDeclaration:
 			return visit(dynamic_cast<const ModuleDeclarationNode&>(node));
 		case ASTNodeType::ImportStatement:
@@ -406,8 +406,10 @@ Result<bool> AnalysisVisitor::visit(const EnumDeclarationNode &node) {
 	return {};
 }
 
-Result<bool> AnalysisVisitor::visit(const TraitDeclarationNode &node) {
-	std::cout << "TraitDeclarationNode\n";
+
+
+Result<bool> AnalysisVisitor::visit(const ConstraintDeclarationNode &node) {
+	std::cout << "ConstraintDeclarationNode\n";
 	return {};
 }
 
