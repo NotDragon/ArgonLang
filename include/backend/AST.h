@@ -46,6 +46,8 @@ namespace ArgonLang
 		ComparisonExpression,
 		AssignmentExpression,
 		IndexExpression,
+		SliceExpression,
+		MultipleIndexExpression,
 		MatchExpression,
 		MatchBranch,
 		
@@ -329,7 +331,7 @@ namespace ArgonLang
 		Token::Position position;
 
 		explicit FunctionArgument(Token::Position position, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value, std::string name);
-		explicit FunctionArgument(Token::Position position);
+
 
 		ASTNodeType getNodeType() const;
 #ifdef DEBUG
@@ -389,6 +391,38 @@ namespace ArgonLang
         std::unique_ptr<ExpressionNode> index;
 
         explicit IndexExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr, std::unique_ptr<ExpressionNode> i);
+
+		ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class SliceExpressionNode : public ExpressionNode {
+    public:
+        std::unique_ptr<ExpressionNode> array;
+        std::unique_ptr<ExpressionNode> start;
+        std::unique_ptr<ExpressionNode> end;
+        bool isInclusive;
+
+        explicit SliceExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr, 
+                                   std::unique_ptr<ExpressionNode> startIdx, std::unique_ptr<ExpressionNode> endIdx, bool inclusive = true);
+
+		ASTNodeType getNodeType() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void toDot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
+    class MultipleIndexExpressionNode : public ExpressionNode {
+    public:
+        std::unique_ptr<ExpressionNode> array;
+        std::vector<std::unique_ptr<ExpressionNode>> indices;
+
+        explicit MultipleIndexExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr, 
+                                           std::vector<std::unique_ptr<ExpressionNode>> idxs);
 
 		ASTNodeType getNodeType() const override;
     #ifdef DEBUG

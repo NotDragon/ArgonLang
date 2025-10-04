@@ -6,12 +6,36 @@
 #include "frontend/CodeGenerationVisitor.h"
 
 int main(int argc, char** argv) {
-	if(argc < 4) {
-		std::cerr << "Expected 3 arguments";
-		return 1;
+	std::string filename;
+	std::string output_filename = "out.cpp";
+	std::string dot_filename;
+	bool verbose = false;
+
+	for (int i = 1; i < argc; ++i) {
+		if (std::string arg = argv[i]; arg == "-o") {
+			if (i + 1 >= argc) {
+				std::cerr << "Missing output filename after -o\n";
+				return 1;
+			}
+			output_filename = argv[++i];
+		} else if (arg == "-d" || arg == "--dot") {
+			if (i + 1 >= argc) {
+				std::cerr << "Missing dot filename after " << arg << "\n";
+				return 1;
+			}
+			dot_filename = argv[++i];
+		} else if (arg == "-v" || arg == "--verbose") {
+			verbose = true;
+		} else {
+			if (!filename.empty()) {
+				std::cerr << "Unexpected argument: " << arg << "\n";
+				return 1;
+			}
+			filename = arg;
+		}
 	}
 
-    std::ifstream file(argv[1]);
+    std::ifstream file(filename);
 
 	std::string str((std::istreambuf_iterator<char>(file)),
 							 std::istreambuf_iterator<char>());
@@ -26,64 +50,20 @@ int main(int argc, char** argv) {
     ArgonLang::Parser parser(tokenizeResult.tokens);
 	ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> program = parser.parse();
 
-	bool verbose = true;
+	if(!program.has_value()) {
+		std::cerr << "Parsing error occurred:\n\t" << program.error().message << "\n";
 
-	if(program.hasError()) {
-		std::cerr << "Parsing error occurred:\n\t" << program.getErrorMsg() << "\n";
+		// Get initial position information safely
+		std::cerr << "At: " << program.error().position.line << ":" << program.error().position.column << "\n";
 
-		// Get initial trace information safely
-		if (auto currentTrace = program.tryGetTrace()) {
-			std::cerr << "At: " << currentTrace->position.line << ":" << currentTrace->position.column << "\n";
-		}
-
-		// Create a copy of the stack trace to avoid modifying the original
-		auto traceStack = program.getStackTrace();
-		size_t columnError = 0;
-		std::string space;
-
-		while(!traceStack.empty()) {
-			if(!verbose && traceStack.size() > 1) {
-				traceStack.pop();
-				continue;
+		// Show any additional notes from the error context
+		if (!program.error().context.notes.empty()) {
+			std::cerr << "Note: ";
+			for (const auto& note : program.error().context.notes) {
+				std::cerr << note << " ";
 			}
-
-			auto trace = traceStack.top();
-			std::string line = " ";
-			int lineCounter = 0;
-			bool whiteSpace = true;
-
-			for(size_t i = 0; i < str.size(); i++) {
-				if(str[i] == '\n') {
-					lineCounter++;
-					continue;
-				}
-
-				if(lineCounter == static_cast<int>(trace.position.line) - 1) {
-					if(!whiteSpace) {
-						line += str[i];
-						continue;
-					}
-
-					if(str[i] == ' ' || str[i] == '\t') continue;
-
-					line += str[i];
-					whiteSpace = false;
-				}
-			}
-
-			space += " ";
-
-			std::cerr << space << "L" << line
-			<< " (" << ArgonLang::ASTNodeTypeToString(trace.type)
-			<< " Line: " << trace.position.line << " Column: " << trace.position.column << ")\n";
-			columnError = trace.position.column;
-			traceStack.pop();
+			std::cerr << "\n";
 		}
-
-		std::cerr << space;
-		for(size_t i = 0; i < columnError + 1; i++)
-			std::cerr << " ";
-		std::cerr << "^ " << program.getErrorNote() << "\n";
 
 		return 1;
 	}
@@ -100,26 +80,28 @@ int main(int argc, char** argv) {
 
 	ArgonLang::AnalysisVisitor analysis;
 	ArgonLang::CodeGenerationVisitor codeGenerator;
-	analysis.visit(*program.getValue());
-	ArgonLang::Result<std::string> codeResult = codeGenerator.visit(*program.getValue());
+	analysis.visit(*program.value());
+	ArgonLang::Result<std::string> codeResult = codeGenerator.visit(*program.value());
 
-	if(codeResult.hasError()) {
-		std::cerr << codeResult.getErrorMsg() << "\n";
+	if(!codeResult.has_value()) {
+		std::cerr << codeResult.error().message << "\n";
 		return 1;
 	}
 
-	std::string code = codeResult.getValue();
+	std::string code = codeResult.value();
 
-	std::ofstream codeFile(argv[3]);
+	std::ofstream codeFile(output_filename);
 	codeFile << code;
 
-	std::ofstream dotFile(argv[2]);
-	dotFile << "digraph AST {\n";
-	int nodeId = 0;
-	program.getValue()->toDot(dotFile, nodeId);
-	dotFile << "}\n";
+	if (!dot_filename.empty()) {
+		std::ofstream dotFile(argv[2]);
+		dotFile << "digraph AST {\n";
+		int nodeId = 0;
+		program.value()->toDot(dotFile, nodeId);
+		dotFile << "}\n";
 
-	std::cout << "\nDOT file generated: ast.dot\n";
+		std::cout << "\nDOT file generated: ast.dot\n";
+	}
 
 	return 0;
 }

@@ -23,7 +23,7 @@ namespace Runtime {
         
     public:
         ArgonFuture(std::future<T>&& future, std::shared_ptr<ScopeManager> scope_manager)
-            : future_(std::move(future)), scope_manager_(scope_manager) {}
+            : future_(std::move(future)), scope_manager_(std::move(scope_manager)) {}
         
         // Move constructor
         ArgonFuture(ArgonFuture&& other) noexcept 

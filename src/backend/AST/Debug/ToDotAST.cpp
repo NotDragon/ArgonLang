@@ -162,6 +162,50 @@ void ArgonLang::IndexExpressionNode::toDot(std::ostream &os, int &nodeId) const 
 	}
 }
 
+void ArgonLang::SliceExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+	int currentId = nodeId++;
+
+	os << "  node" << currentId << " [label=\"SliceExpression\"];\n";
+
+	if (array) {
+		int arrayId = nodeId;
+		array->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << arrayId << " [label=\"array\"];\n";
+	}
+
+	if (start) {
+		int startId = nodeId;
+		start->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << startId << " [label=\"start\"];\n";
+	}
+
+	if (end) {
+		int endId = nodeId;
+		end->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << endId << " [label=\"end\"];\n";
+	}
+}
+
+void ArgonLang::MultipleIndexExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+	int currentId = nodeId++;
+
+	os << "  node" << currentId << " [label=\"MultipleIndexExpression\"];\n";
+
+	if (array) {
+		int arrayId = nodeId;
+		array->toDot(os, nodeId);
+		os << "  node" << currentId << " -> node" << arrayId << " [label=\"array\"];\n";
+	}
+
+	for (size_t i = 0; i < indices.size(); ++i) {
+		if (indices[i]) {
+			int indexId = nodeId;
+			indices[i]->toDot(os, nodeId);
+			os << "  node" << currentId << " -> node" << indexId << " [label=\"index" << i << "\"];\n";
+		}
+	}
+}
+
 void ArgonLang::MatchBranch::toDot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Match Branch\"];\n";

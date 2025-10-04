@@ -62,6 +62,14 @@ ASTNodeType IndexExpressionNode::getNodeType() const {
 	return ASTNodeType::IndexExpression;
 }
 
+ASTNodeType SliceExpressionNode::getNodeType() const {
+	return ASTNodeType::SliceExpression;
+}
+
+ASTNodeType MultipleIndexExpressionNode::getNodeType() const {
+	return ASTNodeType::MultipleIndexExpression;
+}
+
 ASTNodeType MatchExpressionNode::getNodeType() const {
 	return ASTNodeType::MatchExpression;
 }

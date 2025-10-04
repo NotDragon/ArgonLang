@@ -10,8 +10,8 @@ TEST(ParserTests, ParseVariableDeclaration) {
 	ArgonLang::Parser parser(tokenizeResult.tokens);
 
 	auto result = parser.parse();
-	ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-	auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
 
 	ASSERT_EQ(program->nodes.size(), 1);
 	auto node = dynamic_cast<ArgonLang::VariableDeclarationNode*>(program->nodes[0].get());
@@ -27,8 +27,8 @@ TEST(ParserTests, ParseFunctionDeclaration) {
 	ArgonLang::Parser parser(tokenizeResult.tokens);
 
 	auto result = parser.parse();
-	ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-	auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
 
 	ASSERT_EQ(program->nodes.size(), 1);
 	auto node = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());

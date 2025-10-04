@@ -2,6 +2,8 @@
 // Created by User on 31/12/2024.
 //
 #include "frontend/AnalysisVisitor.h"
+#include "Error/Error.h"
+#include "Error/Result.h"
 #include "backend/Parser.h"
 #include <iostream>
 
@@ -62,7 +64,7 @@ Result<bool> AnalysisVisitor::visit(const ExpressionNode& node) {
 		case ASTNodeType::RangeExpression:
 			return visit(dynamic_cast<const RangeExpressionNode&>(node));
 		default:
-			return { "Unexpected Expression", "", Trace() };
+			return Err<bool>(create_parse_error(ErrorType::UnexpectedToken, "Unexpected Expression", Token::Position{0, 0}));
 	}
 }
 
@@ -109,7 +111,7 @@ Result<bool> AnalysisVisitor::visit(const StatementNode& node) {
 		case ASTNodeType::ImportStatement:
 			return visit(dynamic_cast<const ImportStatementNode&>(node));
 		default:
-			return { "Unexpected Statement", "", Trace() };
+			return Err<bool>(create_parse_error(ErrorType::UnexpectedToken, "Unexpected Statement", Token::Position{0, 0}));
 	}
 }
 
@@ -126,7 +128,7 @@ Result<bool> AnalysisVisitor::visit(const TypeNode& node) {
 		case ASTNodeType::IdentifierType:
 			return visit(dynamic_cast<const IdentifierTypeNode&>(node));
 		default:
-			return { "Unexpected Type", "", Trace() };
+			return Err<bool>(create_parse_error(ErrorType::UnexpectedToken, "Unexpected Type", Token::Position{0, 0}));
 	}
 }
 
@@ -134,7 +136,9 @@ Result<bool> AnalysisVisitor::visit(const TypeNode& node) {
 Result<bool> AnalysisVisitor::visit(const ProgramNode &node) {
 	for (const auto& child : node.nodes) {
 		auto result = visit(*child);
-		if (result.hasError()) return result;
+		if (!result.has_value()) {
+			return Err<bool>(result.error());
+		}
 	}
 	return {true};
 }

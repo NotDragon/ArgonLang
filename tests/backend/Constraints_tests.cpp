@@ -2,6 +2,8 @@
 #include "backend/Parser.h"
 #include "backend/Tokenizer.h"
 #include "frontend/CodeGenerationVisitor.h"
+#include "Error/Error.h"
+#include "Error/Result.h"
 
 class ConstraintsTest : public ::testing::Test {
 protected:
@@ -10,7 +12,7 @@ protected:
     ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> parseCode(const std::string& input) {
         auto tokenizeResult = ArgonLang::tokenize(input);
         if (tokenizeResult.hasError()) {
-            return { tokenizeResult.errorMsg, "", ArgonLang::Trace(ArgonLang::ASTNodeType::Program, ArgonLang::Token::Position()) };
+            return ArgonLang::Err<std::unique_ptr<ArgonLang::ProgramNode>>(ArgonLang::create_parse_error(ArgonLang::ErrorType::InvalidExpression, tokenizeResult.errorMsg, ArgonLang::Token::Position()));
         }
         
         ArgonLang::Parser parser(tokenizeResult.tokens);
@@ -19,17 +21,17 @@ protected:
     
     std::string generateCode(const std::string& input) {
         auto parseResult = parseCode(input);
-        if (parseResult.hasError()) {
-            return "PARSE_ERROR: " + parseResult.getErrorMsg();
+        if (!parseResult.has_value()) {
+            return "PARSE_ERROR: " + parseResult.error().message;
         }
         
         ArgonLang::CodeGenerationVisitor visitor;
-        auto codeResult = visitor.visit(*parseResult.getValue());
-        if (codeResult.hasError()) {
-            return "CODEGEN_ERROR: " + codeResult.getErrorMsg();
+        auto codeResult = visitor.visit(*parseResult.value());
+        if (!codeResult.has_value()) {
+            return "CODEGEN_ERROR: " + codeResult.error().message;
         }
         
-        return codeResult.getValue();
+        return codeResult.value();
     }
 };
 
@@ -38,8 +40,8 @@ TEST_F(ConstraintsTest, ParseSimpleConstraint) {
     std::string input = "constraint Positive<T: Number> = T > 0;";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_FALSE(!result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto constraintNode = dynamic_cast<ArgonLang::ConstraintDeclarationNode*>(program->nodes[0].get());
@@ -54,8 +56,8 @@ TEST_F(ConstraintsTest, ParseConstraintWithMultipleParameters) {
     std::string input = "constraint InRange<T: Number, Min: i32, Max: i32> = T >= Min && T <= Max;";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_FALSE(!result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto constraintNode = dynamic_cast<ArgonLang::ConstraintDeclarationNode*>(program->nodes[0].get());
@@ -72,8 +74,8 @@ TEST_F(ConstraintsTest, ParseConstraintWithStringType) {
     std::string input = "constraint NonEmptyString<T: str> = T.length > 0;";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_FALSE(!result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto constraintNode = dynamic_cast<ArgonLang::ConstraintDeclarationNode*>(program->nodes[0].get());
@@ -123,8 +125,8 @@ TEST_F(ConstraintsTest, ParseFunctionWithConstrainedParameter) {
     )";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_FALSE(!result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 2);
     
@@ -161,8 +163,8 @@ TEST_F(ConstraintsTest, ParseComplexConstraintExpression) {
     std::string input = "constraint EvenPositive<T: Number> = T > 0 && T % 2 == 0;";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_FALSE(!result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto constraintNode = dynamic_cast<ArgonLang::ConstraintDeclarationNode*>(program->nodes[0].get());
@@ -187,8 +189,8 @@ TEST_F(ConstraintsTest, ParseMultipleConstraints) {
     )";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_FALSE(!result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 3);
     
@@ -234,21 +236,21 @@ TEST_F(ConstraintsTest, ParseErrorMissingConstraintName) {
     std::string input = "constraint <T: Number> = T > 0;";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_TRUE(!result.has_value());
 }
 
 TEST_F(ConstraintsTest, ParseErrorMissingConstraintExpression) {
     std::string input = "constraint Positive<T: Number> =;";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_TRUE(!result.has_value());
 }
 
 TEST_F(ConstraintsTest, ParseErrorMissingSemicolon) {
     std::string input = "constraint Positive<T: Number> = T > 0";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_TRUE(!result.has_value());
 }
 
 // Intersection Types with Constraints Tests
@@ -262,8 +264,8 @@ TEST_F(ConstraintsTest, ParseIntersectionTypeWithMultipleConstraints) {
     )";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_FALSE(!result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 3);
 }

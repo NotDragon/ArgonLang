@@ -49,6 +49,8 @@ std::string ArgonLang::ASTNodeTypeToString(ASTNodeType type) {
 		case ASTNodeType::ComparisonExpression: return "ComparisonExpression";
 		case ASTNodeType::AssignmentExpression: return "AssignmentExpression";
 		case ASTNodeType::IndexExpression: return "IndexExpression";
+		case ASTNodeType::SliceExpression: return "SliceExpression";
+		case ASTNodeType::MultipleIndexExpression: return "MultipleIndexExpression";
 		case ASTNodeType::MatchExpression: return "MatchExpression";
 		case ASTNodeType::TernaryExpression: return "TernaryExpression";
 		case ASTNodeType::ParallelExpression: return "ParallelExpression";

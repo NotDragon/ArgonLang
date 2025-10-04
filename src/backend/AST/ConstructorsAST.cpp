@@ -63,6 +63,14 @@ ArgonLang::AssignmentExpressionNode::AssignmentExpressionNode(Token::Position po
 ArgonLang::IndexExpressionNode::IndexExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr,
 													std::unique_ptr<ExpressionNode> i): array(std::move(arr)), index(std::move(i)), ExpressionNode(position) {}
 
+ArgonLang::SliceExpressionNode::SliceExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr, 
+                                                   std::unique_ptr<ExpressionNode> startIdx, std::unique_ptr<ExpressionNode> endIdx, bool inclusive)
+    : array(std::move(arr)), start(std::move(startIdx)), end(std::move(endIdx)), isInclusive(inclusive), ExpressionNode(position) {}
+
+ArgonLang::MultipleIndexExpressionNode::MultipleIndexExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> arr, 
+                                                                   std::vector<std::unique_ptr<ExpressionNode>> idxs)
+    : array(std::move(arr)), indices(std::move(idxs)), ExpressionNode(position) {}
+
 ArgonLang::MatchBranch::MatchBranch(Token::Position position, std::unique_ptr<PatternNode> pattern, std::unique_ptr<ExpressionNode> condition,
 									std::unique_ptr<ASTNode> body): pattern(std::move(pattern)), condition(std::move(condition)), body(std::move(body)), position(position) {}
 
@@ -135,8 +143,6 @@ ArgonLang::StructField::StructField(Token::Position position, std::string name, 
 
 ArgonLang::FunctionArgument::FunctionArgument(Token::Position position, std::unique_ptr<TypeNode> type, std::unique_ptr<ExpressionNode> value,
 											  std::string name): type(std::move(type)), value(std::move(value)), name(std::move(name)), position(position) {}
-ArgonLang::FunctionArgument::FunctionArgument(Token::Position position): type(), value(), name(), position(position) {}
-
 
 ArgonLang::FunctionDeclarationNode::FunctionDeclarationNode(Token::Position position, std::unique_ptr<TypeNode> returnType,
 															std::vector<std::unique_ptr<FunctionArgument>> args,

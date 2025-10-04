@@ -2,6 +2,8 @@
 #include "backend/Parser.h"
 #include "backend/Tokenizer.h"
 #include "frontend/CodeGenerationVisitor.h"
+#include "Error/Error.h"
+#include "Error/Result.h"
 
 class GenericsTest : public ::testing::Test {
 protected:
@@ -10,7 +12,7 @@ protected:
     ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> parseCode(const std::string& input) {
         auto tokenizeResult = ArgonLang::tokenize(input);
         if (tokenizeResult.hasError()) {
-            return { tokenizeResult.errorMsg, "", ArgonLang::Trace(ArgonLang::ASTNodeType::Program, ArgonLang::Token::Position()) };
+            return ArgonLang::Err<std::unique_ptr<ArgonLang::ProgramNode>>(ArgonLang::create_parse_error(ArgonLang::ErrorType::InvalidExpression, tokenizeResult.errorMsg, ArgonLang::Token::Position()));
         }
         
         ArgonLang::Parser parser(tokenizeResult.tokens);
@@ -19,17 +21,17 @@ protected:
     
     std::string generateCode(const std::string& input) {
         auto parseResult = parseCode(input);
-        if (parseResult.hasError()) {
-            return "PARSE_ERROR: " + parseResult.getErrorMsg();
+        if (!parseResult.has_value()) {
+            return "PARSE_ERROR: " + parseResult.error().message;
         }
         
         ArgonLang::CodeGenerationVisitor visitor;
-        auto codeResult = visitor.visit(*parseResult.getValue());
-        if (codeResult.hasError()) {
-            return "CODEGEN_ERROR: " + codeResult.getErrorMsg();
+        auto codeResult = visitor.visit(*parseResult.value());
+        if (!codeResult.has_value()) {
+            return "CODEGEN_ERROR: " + codeResult.error().message;
         }
         
-        return codeResult.getValue();
+        return codeResult.value();
     }
 };
 
@@ -38,8 +40,8 @@ TEST_F(GenericsTest, ParseGenericFunctionSingleParameter) {
     std::string input = "func<T: Type> identity(x: T) T { return x; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
@@ -54,8 +56,8 @@ TEST_F(GenericsTest, ParseGenericFunctionMultipleParameters) {
     std::string input = "func<T: Number, U: Type> combine(a: T, b: U) T { return a; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
@@ -70,8 +72,8 @@ TEST_F(GenericsTest, ParseGenericFunctionConcreteConstraint) {
     std::string input = "func<T: i32> processInt(x: T) T { return x; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
@@ -111,8 +113,8 @@ TEST_F(GenericsTest, ParseGenericClassSingleParameter) {
     std::string input = "class Vec<T: Type> { pub def data: T; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto classNode = dynamic_cast<ArgonLang::ClassDeclarationNode*>(program->nodes[0].get());
@@ -127,8 +129,8 @@ TEST_F(GenericsTest, ParseGenericClassMultipleParameters) {
     std::string input = "class Map<K: Type, V: Type> { pub def key: K; pub def value: V; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto classNode = dynamic_cast<ArgonLang::ClassDeclarationNode*>(program->nodes[0].get());
@@ -165,8 +167,8 @@ TEST_F(GenericsTest, ParseGenericConstraintSingleParameter) {
     std::string input = "constraint Positive<T: Number> = T > 0;";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto constraintNode = dynamic_cast<ArgonLang::ConstraintDeclarationNode*>(program->nodes[0].get());
@@ -181,8 +183,8 @@ TEST_F(GenericsTest, ParseGenericConstraintMultipleParameters) {
     std::string input = "constraint Range<T: Number, Min: i32, Max: i32> = T >= Min && T <= Max;";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto constraintNode = dynamic_cast<ArgonLang::ConstraintDeclarationNode*>(program->nodes[0].get());
@@ -219,19 +221,19 @@ TEST_F(GenericsTest, ParseErrorMissingGenericParameterName) {
     std::string input = "func<: Number> invalid() -> void {}";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_FALSE(result.has_value());
 }
 
 TEST_F(GenericsTest, ParseErrorMissingClosingAngleBracket) {
     std::string input = "func<T: Number invalid() -> void {}";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_FALSE(result.has_value());
 }
 
 TEST_F(GenericsTest, ParseErrorInvalidConstraintSyntax) {
     std::string input = "func<T:> invalid() -> void {}";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_FALSE(result.has_value());
 }

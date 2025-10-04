@@ -1,4 +1,6 @@
 #include "backend/Parser.h"
+#include "Error/Error.h"
+#include "Error/Result.h"
 #include <stdexcept>
 
 using namespace ArgonLang;
@@ -21,24 +23,26 @@ bool Parser::eos() const {
 
 [[nodiscard]] Result<Token> Parser::advance() {
     if (current < tokens.size()) {
-        return tokens[current++];
+        return Ok(tokens[current++]);
     }
-	return { "Unexpected end of input", "", peek() };
+    Token endToken = peek();
+        Error error = create_parse_error(ErrorType::UnexpectedToken, 
+                     "Unexpected end of input", 
+                     endToken.position);
+        error.withExpected("more tokens").withActual("end of input");
+        return Err<Token>(error);
 }
 
 [[nodiscard]] Result<Token> Parser::expect(Token::Type type, const std::string& errorMessage) {
     if (current >= tokens.size() || tokens[current].type != type) {
         // Don't modify parser state on error - create error with current position info
         Token errorToken = (current < tokens.size()) ? tokens[current] : tokens.back();
-        std::string fullErrorMsg = ErrorFormatter::formatParseError(
-            errorMessage, 
-            Token::getTypeAsString(type), 
-            errorToken
-        );
-        std::string note = ErrorFormatter::createSuggestion(
-            "Check syntax near " + ErrorFormatter::formatPosition(errorToken.position)
-        );
-        return { fullErrorMsg, note, errorToken };
+        Position pos("", errorToken.position.line, errorToken.position.column);
+        
+        Error error = create_parse_error(ErrorType::MissingToken, errorMessage, errorToken.position);
+        error.withExpected(Token::getTypeAsString(type)).withActual(errorToken.value)
+             .withSuggestion("Check syntax near line " + std::to_string(errorToken.position.line) + ", column " + std::to_string(errorToken.position.column));
+        return Err<Token>(error);
     }
 	return advance();
 }
@@ -71,6 +75,9 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 			case Token::KeywordEnum:
 				statement = parseEnumDeclaration();
 				break;
+			case Token::KeywordUnion:
+				statement = parseUnionDeclaration();
+				break;
 			case Token::KeywordConstraint:
 				statement = parseConstraintDeclaration();
 				break;
@@ -79,22 +86,22 @@ Result<std::unique_ptr<ProgramNode>> Parser::parse() {
 				break;
 			default:
 				Token currentToken = peek();
-				std::string errorMsg = ErrorFormatter::formatParseError(
+				Error error = create_parse_error(ErrorType::UnexpectedToken,
 					"Invalid declaration at top level",
-					"function, variable, module, import, type alias, enum, or class declaration",
-					currentToken
-				);
-				std::string note = ErrorFormatter::createContext("Only declarations are allowed at the top level");
-				return { errorMsg, note, Trace(ASTNodeType::Program, currentToken.position) };
+					currentToken.position);
+				error.withExpected("function, variable, module, import, type alias, enum, or class declaration")
+				     .withActual(currentToken.value)
+				     .with_note("Only declarations are allowed at the top level");
+				return Err<std::unique_ptr<ProgramNode>>(error);
 		}
 
-		if(statement.hasError()) {
+		if (!statement.has_value()) {
 			synchronize();
 			// Propagate error with proper trace information
-			return { statement, Trace(ASTNodeType::Program, peek().position) };
+			return Err<std::unique_ptr<ProgramNode>>(statement.error());
 		}
 
-		statements.push_back(statement.moveValue());
+		statements.push_back(std::move(statement.value()));
 	}
 	return std::make_unique<ProgramNode>(Token::Position(0, 0), std::move(statements));
 }

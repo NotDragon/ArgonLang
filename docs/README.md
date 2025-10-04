@@ -1,258 +1,432 @@
 # ArgonLang Programming Language
 
-**ArgonLang** is a modern, high-performance systems programming language that combines the safety and expressiveness of Rust with the performance of C++. It features advanced type safety, functional programming constructs, memory safety, and compile-time verification.
+**ArgonLang** is a revolutionary systems programming language that merges functional programming elegance with systems-level control. It features lazy evaluation, advanced pattern matching, ownership semantics, and compile-time safety guarantees while maintaining C++ performance.
 
 ## Table of Contents
 
-- [Getting Started](#getting-started)
-- [Basic Syntax](#basic-syntax)
-- [Variables and Types](#variables-and-types)
-- [Functions](#functions)
-- [Control Flow](#control-flow)
-- [Collections and Ranges](#collections-and-ranges)
-- [Functional Programming](#functional-programming)
-- [Pattern Matching](#pattern-matching)
-- [Classes and Objects](#classes-and-objects)
-- [Memory Management](#memory-management)
-- [Generics and Constraints](#generics-and-constraints)
-- [Concurrency and Parallelism](#concurrency-and-parallelism)
-- [Error Handling](#error-handling)
-- [Modules and Imports](#modules-and-imports)
-- [Advanced Features](#advanced-features)
-- [Standard Library](#standard-library)
-- [Debugging and Testing](#debugging-and-testing)
+- [Core Concepts](#core-concepts)
+- [Variable System](#variable-system)  
+- [Function Paradigms](#function-paradigms)
+- [Lazy Collections & Ranges](#lazy-collections--ranges)
+- [Functional Operations](#functional-operations)
+- [Pattern Matching Engine](#pattern-matching-engine)
+- [Object System](#object-system)
+- [Memory Ownership](#memory-ownership)
+- [Concurrent Programming](#concurrent-programming)
+- [Type Safety & Constraints](#type-safety--constraints)
+- [Error Management](#error-management)
+- [Module Architecture](#module-architecture)
+- [Metaprogramming](#metaprogramming)
+- [Development Tools](#development-tools)
 
-## Getting Started
+## Core Concepts
 
-### Hello World
+ArgonLang is built on several revolutionary concepts that distinguish it from traditional systems languages:
 
-```argonlang
-func main() i32 {
-    print("Hello, World!");
-    return 0;
-}
-```
+### Value-Centric Type System  
+Types are defined by the set of possible values they can contain, enabling precise compile-time safety without runtime overhead.
 
-### Compilation
+### Ownership Without Complexity
+Memory management uses intuitive ownership semantics with automatic lifetime management.
 
-```bash
-argonc main.arg -o main
-./main
-```
+### Pattern-First Programming
+Pattern matching isn't just a feature—it's the primary way to work with data and control flow.
 
-## Basic Syntax
+## Variable System
 
-### Comments
+### Basic Declarations
+
+ArgonLang distinguishes between mutable variables and immutable constants:
 
 ```argonlang
-// Single line comment
+// Mutable variable - can be reassigned
+def temperature: i32 = 20;
+def humidity = 65.5;  // Type inferred as f64
 
-/*
-  Multi-line comment
-  block
-*/
+// Immutable constant - cannot be reassigned  
+const BOILING_POINT: f64 = 100.0;
+const FREEZING_POINT = 0.0;  // Type inferred as f64
 ```
 
-### Semicolons
+### Collection Types
 
-Semicolons are required to terminate statements:
+ArgonLang provides several collection types, each optimized for different use cases:
 
 ```argonlang
-def x = 10;
-print(x);
+// Fixed arrays - stack allocated, compile-time size
+def scores: i32[5] = [95, 87, 92, 78, 88];
+
+// Dynamic vectors - heap allocated, runtime resizing
+def students: vec<str> = vec<str>();
+students.push("Alice");
+students.push("Bob");
+
+// Linked lists - efficient insertion/deletion
+def tasks: list<Task> = list<Task>();
+
+// Lazy ranges - computed on demand
+def fibonacci_range: range<i32> = fibonacci_sequence();
 ```
 
-## Variables and Types
+### Type Inference Power
 
-### Variable Declarations
+ArgonLang's type inference is sophisticated enough to handle complex scenarios:
 
 ```argonlang
-// Mutable variables
-def i: i32 = 10;        // 32-bit integer
-def f: f32 = 3.14;      // 32-bit float
-def name: str = "Alice"; // String
-
-// Immutable variables (constants)
-const PI: f32 = 3.14159;
-const MAX_SIZE: i32 = 100;
-
-// Type inference
-def x = 42;             // Inferred as i32
-def message = "Hello";  // Inferred as str
+def numbers = [1, 2, 3, 4, 5];           // Inferred: i32[5]
+def mixed = vec<f64>();                  // Explicit generic type
+def lazy_evens = 0 to 100 | x -> x % 2 == 0;  // Inferred: range<i32>
 ```
 
-### Primitive Types
+## Function Paradigms
 
-| Type | Description | Example |
-|------|-------------|---------|
-| `i8`, `i16`, `i32`, `i64` | Signed integers | `def x: i32 = -42;` |
-| `u8`, `u16`, `u32`, `u64` | Unsigned integers | `def x: u32 = 42;` |
-| `f32`, `f64` | Floating-point | `def x: f64 = 3.14;` |
-| `bool` | Boolean | `def x: bool = true;` |
-| `char` | Character | `def x: char = 'A';` |
-| `str` | String | `def x: str = "Hello";` |
+ArgonLang treats functions as first-class citizens with multiple declaration styles optimized for different use cases.
 
-### Arrays and Collections
+### Function Declaration Styles
 
 ```argonlang
-// Fixed-size arrays
-def arr: i32[10];                    // Array of 10 integers
-def numbers: i32[5] = [1, 2, 3, 4, 5];
+// Traditional function with explicit return type
+func calculateArea(width: f64, height: f64) f64 {
+    return width * height;
+}
 
-// Dynamic vectors
-def vec: vec<i32>(10);               // Vector with initial capacity
-def dynamic = vec<i32>();            // Empty vector
+// Expression-based function (single expression)
+func square(x: f64) f64 -> x * x;
 
-// Lists (linked lists)
-def list: list<i32>(10);             // Linked list
+// Pattern matching function
+func fibonacci(n: i32) => i32 {
+    0 -> 0,
+    1 -> 1, 
+    _ -> fibonacci(n-1) + fibonacci(n-2)
+}
 
-// Ranges (lazy sequences)
-def range: range<i32>(0, 10);        // Values between 0 and 10
+// Function declaration (no implementation)
+func processData(data: vec<i32>) vec<i32>;
 ```
 
-## Functions
+### Higher-Order Functions and Closures
 
-### Basic Function Declaration
+Functions can capture their environment and be passed as arguments:
 
 ```argonlang
-// Function declaration
-func add(a: i32, b: i32) i32;
-
-// Function definition
-func add(a: i32, b: i32) i32 {
-    return a + b;
+// Closure that captures local variables
+func makeMultiplier(factor: i32) func(i32) i32 {
+    return (value: i32) -> value * factor;
 }
 
-// Inline function (expression-based)
-func double(x: i32) i32 -> x * 2;
+def double = makeMultiplier(2);
+def result = double(5);  // result = 10
 
-// Function with no return value
-func greet(name: str) {
-    print("Hello, " + name + "!");
+// Function accepting other functions
+func applyTwice(fn: func(i32) i32, value: i32) i32 {
+    return fn(fn(value));
 }
+
+def incremented = applyTwice(x -> x + 1, 5);  // result = 7
 ```
 
-### Advanced Function Features
+### Reference Parameters and Ownership
+
+ArgonLang provides explicit control over how data is passed to functions:
 
 ```argonlang
-// Variadic functions
-func print(text: str, ...args: vec<any>) {
-    // Implementation
+// Pass by value (creates a copy)
+func processValue(data: i32) i32 -> data * 2;
+
+// Pass by immutable reference (read-only access)
+func analyzeData(data: &vec<i32>) i32 -> data.length;
+
+// Pass by mutable reference (can modify original)
+func sortInPlace(data: &&vec<i32>) {
+    // Sorts the original vector
+    data.sort();
 }
 
-// Higher-order functions
-func apply(fn: func(i32) i32, value: i32) i32 {
-    return fn(value);
+// Take ownership (moves the value)
+func consumeData(data: ~vec<i32>) i32 {
+    return data.length;  // data is consumed here
 }
 
-// Closures
-func makeCounter() func() i32 {
-    def count = 0;
-    return () -> ++count;
-}
-
-// Pattern matching functions
-func factorial(n: i32) => i32 {
-    0 -> 1,
-    _ -> n * factorial(n - 1)
-}
+// Example usage
+def numbers = [3, 1, 4, 1, 5];
+def length = analyzeData(&numbers);     // numbers still accessible
+sortInPlace(&&numbers);                 // numbers is modified
+def final_length = consumeData(~numbers); // numbers is moved/consumed
 ```
 
-### Reference Parameters
+## Lazy Collections & Ranges
+
+One of ArgonLang's most powerful features is its lazy-first approach to collections and sequences.
+
+### Range Creation and Operations
+
+Ranges are lazy sequences that compute values on-demand:
 
 ```argonlang
-func half(n: i32) i32 -> n / 2;           // Pass by value
-func halfRef(n: &i32) i32 -> n / 2;       // Immutable reference
-func halfMut(n: &&i32) i32 -> n /= 2;     // Mutable reference
+// Basic ranges (exclusive end)
+def counting = 1 to 10;        // [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-def x = 10;
-half(x);        // x remains 10
-halfRef(&x);    // x remains 10
-halfMut(&&x);   // x becomes 5
+// Inclusive ranges  
+def inclusive = 1 to= 10;      // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+// Infinite ranges (lazy computation)
+def naturals = 1 to range<i32>::infinity;
 ```
 
-## Control Flow
+### Lazy Transformations
 
-### Conditional Statements
+Transformations on ranges are lazy - they don't execute until values are actually needed:
 
 ```argonlang
-// Basic if-else
-if (condition) {
-    // code
-} else if (other_condition) {
-    // code
-} else {
-    // code
-}
+// Filter operation (lazy)
+def evens = 1 to 100 | x -> x % 2 == 0;
 
-// Branched values with type refinement
-def value = getUserInput();
-if (value > 0) [positiveValue] {
-    // positiveValue is guaranteed to be > 0
-    processPositive(positiveValue);
-}
+// Map operation (lazy) 
+def doubled = 1 to 50 & x -> x * 2;
+
+// Chained operations (all lazy)
+def processed = 1 to 1000
+    | x -> x % 3 == 0          // Filter multiples of 3
+    & x -> x * x               // Square them
+    | x -> x > 100;            // Filter large squares
+
+// Only computed when accessed
+print(processed[5]);           // Computes only what's needed
 ```
 
-### Loops
+### Materialization and Eager Evaluation
+
+Convert lazy ranges to concrete collections when needed:
 
 ```argonlang
-// Range-based for loop
-for (def i -> 0 to 10) {
-    print(i);
-}
+// Materialize to vector
+def concrete_numbers: vec<i32> = 1 to 100;
 
-// Inclusive range
-for (def i -> 0 to= 10) {
-    print(i);  // Prints 0 through 10
-}
+// Take only first N elements
+def first_ten = fibonacci_sequence().take(10).as<vec<i32>>();
 
-// Iterator-based loops
-for (def item -> $array) {
-    print(item);
-}
-
-// Collection loops
-for (def num -> numbers) {
-    print(num);
-}
-
-// While loops
-while (condition) {
-    // code
-}
+// Skip and take for windowing
+def middle_section = large_dataset.skip(1000).take(100);
 ```
 
-## Collections and Ranges
-
-### Range Operations
+### Advanced Range Operations
 
 ```argonlang
-// Basic ranges
-def arr = 0 to 10;                    // [0, 1, 2, ..., 9]
-def inclusive = 0 to= 10;             // [0, 1, 2, ..., 10]
+// Zip ranges together
+def coordinates = (1 to 10).zip(10 to 1);  // [(1,10), (2,9), (3,8), ...]
 
-// Range with filtering
-def evens = 0 to 10 | x -> x % 2 == 0;  // [0, 2, 4, 6, 8]
+// Enumerate with indices
+def indexed = ["a", "b", "c"].enumerate();  // [(0,"a"), (1,"b"), (2,"c")]
 
-// Range with mapping
-def doubled = 0 to 10 & x -> x * 2;     // [0, 2, 4, ..., 18]
-
-// Converting to concrete types
-def vector: vec<i32> = 0 to 100;
+// Flatten nested structures
+def flattened = [[1,2], [3,4], [5,6]].flatten();  // [1, 2, 3, 4, 5, 6]
 ```
 
-### Array Operations
+## Functional Operations
+
+ArgonLang provides a rich set of functional operators that work seamlessly with its lazy evaluation system.
+
+### Core Functional Operators
 
 ```argonlang
-// Indexing
-def first = arr[0];
-def slice = arr[2:4];              // Elements 2 and 3
-def multiple = arr[0, 3, 5];       // Elements at indices 0, 3, 5
+def numbers = 1 to= 20;
 
-// Destructuring
-def [first, second], rest = 0 to 10;
-def [head], tail = someArray;
-def remaining, [last] = someArray;
+// Filter operator |: Keep elements that match condition
+def evens = numbers | x -> x % 2 == 0;
+
+// Map operator &: Transform each element
+def squares = numbers & x -> x * x;
+
+// Reduce operator ^: Combine elements into single value
+def sum = numbers ^ (acc, current) -> acc + current;
+
+// Accumulate operator ^^: Build running totals
+def running_sums = numbers ^^ (acc, current) -> acc + current;
+```
+
+### Pipeline Operations
+
+The pipe operator creates elegant data transformation chains:
+
+```argonlang
+// Traditional approach
+def temp1 = filter_primes(numbers);
+def temp2 = square_values(temp1);  
+def result = sum_all(temp2);
+
+// Pipeline approach
+def result = numbers
+    |> filter_primes
+    |> square_values
+    |> sum_all;
+
+// Complex pipeline with lambdas
+def analysis = sensor_data
+    |> clean_outliers
+    |> normalize_values  
+    & x -> x * calibration_factor
+    |> calculate_statistics;
+```
+
+### Map-Pipe and Aggregate Operations
+
+```argonlang
+// Map-pipe operator ||>: Map then pipe
+def account_balances = [
+    [100, 200, 50],
+    [300, 150],  
+    [75, 25, 125, 200]
+];
+
+def total_wealth = account_balances ||> sum |> max;
+// Equivalent to: account_balances & sum |> max
+
+// Aggregate operator />: Create tuples from multiple operations  
+def statistics = dataset /> mean /> median /> std_dev;
+// Creates tuple: (mean_val, median_val, std_dev_val)
+```
+
+### Advanced Functional Patterns
+
+```argonlang
+// Partial application with underscore
+func add(a: i32, b: i32) -> a + b;
+def add_five = add(5, _);
+def result = add_five(10);  // result = 15
+
+// Function composition
+func compose<A, B, C>(f: func(B) C, g: func(A) B) func(A) C {
+    return (x: A) -> f(g(x));
+}
+
+def double = (x: i32) -> x * 2;
+def increment = (x: i32) -> x + 1;
+def double_then_increment = compose(increment, double);
+
+// Currying for reusable functions
+func filter_by<T>(predicate: func(T) bool) func(vec<T>) vec<T> {
+    return (data: vec<T>) -> data | predicate;
+}
+
+def filter_positives = filter_by((x: i32) -> x > 0);
+def positive_numbers = filter_positives([-2, -1, 0, 1, 2, 3]);
+```
+
+## Pattern Matching Engine
+
+ArgonLang's pattern matching system is one of its most distinctive features, providing a powerful way to destructure and analyze data.
+
+### Basic Pattern Matching
+
+Pattern matching uses the `=>` operator to match values against patterns:
+
+```argonlang
+// Simple value matching
+def classify_number = (n: i32) => str {
+    0 -> "zero",
+    1 -> "one", 
+    2 -> "two",
+    _ -> "many"
+};
+
+// Type-based matching
+def describe_value = (value: any) => str {
+    i32 -> "integer",
+    f64 -> "floating point",
+    str -> "text",
+    bool -> "boolean",
+    _ -> "unknown type"
+};
+```
+
+### Destructuring Patterns
+
+Extract values from complex data structures:
+
+```argonlang
+// Array destructuring
+def analyze_coordinates = (point: [f64; 3]) => str {
+    [0.0, 0.0, 0.0] -> "origin",
+    [x, 0.0, 0.0] -> "on x-axis: " + x,
+    [0.0, y, 0.0] -> "on y-axis: " + y, 
+    [x, y, z] -> "3D point: (" + x + ", " + y + ", " + z + ")"
+};
+
+// Advanced array patterns
+def process_list = (items: vec<i32>) => str {
+    [] -> "empty list",
+    [single] -> "one item: " + single,
+    [first, second], rest -> "starts with: " + first + ", " + second,
+    [head], tail -> "head: " + head + ", tail length: " + tail.length
+};
+```
+
+### Struct Pattern Matching
+
+```argonlang
+// Struct destructuring
+def point = struct { x = 10, y = 20, z = 5 };
+
+def analyze_point = (p: Point3D) => str {
+    { x = 0, y = 0, z = 0 } -> "origin",
+    { x = 0, y, z } -> "on yz-plane", 
+    { x, y = 0, z } -> "on xz-plane",
+    { x, y, z = 0 } -> "on xy-plane",
+    { x, y, z } -> "general point: (" + x + ", " + y + ", " + z + ")"
+};
+```
+
+### Guards and Conditional Patterns
+
+Add conditions to patterns for more precise matching:
+
+```argonlang
+// Guards with &&
+def categorize_triangle = (sides: [f64; 3]) => str {
+    [a, b, c] && a == b && b == c -> "equilateral",
+    [a, b, c] && (a == b || b == c || a == c) -> "isosceles", 
+    [a, b, c] && a*a + b*b == c*c -> "right triangle",
+    [a, b, c] && a + b > c && b + c > a && a + c > b -> "valid triangle",
+    _ -> "invalid triangle"
+};
+
+// Range patterns with guards
+def assess_score = (score: i32) => str {
+    s && s >= 90 -> "excellent",
+    s && s >= 80 -> "good",
+    s && s >= 70 -> "satisfactory", 
+    s && s >= 60 -> "passing",
+    _ -> "failing"
+};
+```
+
+### Class and Enum Pattern Matching
+
+```argonlang
+enum Shape {
+    Circle(radius: f64),
+    Rectangle(width: f64, height: f64),
+    Triangle(a: f64, b: f64, c: f64)
+}
+
+def calculate_area = (shape: Shape) => f64 {
+    Shape::Circle(r) -> 3.14159 * r * r,
+    Shape::Rectangle(w, h) -> w * h,
+    Shape::Triangle(a, b, c) -> {
+        def s = (a + b + c) / 2.0;
+        return sqrt(s * (s - a) * (s - b) * (s - c));
+    }
+};
+
+// Pattern matching with additional conditions
+def describe_shape = (shape: Shape) => str {
+    Shape::Circle(r) && r > 10.0 -> "large circle",
+    Shape::Circle(r) -> "small circle", 
+    Shape::Rectangle(w, h) && w == h -> "square",
+    Shape::Rectangle(w, h) -> "rectangle",
+    Shape::Triangle(a, b, c) && a == b && b == c -> "equilateral triangle",
+    _ -> "some triangle"
+};
 ```
 
 ## Functional Programming
@@ -768,27 +942,27 @@ def result = divide(10, 2) catch (e) -> {
 
 ```argonlang
 // Maybe type for nullable values
-func findElement(arr: vec<i32>, target: i32) Maybe<i32> {
+func findElement(arr: vec<i32>, target: i32) maybe<i32> {
     for (i, value -> arr.enumerate()) {
         if (value == target) {
-            return Maybe::Some(i);
+            return i;
         }
     }
-    return Maybe::None;
+    return maybe::none;
 }
 
 // Either type for error handling
-func safeDivide(a: i32, b: i32) Either<i32, str> {
+func safeDivide(a: i32, b: i32) either<i32, str> {
     if (b == 0) {
-        return Either::Right("Division by zero");
+        return "Division by zero";
     }
-    return Either::Left(a / b);
+    return a / b;
 }
 
 // Pattern matching on results
 def result = safeDivide(10, 2) => {
-    Either::Left(value) -> "Result: " + value,
-    Either::Right(error) -> "Error: " + error
+    i32(value) -> "Result: " + value,
+    str(error) -> "Error: " + error
 };
 ```
 
@@ -796,12 +970,11 @@ def result = safeDivide(10, 2) => {
 
 ```argonlang
 // Function contracts
-func divide(a: i32, b: i32) [expects: b != 0, ensures: result == a / b] i32 {
+func divide(a: i32, b: i32) [expects: b != 0, ensures: return == a / b] i32 {
     return a / b;
 }
-
+// def result = divide(10, getUserInput()); // Error: Possible contract vialotion
 // Usage with contract checking
-def result = try divide(10, getUserInput());  // Safe: wrapped in try
 ```
 
 ## Modules and Imports
@@ -852,7 +1025,6 @@ func main() {
 // Standard library imports
 import std::File;
 import std::IO -> read, write;
-using import std::Math;  // Import and use
 ```
 
 ### Advanced Module Features
@@ -927,7 +1099,7 @@ using Callback = func(i32) void;
 
 // Generic alias
 using Optional<T> = Maybe<T>;
-using Result<T, E> = Either<T, E>;
+using Result<T> = Either<T, E>;
 ```
 
 ### Operator Overloading
@@ -1076,7 +1248,7 @@ def sum = Algorithms::reduce(numbers, 0, (acc, x) -> acc + x);
 ### Debug Features
 
 ```argonlang
-#debug  // Enable debug mode
+#debug;  // Enable debug mode
 
 // Logging
 #log("Debug message");
@@ -1150,7 +1322,7 @@ func main() {
 @extern func printf(format: str, ...) i32;
 
 // Library linking
-@link("math")
+@link("math");
 @extern func sqrt(x: f64) f64;
 
 // Direct C++ code injection
@@ -1165,7 +1337,7 @@ func main() {
 }
 
 // Header file generation
-@header  // Mark for header file inclusion
+@header;  // Mark for header file inclusion
 ```
 
 ## Best Practices
@@ -1258,4 +1430,69 @@ func main() {
 
 **ArgonLang** combines modern language design with practical performance requirements, making it suitable for systems programming, application development, and high-performance computing. Its rich type system, memory safety features, and expressive syntax enable developers to write both safe and efficient code.
 
-For more examples and detailed documentation, visit the [ArgonLang Examples](../examples/) directory.
+---
+
+## Summary
+
+This documentation covers ArgonLang's core features with original examples demonstrating:
+
+- **Advanced pattern matching** with destructuring and guards  
+- **Functional programming** with pipeline operators and composition
+- **Memory ownership** without complexity
+- **Concurrent programming** with par/await and generators
+- **Type safety** through value-set constraints
+- **Error handling** with monadic types and pattern matching
+
+The remaining sections would cover:
+
+### Object System
+- Class definitions with automatic field mapping
+- Interface implementation and multiple inheritance
+- Inline struct literals and anonymous objects
+- Method resolution and static dispatch
+
+### Memory Ownership  
+- Owned pointers (~), references (&, &&), and raw pointers (*)
+- Automatic lifetime management and scope-based cleanup
+- Custom allocators (heap, stack buffer, arena)
+- Borrowing rules and compile-time safety
+
+### Concurrent Programming
+- `par` expressions for parallel execution
+- `yield` for generator functions  
+- Scoped parallelism with automatic synchronization
+- Thread management and synchronization primitives
+
+### Type Safety & Constraints
+- Generic functions and classes with constraints
+- Value-set based type system
+- Compile-time contract verification
+- C++20 concepts integration
+
+### Error Management
+- Maybe/Either monads for safe error handling
+- Pattern matching on error types
+- Exception propagation with `try`/`catch`/`throws`
+- Contract-based programming
+
+### Module Architecture
+- Module definition and selective exports
+- Import strategies (whole, selective, using)
+- Dynamic modules with hooks and guards
+- Standard library organization
+
+### Metaprogramming
+- Compile-time macros and code generation
+- Conditional compilation
+- Type introspection and reflection
+- Custom operators and DSL creation
+
+### Development Tools
+- Debug logging and tracing
+- Unit testing framework with property-based testing
+- Performance profiling and visualization
+- Memory safety analysis
+
+ArgonLang represents a new paradigm in systems programming, combining the best aspects of functional and imperative programming while maintaining zero-cost abstractions and compile-time safety guarantees.
+
+For complete examples and implementation details, see the [examples/](../examples/) directory.

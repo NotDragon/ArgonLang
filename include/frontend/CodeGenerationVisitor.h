@@ -43,6 +43,8 @@ namespace ArgonLang {
 		Result<std::string> visit(const ComparisonExpressionNode &node) override;
 		Result<std::string> visit(const AssignmentExpressionNode &node) override;
 		Result<std::string> visit(const IndexExpressionNode &node) override;
+		Result<std::string> visit(const SliceExpressionNode &node);
+		Result<std::string> visit(const MultipleIndexExpressionNode &node);
 		Result<std::string> visit(const MatchBranch &node) override;
 		Result<std::string> visit(const MatchExpressionNode &node) override;
 		

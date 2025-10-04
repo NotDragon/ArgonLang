@@ -2,6 +2,8 @@
 #include "backend/Parser.h"
 #include "backend/Tokenizer.h"
 #include "frontend/CodeGenerationVisitor.h"
+#include "Error/Error.h"
+#include "Error/Result.h"
 
 class GenericFunctionCallsTest : public ::testing::Test {
 protected:
@@ -10,7 +12,7 @@ protected:
     ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> parseCode(const std::string& input) {
         auto tokenizeResult = ArgonLang::tokenize(input);
         if (tokenizeResult.hasError()) {
-            return { tokenizeResult.errorMsg, "", ArgonLang::Trace(ArgonLang::ASTNodeType::Program, ArgonLang::Token::Position()) };
+            return ArgonLang::Err<std::unique_ptr<ArgonLang::ProgramNode>>(ArgonLang::create_parse_error(ArgonLang::ErrorType::InvalidExpression, tokenizeResult.errorMsg, ArgonLang::Token::Position()));
         }
         
         ArgonLang::Parser parser(tokenizeResult.tokens);
@@ -19,17 +21,17 @@ protected:
     
     std::string generateCode(const std::string& input) {
         auto parseResult = parseCode(input);
-        if (parseResult.hasError()) {
-            return "PARSE_ERROR: " + parseResult.getErrorMsg();
+        if (!parseResult.has_value()) {
+            return "PARSE_ERROR: " + parseResult.error().message;
         }
         
         ArgonLang::CodeGenerationVisitor visitor;
-        auto codeResult = visitor.visit(*parseResult.getValue());
-        if (codeResult.hasError()) {
-            return "CODEGEN_ERROR: " + codeResult.getErrorMsg();
+        auto codeResult = visitor.visit(*parseResult.value());
+        if (!codeResult.has_value()) {
+            return "CODEGEN_ERROR: " + codeResult.error().message;
         }
         
-        return codeResult.getValue();
+        return codeResult.value();
     }
 };
 
@@ -38,8 +40,8 @@ TEST_F(GenericFunctionCallsTest, ParseGenericFunctionCallSingleType) {
     std::string input = "func main() i32 { def result = identity<i32>(42); return result; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
@@ -64,8 +66,8 @@ TEST_F(GenericFunctionCallsTest, ParseGenericFunctionCallMultipleTypes) {
     std::string input = "func main() i32 { def result = combine<i32, str>(42, \"hello\"); return result; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
@@ -90,8 +92,8 @@ TEST_F(GenericFunctionCallsTest, ParseRegularFunctionCallNoGenerics) {
     std::string input = "func main() i32 { def result = add(5, 10); return result; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
@@ -181,21 +183,21 @@ TEST_F(GenericFunctionCallsTest, ParseErrorMissingClosingAngleBracket) {
     std::string input = "func main() i32 { def result = identity<i32(42); return 0; }";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_FALSE(result.has_value());
 }
 
 TEST_F(GenericFunctionCallsTest, ParseErrorMissingTypeArgument) {
     std::string input = "func main() i32 { def result = identity<>(42); return 0; }";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_FALSE(result.has_value());
 }
 
 TEST_F(GenericFunctionCallsTest, ParseErrorInvalidTypeArgument) {
     std::string input = "func main() i32 { def result = identity<123>(42); return 0; }";
     auto result = parseCode(input);
     
-    EXPECT_TRUE(result.hasError());
+    EXPECT_FALSE(result.has_value());
 }
 
 // Type Inference Tests (Regular calls without explicit types)

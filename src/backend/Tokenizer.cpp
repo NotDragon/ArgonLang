@@ -58,8 +58,7 @@ namespace ArgonLang {
 			{ "throws", Token::KeywordThrows },
 			{ "try", Token::KeywordTry },
 			{ "catch", Token::KeywordCatch },
-			
-			// Additional keywords from syntax
+
 			{ "true", Token::BooleanLiteral },
 			{ "false", Token::BooleanLiteral },
 			{ "vec", Token::Identifier },

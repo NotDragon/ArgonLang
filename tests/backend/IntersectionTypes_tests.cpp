@@ -2,6 +2,8 @@
 #include "backend/Parser.h"
 #include "backend/Tokenizer.h"
 #include "frontend/CodeGenerationVisitor.h"
+#include "Error/Error.h"
+#include "Error/Result.h"
 
 class IntersectionTypesTest : public ::testing::Test {
 protected:
@@ -10,7 +12,7 @@ protected:
     ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> parseCode(const std::string& input) {
         auto tokenizeResult = ArgonLang::tokenize(input);
         if (tokenizeResult.hasError()) {
-            return { tokenizeResult.errorMsg, "", ArgonLang::Trace(ArgonLang::ASTNodeType::Program, ArgonLang::Token::Position()) };
+            return ArgonLang::Err<std::unique_ptr<ArgonLang::ProgramNode>>(ArgonLang::create_parse_error(ArgonLang::ErrorType::InvalidExpression, tokenizeResult.errorMsg, ArgonLang::Token::Position()));
         }
         
         ArgonLang::Parser parser(tokenizeResult.tokens);
@@ -19,17 +21,17 @@ protected:
     
     std::string generateCode(const std::string& input) {
         auto parseResult = parseCode(input);
-        if (parseResult.hasError()) {
-            return "PARSE_ERROR: " + parseResult.getErrorMsg();
+        if (!parseResult.has_value()) {
+            return "PARSE_ERROR: " + parseResult.error().message;
         }
         
         ArgonLang::CodeGenerationVisitor visitor;
-        auto codeResult = visitor.visit(*parseResult.getValue());
-        if (codeResult.hasError()) {
-            return "CODEGEN_ERROR: " + codeResult.getErrorMsg();
+        auto codeResult = visitor.visit(*parseResult.value());
+        if (!codeResult.has_value()) {
+            return "CODEGEN_ERROR: " + codeResult.error().message;
         }
         
-        return codeResult.getValue();
+        return codeResult.value();
     }
 };
 
@@ -38,8 +40,8 @@ TEST_F(IntersectionTypesTest, ParseSimpleIntersectionType) {
     std::string input = "func process(value: i32 & Positive) i32 { return value; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
@@ -57,8 +59,8 @@ TEST_F(IntersectionTypesTest, ParseMultipleIntersectionTypes) {
     std::string input = "func process(value: i32 & Positive & NonZero & Even) i32 { return value; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
@@ -76,8 +78,8 @@ TEST_F(IntersectionTypesTest, ParseIntersectionTypeInReturnType) {
     std::string input = "func create() i32 & Positive { return 42; }";
     auto result = parseCode(input);
     
-    ASSERT_FALSE(result.hasError()) << "Parsing failed: " << result.getErrorMsg();
-    auto program = result.moveValue();
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
     
     ASSERT_EQ(program->nodes.size(), 1);
     auto funcNode = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());

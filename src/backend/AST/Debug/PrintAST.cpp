@@ -108,6 +108,14 @@ void ArgonLang::IndexExpressionNode::print() const {
     
 }
 
+void ArgonLang::SliceExpressionNode::print() const {
+    
+}
+
+void ArgonLang::MultipleIndexExpressionNode::print() const {
+    
+}
+
 void ArgonLang::MatchBranch::print() const {
     std::cout << "Pattern: ";
     if (pattern) pattern->print();

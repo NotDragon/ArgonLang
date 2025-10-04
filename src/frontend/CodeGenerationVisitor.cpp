@@ -2,6 +2,8 @@
 // Created by User on 31/12/2024.
 //
 #include "frontend/CodeGenerationVisitor.h"
+#include "Error/Error.h"
+#include "Error/Result.h"
 #include "backend/Parser.h"
 #include "Error/ErrorFormatter.h"
 #include <iostream>
@@ -17,11 +19,7 @@ Result<std::string> CodeGenerationVisitor::visit(const ASTNode& node) {
 		case ASTNodeGroup::Type:
 			return visit(dynamic_cast<const TypeNode&>(node));
 	}
-	return { 
-		ErrorFormatter::formatCodeGenError("Unknown node group", "ASTNode"),
-		"",
-		Trace(ASTNodeType::Program, node.position)
-	};
+	return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Unknown node group", node.position));
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ExpressionNode& node) {
@@ -56,6 +54,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ExpressionNode& node) {
 			return visit(dynamic_cast<const AssignmentExpressionNode&>(node));
 		case ASTNodeType::IndexExpression:
 			return visit(dynamic_cast<const IndexExpressionNode&>(node));
+		case ASTNodeType::SliceExpression:
+			return visit(dynamic_cast<const SliceExpressionNode&>(node));
+		case ASTNodeType::MultipleIndexExpression:
+			return visit(dynamic_cast<const MultipleIndexExpressionNode&>(node));
 		case ASTNodeType::MatchExpression:
 			return visit(dynamic_cast<const MatchExpressionNode&>(node));
 		case ASTNodeType::TernaryExpression:
@@ -86,11 +88,7 @@ Result<std::string> CodeGenerationVisitor::visit(const ExpressionNode& node) {
 			return visit(dynamic_cast<const RangePatternNode&>(node));
 		
 		default:
-			return { 
-				ErrorFormatter::formatCodeGenError("Unexpected expression type", ASTNodeTypeToString(node.getNodeType())),
-				"",
-				Trace(node.getNodeType(), node.position)
-			};
+			return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Unexpected expression type", node.position));
 	}
 }
 
@@ -137,11 +135,7 @@ Result<std::string> CodeGenerationVisitor::visit(const StatementNode& node) {
 		case ASTNodeType::ImportStatement:
 			return visit(dynamic_cast<const ImportStatementNode&>(node));
 		default:
-			return { 
-				ErrorFormatter::formatCodeGenError("Unexpected statement type", ASTNodeTypeToString(node.getNodeType())),
-				"",
-				Trace(node.getNodeType(), node.position)
-			};
+			return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Unexpected statement type", node.position));
 	}
 }
 
@@ -164,11 +158,7 @@ Result<std::string> CodeGenerationVisitor::visit(const TypeNode& node) {
 		case ASTNodeType::VariadicType:
 			return visit(dynamic_cast<const VariadicTypeNode&>(node));
 		default:
-			return { 
-				ErrorFormatter::formatCodeGenError("Unexpected type", ASTNodeTypeToString(node.getNodeType())),
-				"",
-				Trace(node.getNodeType(), node.position)
-			};
+			return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Unexpected type", node.position));
 	}
 }
 
@@ -201,8 +191,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ProgramNode &node) {
 	
 	for (const auto& child : node.nodes) {
 		auto result = visit(*child);
-		if (result.hasError()) return result;
-		code += result.getValue();
+		if (!result.has_value()) {
+			return Err<std::string>(result.error());
+		}
+		code += result.value();
 	}
 	return { code };
 }
@@ -216,11 +208,7 @@ Result<std::string> CodeGenerationVisitor::visit(const IntegralLiteralNode &node
 		case PrimitiveType::INT64:  return std::to_string(node.value.i64);
 		case PrimitiveType::INT128: return std::to_string(static_cast<int64_t>(node.value.i128));
 		default:
-			return { 
-				ErrorFormatter::formatCodeGenError("Invalid integer type", primitiveTypeToString(node.type)),
-				ErrorFormatter::createContext("Integer literal code generation"),
-				Trace(node.getNodeType(), node.position)
-			};
+			return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Invalid integer type", node.position));
 	}
 }
 
@@ -230,11 +218,7 @@ Result<std::string> CodeGenerationVisitor::visit(const FloatLiteralNode &node) {
 		case PrimitiveType::FLOAT64:  return std::to_string(node.value.f64);
 		case PrimitiveType::FLOAT128: return std::to_string(node.value.f128);
 		default:
-			return { 
-				ErrorFormatter::formatCodeGenError("Invalid float type", primitiveTypeToString(node.type)),
-				ErrorFormatter::createContext("Float literal code generation"),
-				Trace(node.getNodeType(), node.position)
-			};
+		return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Invalid float type", node.position));
 	}
 
 }
@@ -258,98 +242,108 @@ Result<std::string> CodeGenerationVisitor::visit(const IdentifierNode &node) {
 
 Result<std::string> CodeGenerationVisitor::visit(const BinaryExpressionNode &node) {
 	Result<std::string> left = visit(*node.left);
-	if(left.hasError()) return left;
+	if (!left.has_value()) {
+		return Err<std::string>(left.error());
+	}
 
 	Result<std::string> right = visit(*node.right);
-	if(right.hasError()) return right;
+	if (!right.has_value()) {
+		return Err<std::string>(right.error());
+	}
 
 	// Handle functional programming operators
 	if(node.op.value == "|>") {
 		// Pipe operator: left |> right becomes right(left)
-		return { right.getValue() + "(" + left.getValue() + ")" };
+		return { right.value() + "(" + left.value() + ")" };
 	}
 	else if(node.op.value == "||>") {
 		// Map pipe: left ||> right becomes ArgonLang::Runtime::map_pipe
-		return { "ArgonLang::Runtime::map_pipe(" + left.getValue() + ", " + right.getValue() + ")" + (isStatementContext? ";": "") };
+		return { "ArgonLang::Runtime::map_pipe(" + left.value() + ", " + right.value() + ")" + (isStatementContext? ";": "") };
 	}
 	else if(node.op.value == "|") {
 		// Filter operator: left | right becomes ArgonLang::Runtime::filter
-		return { "ArgonLang::Runtime::filter(" + left.getValue() + ", " + right.getValue() + ")" + (isStatementContext? ";": "") };
+		return { "ArgonLang::Runtime::filter(" + left.value() + ", " + right.value() + ")" + (isStatementContext? ";": "") };
 	}
 	else if(node.op.value == "&") {
 		// In constraint context, & is bitwise AND; otherwise it's the map operator
 		if (isConstraintContext) {
-			return { "(" + left.getValue() + " & " + right.getValue() + ")" };
+			return { "(" + left.value() + " & " + right.value() + ")" };
 		} else {
 			// Map operator: left & right becomes ArgonLang::Runtime::map
-			return { "ArgonLang::Runtime::map(" + left.getValue() + ", " + right.getValue() + ")" + (isStatementContext? ";": "") };
+			return { "ArgonLang::Runtime::map(" + left.value() + ", " + right.value() + ")" + (isStatementContext? ";": "") };
 		}
 	}
 	else if(node.op.value == "^") {
 		// Reduce operator: left ^ right becomes ArgonLang::Runtime::reduce
-		return { "ArgonLang::Runtime::reduce(" + left.getValue() + ", " + right.getValue() + ")" + (isStatementContext? ";": "") };
+		return { "ArgonLang::Runtime::reduce(" + left.value() + ", " + right.value() + ")" + (isStatementContext? ";": "") };
 	}
 	else if(node.op.value == "^^") {
 		// Accumulate range: left ^^ right becomes ArgonLang::Runtime::accumulate
-		return { "ArgonLang::Runtime::accumulate(" + left.getValue() + ", " + right.getValue() + ")" + (isStatementContext? ";": "") };
+		return { "ArgonLang::Runtime::accumulate(" + left.value() + ", " + right.value() + ")" + (isStatementContext? ";": "") };
 	}
 	else if(node.op.value == "to") {
 		// Range operator: handled by ToExpressionNode, but if it appears here as binary op
-		return { "std::ranges::iota_view(" + left.getValue() + ", " + right.getValue() + ")" + (isStatementContext? ";": "") };
+		return { "std::ranges::iota_view(" + left.value() + ", " + right.value() + ")" + (isStatementContext? ";": "") };
 	}
 	else {
 		// Regular binary operators
-		return { left.getValue() + " " + node.op.value + " " + right.getValue() };
+		return { left.value() + " " + node.op.value + " " + right.value() };
 	}
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const UnaryExpressionNode &node) {
 	Result<std::string> operand = visit(*node.operand);
-	if(operand.hasError()) return operand;
+	if (!operand.has_value()) {
+		return Err<std::string>(operand.error());
+	}
 
 	// Handle special unary operators
 	if(node.op.value == "$") {
 		// Iterator syntax: $arr becomes {arr.begin(), arr.end()}
-		return { "std::make_pair(" + operand.getValue() + ".begin(), " + operand.getValue() + ".end())" };
+		return { "std::make_pair(" + operand.value() + ".begin(), " + operand.value() + ".end())" };
 	}
 	else if(node.op.value == "~") {
 		// Move/ownership operator: ~value becomes std::move(value)
-		return { "std::move(" + operand.getValue() + ")" };
+		return { "std::move(" + operand.value() + ")" };
 	}
 	else if(node.op.value == "await") {
 		// Await operator: await future becomes ArgonLang::Runtime::await(future)
-		return { "ArgonLang::Runtime::await(std::move(" + operand.getValue() + "))" + (isStatementContext? ";": "") };
+		return { "ArgonLang::Runtime::await(std::move(" + operand.value() + "))" + (isStatementContext? ";": "") };
 	}
 	else if(node.op.value == "&") {
 		// Const reference (immutable reference)
-		return { "&" + operand.getValue() };
+		return { "&" + operand.value() };
 	}
 	else if(node.op.value == "&&") {
 		// Mutable reference (normal reference)
-		return { "&" + operand.getValue() };
+		return { "&" + operand.value() };
 	}
 	else {
 		// Regular unary operators
-		return { node.op.value + operand.getValue() };
+		return { node.op.value + operand.value() };
 	}
 }
 
 
 Result<std::string> CodeGenerationVisitor::visit(const FunctionCallExpressionNode &node) {
 	Result<std::string> functionName = visit(*node.function);
-	if(functionName.hasError()) return functionName;
+	if (!functionName.has_value()) {
+		return Err<std::string>(functionName.error());
+	}
 
-	std::string code = functionName.getValue();
+	std::string code = functionName.value();
 	
 	// Add generic type arguments if present: func<Type1, Type2>
 	if (!node.genericTypeArgs.empty()) {
 		code += "<";
 		for (size_t i = 0; i < node.genericTypeArgs.size(); i++) {
 			Result<std::string> typeResult = visit(*node.genericTypeArgs[i]);
-			if (typeResult.hasError()) return typeResult;
+			if (!typeResult.has_value()) {
+				return Err<std::string>(typeResult.error());
+			}
 			
 			if (i > 0) code += ", ";
-			code += typeResult.getValue();
+			code += typeResult.value();
 		}
 		code += ">";
 	}
@@ -360,9 +354,11 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionCallExpressionNod
 		const auto &arg = node.arguments[i];
 		Result<std::string> argResult = visit(*arg);
 		
-		if (argResult.hasError()) return argResult;
+		if (!argResult.has_value()) {
+			return Err<std::string>(argResult.error());
+		}
 		
-		code += argResult.getValue();
+		code += argResult.value();
 		if (i != node.arguments.size() - 1)
 			code += ", ";
 	}
@@ -375,22 +371,30 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionCallExpressionNod
 
 Result<std::string> CodeGenerationVisitor::visit(const MemberAccessExpressionNode &node) {
 	Result<std::string> parent = visit(*node.parent);
-	if(parent.hasError()) return parent;
+	if (!parent.has_value()) {
+		return Err<std::string>(parent.error());
+	}
 	Result<std::string> member = visit(*node.member);
-	if (member.hasError()) return member;
+	if (!member.has_value()) {
+		return Err<std::string>(member.error());
+	}
 
-	return { parent.getValue() + node.accessType.value + member.getValue() };
+	return { parent.value() + node.accessType.value + member.value() };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ToExpressionNode &node) {
 	Result<std::string> lowerBound = visit(*node.lowerBound);
-	if(lowerBound.hasError()) return lowerBound;
+	if (!lowerBound.has_value()) {
+		return Err<std::string>(lowerBound.error());
+	}
 
 	Result<std::string> upperBound = visit(*node.upperBound);
-	if(upperBound.hasError()) return upperBound;
+	if (!upperBound.has_value()) {
+		return Err<std::string>(upperBound.error());
+	}
 
 	return {
-		"std::ranges::iota_view(" + lowerBound.getValue() + "," + upperBound.getValue() + (node.isInclusive? "+1": "") + ")"
+		"std::ranges::iota_view(" + lowerBound.value() + "," + upperBound.value() + (node.isInclusive? "+1": "") + ")"
 	};
 }
 
@@ -398,8 +402,10 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionArgument &node) {
 	std::string type = "auto";
 	if(node.type) {
 		Result<std::string> typeResult = visit(*node.type);
-		if(typeResult.hasError()) return typeResult;
-		type = typeResult.getValue();
+		if (!typeResult.has_value()) {
+			return Err<std::string>(typeResult.error());
+		}
+		type = typeResult.value();
 	}
 
 	return { type + " " + node.name };
@@ -410,42 +416,54 @@ Result<std::string> CodeGenerationVisitor::visit(const LambdaExpressionNode &nod
 
 	for (const auto& param : node.parameters) {
 		auto paramResult = visit(*param);
-		if (paramResult.hasError()) return paramResult;
-		code += paramResult.getValue() + ",";
+		if (!paramResult.has_value()) {
+			return Err<std::string>(paramResult.error());
+		}
+		code += paramResult.value() + ",";
 	}
 
 	if (!node.parameters.empty()) code.pop_back();
 	code += ")";
 
 	Result<std::string> body = visit(*node.body);
-	if(body.hasError()) return body;
+	if (!body.has_value()) {
+		return Err<std::string>(body.error());
+	}
 
 	if(node.body->getNodeType() != ASTNodeType::Block)
-		code += "{" + body.getValue() + "}";
+		code += "{" + body.value() + "}";
 	else
-		code += body.getValue();
+		code += body.value();
 
 	return { code };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ComparisonExpressionNode &node) {
 	Result<std::string> left = visit(*node.left);
-	if(left.hasError()) return left;
+	if (!left.has_value()) {
+		return Err<std::string>(left.error());
+	}
 
 	Result<std::string> right = visit(*node.right);
-	if(right.hasError()) return right;
+	if (!right.has_value()) {
+		return Err<std::string>(right.error());
+	}
 
-	return { left.getValue() + node.op.value + right.getValue() };
+	return { left.value() + node.op.value + right.value() };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const AssignmentExpressionNode &node) {
 	Result<std::string> left = visit(*node.left);
-	if(left.hasError()) return left;
+	if (!left.has_value()) {
+		return Err<std::string>(left.error());
+	}
 
 	Result<std::string> right = visit(*node.right);
-	if(right.hasError()) return right;
+	if (!right.has_value()) {
+		return Err<std::string>(right.error());
+	}
 
-	std::string code = left.getValue() + node.op.value + right.getValue();
+	std::string code = left.value() + node.op.value + right.value();
 	
 	// Add semicolon when used as a statement
 	if(this->isStatementContext) code += ";";
@@ -455,31 +473,86 @@ Result<std::string> CodeGenerationVisitor::visit(const AssignmentExpressionNode 
 
 Result<std::string> CodeGenerationVisitor::visit(const IndexExpressionNode &node) {
 	Result<std::string> array = visit(*node.array);
-	if(array.hasError()) return array;
+	if (!array.has_value()) {
+		return Err<std::string>(array.error());
+	}
 
 	Result<std::string> index = visit(*node.index);
-	if(index.hasError()) return index;
+	if (!index.has_value()) {
+		return Err<std::string>(index.error());
+	}
 
-	return { array.getValue() + "[" + index.getValue() + "]" };
+	return { array.value() + "[" + index.value() + "]" };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const SliceExpressionNode &node) {
+	Result<std::string> array = visit(*node.array);
+	if (!array.has_value()) {
+		return Err<std::string>(array.error());
+	}
+
+	Result<std::string> start = visit(*node.start);
+	if (!start.has_value()) {
+		return Err<std::string>(start.error());
+	}
+
+	Result<std::string> end = visit(*node.end);
+	if (!end.has_value()) {
+		return Err<std::string>(end.error());
+	}
+
+	// Generate slice using std::ranges::subrange or similar
+	std::string endExpr = node.isInclusive ? "(" + end.value() + " + 1)" : end.value();
+	return { "std::ranges::subrange(" + array.value() + ".begin() + " + start.value() + 
+	         ", " + array.value() + ".begin() + " + endExpr + ")" };
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const MultipleIndexExpressionNode &node) {
+	Result<std::string> array = visit(*node.array);
+	if (!array.has_value()) {
+		return Err<std::string>(array.error());
+	}
+
+	std::string code = "{";
+	for (size_t i = 0; i < node.indices.size(); ++i) {
+		Result<std::string> index = visit(*node.indices[i]);
+		if (!index.has_value()) {
+			return Err<std::string>(index.error());
+		}
+		
+		code += array.value() + "[" + index.value() + "]";
+		if (i < node.indices.size() - 1) {
+			code += ", ";
+		}
+	}
+	code += "}";
+	
+	return { code };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
     std::string pattern;
     if(node.pattern) {
     	auto p = visit(*node.pattern);
-        if(p.hasError()) return p;
-        pattern = p.getValue();
+        if (!p.has_value()) {
+            return Err<std::string>(p.error());
+        }
+        pattern = p.value();
     }
 
     auto body = visit(*node.body);
-    if(body.hasError()) return body;
+    if (!body.has_value()) {
+        return Err<std::string>(body.error());
+    }
 
     // Handle guard condition if present
     std::string guardCondition;
     if(node.condition) {
         auto guard = visit(*node.condition);
-        if(guard.hasError()) return guard;
-        guardCondition = guard.getValue();
+        if (!guard.has_value()) {
+            return Err<std::string>(guard.error());
+        }
+        guardCondition = guard.value();
     }
 
 	std::string code;
@@ -508,7 +581,7 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
 		} else {
 			patternCondition = "ArgonLang::Runtime::match_value(__match_val, " + pattern + ")";
 		}
-	} else {
+		} else {
 		// Check if this is an identifier pattern (should capture, not compare)
 		// Identifier patterns should always match and capture the value
 		if(node.pattern && node.pattern->getNodeType() == ASTNodeType::IdentifierPattern) {
@@ -524,7 +597,7 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
 		if(identifierPattern) {
 			// Use C++17 structured binding in if statement: if(auto var = value; condition)
 			code = "if(auto " + identifierPattern->name + " = __match_val; " + guardCondition + ") {";
-		} else {
+	} else {
 			code = "if(" + patternCondition + " && (" + guardCondition + ")) {";
 		}
 	} else if(!guardCondition.empty()) {
@@ -534,9 +607,9 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
 	}
 
 	if((*node.body).getNodeGroup() == ASTNodeGroup::Expression) {
-		code += "return " + body.getValue() + ";}";
+		code += "return " + body.value() + ";}";
 	} else {
-		code += body.getValue() + "}";
+		code += body.value() + "}";
 	}
 
     return { code };
@@ -545,15 +618,19 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchBranch &node) {
 Result<std::string> CodeGenerationVisitor::visit(const MatchExpressionNode &node) {
 		ScopedStatementContext scoped(this->isStatementContext, false);
         auto value = visit(*node.value);
-        if(value.hasError()) return value;
+        if (!value.has_value()) {
+            return Err<std::string>(value.error());
+        }
 
-        std::string code = "([&]() { auto __match_val = " + value.getValue() + ";";
+        std::string code = "([&]() { auto __match_val = " + value.value() + ";";
         bool first = true;
         for(const auto &branch : node.branches) {
             auto branchCode = visit(*branch);
-            if(branchCode.hasError()) return branchCode;
+            if (!branchCode.has_value()) {
+                return Err<std::string>(branchCode.error());
+            }
             if(!first) code += " else ";
-            code += branchCode.getValue();
+            code += branchCode.value();
             first = false;
         }
         code += "})()";
@@ -562,13 +639,19 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchExpressionNode &node
 
 Result<std::string> CodeGenerationVisitor::visit(const TernaryExpressionNode &node) {
         auto cond = visit(*node.condition);
-        if(cond.hasError()) return cond;
+        if (!cond.has_value()) {
+            return Err<std::string>(cond.error());
+        }
         auto t = visit(*node.trueBranch);
-        if(t.hasError()) return t;
+        if (!t.has_value()) {
+            return Err<std::string>(t.error());
+        }
         auto f = visit(*node.falseBranch);
-        if(f.hasError()) return f;
+        if (!f.has_value()) {
+            return Err<std::string>(f.error());
+        }
 
-        return { cond.getValue() + " ? " + t.getValue() + " : " + f.getValue() };
+        return { cond.value() + " ? " + t.value() + " : " + f.value() };
 
 }
 
@@ -577,15 +660,17 @@ Result<std::string> CodeGenerationVisitor::visit(const ParallelExpressionNode &n
         bool originalContext = this->isStatementContext;
         ScopedStatementContext scoped(this->isStatementContext, false);
         auto expr = visit(*node.statementNode);
-        if(expr.hasError()) return expr;
+        if (!expr.has_value()) {
+            return Err<std::string>(expr.error());
+        }
         
         // Use ArgonLang runtime library for parallel execution
         if(node.statementNode->getNodeGroup() == ASTNodeGroup::Statement) {
             // For statements, wrap in lambda that returns 0
-            return { "ArgonLang::Runtime::par([&]() { " + expr.getValue() + "; return 0; })" + (originalContext? ";": "") };
+            return { "ArgonLang::Runtime::par([&]() { " + expr.value() + "; return 0; })" + (originalContext? ";": "") };
         } else {
             // For expressions, wrap in lambda that returns the expression value
-            return { "ArgonLang::Runtime::par([&]() { return " + expr.getValue() + "; })" + (originalContext? ";": "") };
+            return { "ArgonLang::Runtime::par([&]() { return " + expr.value() + "; })" + (originalContext? ";": "") };
         }
 }
 
@@ -593,8 +678,10 @@ Result<std::string> CodeGenerationVisitor::visit(const StructField &node) {
         std::string code = "." + node.name;
         if(node.value) {
                 auto val = visit(*node.value);
-                if(val.hasError()) return val;
-                code += " = " + val.getValue();
+                if (!val.has_value()) {
+                    return Err<std::string>(val.error());
+                }
+                code += " = " + val.value();
         }
         return { code };
 }
@@ -611,16 +698,20 @@ Result<std::string> CodeGenerationVisitor::visit(const StructExpressionNode &nod
         for(const auto &field : node.fields) {
                 if(field.type) {
                         auto typeCode = visit(*field.type);
-                        if(typeCode.hasError()) return typeCode;
-                        code += typeCode.getValue() + " " + field.name + ";";
+                        if (!typeCode.has_value()) {
+                            return Err<std::string>(typeCode.error());
+                        }
+                        code += typeCode.value() + " " + field.name + ";";
                 } else {
                         // If no explicit type, try to infer from the value
                         // For now, we'll use a generic approach - this could be improved with type inference
                         code += "decltype(";
                         if(field.value) {
                                 auto valueCode = visit(*field.value);
-                                if(valueCode.hasError()) return valueCode;
-                                code += valueCode.getValue();
+                                if (!valueCode.has_value()) {
+                                    return Err<std::string>(valueCode.error());
+                                }
+                                code += valueCode.value();
                         } else {
                                 code += "0"; // Default to int if no value provided
                         }
@@ -634,8 +725,10 @@ Result<std::string> CodeGenerationVisitor::visit(const StructExpressionNode &nod
         for(const auto &field : node.fields) {
                 if(field.value) {
                         auto valueCode = visit(*field.value);
-                        if(valueCode.hasError()) return valueCode;
-                        code += "instance." + field.name + " = " + valueCode.getValue() + ";";
+                        if (!valueCode.has_value()) {
+                            return Err<std::string>(valueCode.error());
+                        }
+                        code += "instance." + field.name + " = " + valueCode.value() + ";";
                 }
         }
         
@@ -651,8 +744,10 @@ Result<std::string> CodeGenerationVisitor::visit(const RangeExpressionNode &node
 
 	for(const auto& i: node.range) {
 		Result<std::string> item = visit(*i);
-		if(item.hasError()) return item;
-		code += item.getValue() + ",";
+		if (!item.has_value()) {
+			return Err<std::string>(item.error());
+		}
+		code += item.value() + ",";
 	}
 
 	code.pop_back();
@@ -667,52 +762,62 @@ Result<std::string> CodeGenerationVisitor::visit(const VariableDeclarationNode &
 	// Handle compound destructuring declarations (def [first], rest = arr)
 	if(!node.compoundPatterns.empty()) {
 		if(!node.value) {
-			return { "Compound destructuring declaration must have a value", "", Trace(ASTNodeType::VariableDeclaration, node.position) };
+			return Err<std::string>(create_parse_error(ErrorType::InvalidStatement, "Compound destructuring declaration must have a value", node.position));
 		}
 		
 		ScopedStatementContext scoped(this->isStatementContext, false);
 		Result<std::string> value = visit(*node.value);
-		if(value.hasError()) return value;
+		if (!value.has_value()) {
+			return Err<std::string>(value.error());
+		}
 		
 		// Generate unique temporary variable for the value using position
 		std::string tempVar = "__compound_temp_" + std::to_string(node.position.line) + "_" + std::to_string(node.position.column);
-		code += "auto " + tempVar + " = " + value.getValue() + ";";
+		code += "auto " + tempVar + " = " + value.value() + ";";
 		
 		// Generate compound destructuring assignments
 		Result<std::string> compoundDestructuring = generateCompoundDestructuring(node.compoundPatterns, tempVar);
-		if(compoundDestructuring.hasError()) return compoundDestructuring;
+		if (!compoundDestructuring.has_value()) {
+			return Err<std::string>(compoundDestructuring.error());
+		}
 		
-		code += compoundDestructuring.getValue();
+		code += compoundDestructuring.value();
 		return { code };
 	}
 	
 	// Handle single pattern destructuring declarations
 	if(node.pattern) {
 		if(!node.value) {
-			return { "Destructuring declaration must have a value", "", Trace(ASTNodeType::VariableDeclaration, node.position) };
+			return Err<std::string>(create_parse_error(ErrorType::InvalidStatement, "Destructuring declaration must have a value", node.position));
 		}
 		
 		ScopedStatementContext scoped(this->isStatementContext, false);
 		Result<std::string> value = visit(*node.value);
-		if(value.hasError()) return value;
+		if (!value.has_value()) {
+			return Err<std::string>(value.error());
+		}
 		
 		// Generate unique temporary variable for the value using position
 		std::string tempVar = "__destructure_temp_" + std::to_string(node.position.line) + "_" + std::to_string(node.position.column);
-		code += "auto " + tempVar + " = " + value.getValue() + ";";
+		code += "auto " + tempVar + " = " + value.value() + ";";
 		
 		// Generate destructuring assignments
 		Result<std::string> destructuring = generateDestructuring(node.pattern.get(), tempVar);
-		if(destructuring.hasError()) return destructuring;
+		if (!destructuring.has_value()) {
+			return Err<std::string>(destructuring.error());
+		}
 		
-		code += destructuring.getValue();
+		code += destructuring.value();
 		return { code };
 	}
 	
 	// Handle simple declarations
 	if(node.type) {
 		Result<std::string> type = visit(*node.type);
-		if(type.hasError()) return type;
-		code += type.getValue() + " ";
+		if (!type.has_value()) {
+			return Err<std::string>(type.error());
+		}
+		code += type.value() + " ";
 	} else code += "auto ";
 
 	code += node.name;
@@ -720,8 +825,10 @@ Result<std::string> CodeGenerationVisitor::visit(const VariableDeclarationNode &
 	if (node.value) {
 		ScopedStatementContext scoped(this->isStatementContext, false);
 		Result<std::string> value = visit(*node.value);
-		if (value.hasError()) return value;
-		code += " = " + value.getValue();
+		if (!value.has_value()) {
+			return Err<std::string>(value.error());
+		}
+		code += " = " + value.value();
 	}
 
 	code += ";";
@@ -733,29 +840,37 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionDeclarationNode &
 	ScopedStatementContext scoped(this->isStatementContext, true);
 
 	auto nameResult = visit(*node.name);
-	if (nameResult.hasError()) return nameResult;
-	std::string functionName = nameResult.getValue();
+	if (!nameResult.has_value()) {
+		return Err<std::string>(nameResult.error());
+	}
+	std::string functionName = nameResult.value();
 
 	std::string returnType = functionName == "main"? "int": "auto";
 	if (node.returnType) {
 		auto returnTypeResult = visit(*node.returnType);
-		if (returnTypeResult.hasError()) return returnTypeResult;
-		returnType = returnTypeResult.getValue();
+		if (!returnTypeResult.has_value()) {
+			return Err<std::string>(returnTypeResult.error());
+		}
+		returnType = returnTypeResult.value();
 	}
 
 	std::string code;
 	
 	// Generate template parameters if present
 	auto genericResult = generateGenericParameters(node.genericParams);
-	if (genericResult.hasError()) return genericResult;
-	code += genericResult.getValue();
+	if (!genericResult.has_value()) {
+		return Err<std::string>(genericResult.error());
+	}
+	code += genericResult.value();
 
 	code += returnType + " " + functionName + "(";
 
 	for (const auto& arg : node.args) {
 		auto argResult = visit(*arg);
-		if (argResult.hasError()) return argResult;
-		code += argResult.getValue() + ",";
+		if (!argResult.has_value()) {
+			return Err<std::string>(argResult.error());
+		}
+		code += argResult.value() + ",";
 	}
 	if (!node.args.empty()) {
 		code.pop_back();
@@ -765,12 +880,16 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionDeclarationNode &
 
 	if (node.body->getNodeType() != ASTNodeType::Block) {
 		auto bodyResult = visit(*node.body);
-		if (bodyResult.hasError()) return bodyResult;
-		code += " { return " + bodyResult.getValue() + "; }";
+		if (!bodyResult.has_value()) {
+			return Err<std::string>(bodyResult.error());
+		}
+		code += " { return " + bodyResult.value() + "; }";
 	} else {
 		auto bodyResult = visit(*node.body);
-		if (bodyResult.hasError()) return bodyResult;
-		code += bodyResult.getValue();
+		if (!bodyResult.has_value()) {
+			return Err<std::string>(bodyResult.error());
+		}
+		code += bodyResult.value();
 	}
 
 	return code;
@@ -778,28 +897,36 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionDeclarationNode &
 
 Result<std::string> CodeGenerationVisitor::visit(const FunctionDefinitionNode &node) {
 	Result<std::string> functionName = visit(*node.name);
-	if(functionName.hasError()) return functionName;
+	if (!functionName.has_value()) {
+		return Err<std::string>(functionName.error());
+	}
 	
 	std::string returnType = "int";
 	if (node.returnType) {
 		auto returnTypeResult = visit(*node.returnType);
-		if (returnTypeResult.hasError()) return returnTypeResult;
-		returnType = returnTypeResult.getValue();
+		if (!returnTypeResult.has_value()) {
+			return Err<std::string>(returnTypeResult.error());
+		}
+		returnType = returnTypeResult.value();
 	}
 
 	std::string code;
 	
 	// Generate template parameters if present
 	auto genericResult = generateGenericParameters(node.genericParams);
-	if (genericResult.hasError()) return genericResult;
-	code += genericResult.getValue();
+	if (!genericResult.has_value()) {
+		return Err<std::string>(genericResult.error());
+	}
+	code += genericResult.value();
 
-	code += returnType + " " + functionName.getValue() + "(";
+	code += returnType + " " + functionName.value() + "(";
 	for (const auto &arg: node.args) {
 		Result<std::string> type = visit(*arg->type);
-		if(type.hasError()) return type;
+		if (!type.has_value()) {
+			return Err<std::string>(type.error());
+		}
 
-		code += type.getValue() + " " + arg->name + ",";
+		code += type.value() + " " + arg->name + ",";
 	}
 	if (!node.args.empty()) {
 		code.pop_back();
@@ -812,23 +939,29 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionDefinitionNode &n
 Result<std::string> CodeGenerationVisitor::visit(const ReturnStatementNode &node) {
 	ScopedStatementContext scoped(this->isStatementContext, false);
 	Result<std::string> returnValue = visit(*node.returnExpression);
-	if(returnValue.hasError()) return returnValue;
+	if (!returnValue.has_value()) {
+		return Err<std::string>(returnValue.error());
+	}
 
-	return { "return " + returnValue.getValue() + ";" };
+	return { "return " + returnValue.value() + ";" };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const YieldStatementNode &node) {
 	Result<std::string> yieldValue = visit(*node.expressionNode);
-	if(yieldValue.hasError()) return yieldValue;
+	if (!yieldValue.has_value()) {
+		return Err<std::string>(yieldValue.error());
+	}
 
-	return { "co_yield " + yieldValue.getValue() + ";" };
+	return { "co_yield " + yieldValue.value() + ";" };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ImplStatementNode &node) {
     std::string code = "// impl " + node.className;
     auto body = visit(*node.body);
-    if(body.hasError()) return body;
-    code += body.getValue();
+    if (!body.has_value()) {
+        return Err<std::string>(body.error());
+    }
+    code += body.value();
     return { code };
 }
 
@@ -840,8 +973,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ConstructorStatementNode 
 	// constructor parameters
 	for (const auto& arg : node.args) {
 		auto typeResult = visit(*arg->type);
-		if (typeResult.hasError()) return typeResult;
-		code += typeResult.getValue() + " " + arg->name + ",";
+		if (!typeResult.has_value()) {
+			return Err<std::string>(typeResult.error());
+		}
+		code += typeResult.value() + " " + arg->name + ",";
 	}
 	if (!node.args.empty())
 		code.pop_back();
@@ -859,9 +994,11 @@ Result<std::string> CodeGenerationVisitor::visit(const ConstructorStatementNode 
 
 	// body
 	auto bodyResult = visit(*node.body);
-	if (bodyResult.hasError()) return bodyResult;
+	if (!bodyResult.has_value()) {
+		return Err<std::string>(bodyResult.error());
+	}
 
-	code += bodyResult.getValue();
+	code += bodyResult.value();
 
 	return code;
 }
@@ -870,14 +1007,18 @@ Result<std::string> CodeGenerationVisitor::visit(const ConstructorStatementNode:
     std::string code;
     if(node.type) {
     	auto type = visit(*node.type);
-        if(type.hasError()) return type;
-        code += type.getValue() + " ";
+        if (!type.has_value()) {
+            return Err<std::string>(type.error());
+        }
+        code += type.value() + " ";
     } else code += "auto ";
         code += node.name;
         if(node.value) {
     		auto val = visit(*node.value);
-            if(val.hasError()) return val;
-            code += " = " + val.getValue();
+            if (!val.has_value()) {
+                return Err<std::string>(val.error());
+            }
+            code += " = " + val.value();
     }
     return { code };
 }
@@ -888,8 +1029,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ClassDeclarationNode &nod
     // Generate template parameters if present
     if (!node.genericParams.empty()) {
         auto templateResult = generateGenericParameters(node.genericParams);
-        if (templateResult.hasError()) return templateResult;
-        code += templateResult.getValue();
+        if (!templateResult.has_value()) {
+            return Err<std::string>(templateResult.error());
+        }
+        code += templateResult.value();
     }
     
     code += "class " + node.className + "{";
@@ -901,8 +1044,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ClassDeclarationNode &nod
             case MemberVisibility::PRO: vis = "protected:"; break;
         }
         auto decl = visit(*member.declaration);
-        if(decl.hasError()) return decl;
-        code += vis + decl.getValue();
+        if (!decl.has_value()) {
+            return Err<std::string>(decl.error());
+        }
+        code += vis + decl.value();
     }
     code += "};";
     return { code };
@@ -912,8 +1057,10 @@ Result<std::string> CodeGenerationVisitor::visit(const UnionDeclarationNode &nod
     std::string code = "using " + node.unionName + " = std::variant<";
     for(const auto &t : node.types) {
     	auto tcode = visit(*t);
-        if(tcode.hasError()) return tcode;
-        code += tcode.getValue() + ",";
+        if (!tcode.has_value()) {
+            return Err<std::string>(tcode.error());
+        }
+        code += tcode.value() + ",";
     }
     if(!node.types.empty()) code.pop_back();
     code += ">;";
@@ -926,22 +1073,28 @@ Result<std::string> CodeGenerationVisitor::visit(const IfStatementNode &node) {
 	std::string code = "if(";
 
 	Result<std::string> condition = visit(*node.condition);
-	if(condition.hasError()) return condition;
+	if (!condition.has_value()) {
+		return Err<std::string>(condition.error());
+	}
 
-	code += condition.getValue();
+	code += condition.value();
 
 	code += ")";
 	Result<std::string> body = visit(*node.body);
-	if(body.hasError()) return body;
+	if (!body.has_value()) {
+		return Err<std::string>(body.error());
+	}
 
-	code += body.getValue();
+	code += body.value();
 
 	// Handle else branch if present
 	if(node.elseBranch != nullptr) {
 		code += "else";
 		Result<std::string> elseBranch = visit(*node.elseBranch);
-		if(elseBranch.hasError()) return elseBranch;
-		code += elseBranch.getValue();
+		if (!elseBranch.has_value()) {
+			return Err<std::string>(elseBranch.error());
+		}
+		code += elseBranch.value();
 	}
 
 	return { code };
@@ -951,18 +1104,22 @@ Result<std::string> CodeGenerationVisitor::visit(const ForStatementNode &node) {
 	ScopedStatementContext scoped(this->isStatementContext, true);
 
 	Result<std::string> iterator = visit(*node.iterator);
-	if(iterator.hasError()) return iterator;
+	if (!iterator.has_value()) {
+		return Err<std::string>(iterator.error());
+	}
 	
-	std::string iteratorCode = iterator.getValue();
+	std::string iteratorCode = iterator.value();
 	std::string code;
 	
 	// Check if this is a range expression (contains "std::ranges::iota_view")
 	if(iteratorCode.find("std::ranges::iota_view") != std::string::npos) {
 		// Range-based for loop: for(i -> 0 to 10)
 		if(node.variableType) {
-			Result<std::string> type = visit(*node.variableType);
-			if(type.hasError()) return type;
-			code += "for(" + type.getValue() + " " + node.variableName + " : " + iteratorCode + ")";
+	Result<std::string> type = visit(*node.variableType);
+			if (!type.has_value()) {
+				return Err<std::string>(type.error());
+			}
+			code += "for(" + type.value() + " " + node.variableName + " : " + iteratorCode + ")";
 		} else {
 			code += "for(auto " + node.variableName + " : " + iteratorCode + ")";
 		}
@@ -975,19 +1132,23 @@ Result<std::string> CodeGenerationVisitor::visit(const ForStatementNode &node) {
 		
 		if(node.variableType) {
 			Result<std::string> type = visit(*node.variableType);
-			if(type.hasError()) return type;
+			if (!type.has_value()) {
+				return Err<std::string>(type.error());
+			}
 			code += "for(auto __it = " + containerVar + ".first; __it != " + containerVar + ".second; ++__it) {";
-			code += type.getValue() + " " + node.variableName + " = *__it;";
+			code += type.value() + " " + node.variableName + " = *__it;";
 		} else {
 			code += "for(auto __it = " + containerVar + ".first; __it != " + containerVar + ".second; ++__it) {";
 			code += "auto " + node.variableName + " = *__it;";
 		}
 		
 		Result<std::string> body = visit(*node.body);
-		if(body.hasError()) return body;
+		if (!body.has_value()) {
+			return Err<std::string>(body.error());
+		}
 		
 		// Handle body - if it's a block, extract its content, otherwise wrap it
-		std::string bodyCode = body.getValue();
+		std::string bodyCode = body.value();
 		if(bodyCode.front() == '{' && bodyCode.back() == '}') {
 			// Remove outer braces and add the content
 			code += bodyCode.substr(1, bodyCode.length() - 2);
@@ -1004,19 +1165,23 @@ Result<std::string> CodeGenerationVisitor::visit(const ForStatementNode &node) {
 		// Iterator pair variable: for(i -> iterator)
 		if(node.variableType) {
 			Result<std::string> type = visit(*node.variableType);
-			if(type.hasError()) return type;
+			if (!type.has_value()) {
+				return Err<std::string>(type.error());
+			}
 			code += "for(auto __it = " + iteratorCode + ".first; __it != " + iteratorCode + ".second; ++__it) {";
-			code += type.getValue() + " " + node.variableName + " = *__it;";
+			code += type.value() + " " + node.variableName + " = *__it;";
 		} else {
 			code += "for(auto __it = " + iteratorCode + ".first; __it != " + iteratorCode + ".second; ++__it) {";
 			code += "auto " + node.variableName + " = *__it;";
 		}
 		
-		Result<std::string> body = visit(*node.body);
-		if(body.hasError()) return body;
+	Result<std::string> body = visit(*node.body);
+		if (!body.has_value()) {
+			return Err<std::string>(body.error());
+		}
 		
 		// Handle body - if it's a block, extract its content, otherwise wrap it
-		std::string bodyCode = body.getValue();
+		std::string bodyCode = body.value();
 		if(bodyCode.front() == '{' && bodyCode.back() == '}') {
 			// Remove outer braces and add the content
 			code += bodyCode.substr(1, bodyCode.length() - 2);
@@ -1031,17 +1196,21 @@ Result<std::string> CodeGenerationVisitor::visit(const ForStatementNode &node) {
 		// Collection-based for loop: for(i -> collection)
 		if(node.variableType) {
 			Result<std::string> type = visit(*node.variableType);
-			if(type.hasError()) return type;
-			code += "for(" + type.getValue() + " " + node.variableName + " : " + iteratorCode + ")";
+			if (!type.has_value()) {
+				return Err<std::string>(type.error());
+			}
+			code += "for(" + type.value() + " " + node.variableName + " : " + iteratorCode + ")";
 		} else {
 			code += "for(auto " + node.variableName + " : " + iteratorCode + ")";
 		}
 	}
 	
 	Result<std::string> body = visit(*node.body);
-	if(body.hasError()) return body;
+	if (!body.has_value()) {
+		return Err<std::string>(body.error());
+	}
 
-	code += body.getValue();
+	code += body.value();
 
 	return { code };
 }
@@ -1054,28 +1223,36 @@ Result<std::string> CodeGenerationVisitor::visit(const WhileStatementNode &node)
 	if(node.isDoWhile) {
 		code += "do";
 		Result<std::string> body = visit(*node.body);
-		if(body.hasError()) return body;
+		if (!body.has_value()) {
+			return Err<std::string>(body.error());
+		}
 
-		code += body.getValue();
+		code += body.value();
 
 		Result<std::string> condition = visit(*node.condition);
-		if(condition.hasError()) return condition;
-		code += "while(" + condition.getValue() + ");";
+		if (!condition.has_value()) {
+			return Err<std::string>(condition.error());
+		}
+		code += "while(" + condition.value() + ");";
 		return { code };
 	}
 
 	code += "while(";
 
 	Result<std::string> condition = visit(*node.condition);
-	if(condition.hasError()) return condition;
+	if (!condition.has_value()) {
+		return Err<std::string>(condition.error());
+	}
 
-	code += condition.getValue();
+	code += condition.value();
 
 	code += ")";
 	Result<std::string> body = visit(*node.body);
-	if(body.hasError()) return body;
+	if (!body.has_value()) {
+		return Err<std::string>(body.error());
+	}
 
-	code += body.getValue();
+	code += body.value();
 
 	return { code };
 }
@@ -1092,9 +1269,11 @@ Result<std::string> CodeGenerationVisitor::visit(const ContinueStatementNode &no
 Result<std::string> CodeGenerationVisitor::visit(const TypeAliasNode &node) {
 	std::string code = "using " + node.aliasName + "=";
 	Result<std::string> type = visit(*node.targetType);
-	if(type.hasError()) return type;
+	if (!type.has_value()) {
+		return Err<std::string>(type.error());
+	}
 
-	code += type.getValue() + ";";
+	code += type.value() + ";";
 
 	return { code };
 }
@@ -1110,8 +1289,10 @@ Result<std::string> CodeGenerationVisitor::visit(const BlockNode &node) {
 
 	for(const auto& statement: node.body) {
 		Result<std::string> statementCode = visit(*statement);
-		if(statementCode.hasError()) return statementCode;
-		code += statementCode.getValue();
+		if (!statementCode.has_value()) {
+			return Err<std::string>(statementCode.error());
+		}
+		code += statementCode.value();
 	}
 
 	code += "}";
@@ -1145,12 +1326,16 @@ Result<std::string> CodeGenerationVisitor::visit(const IdentifierTypeNode &node)
 
 Result<std::string> CodeGenerationVisitor::visit(const GenericTypeNode &node) {
     auto base = visit(*node.base);
-    if(base.hasError()) return base;
-    std::string code = base.getValue() + "<";
+    if (!base.has_value()) {
+        return Err<std::string>(base.error());
+    }
+    std::string code = base.value() + "<";
     for(const auto &p : node.params) {
     	auto pCode = visit(*p);
-        if(pCode.hasError()) return pCode;
-        code += pCode.getValue() + ",";
+        if (!pCode.has_value()) {
+            return Err<std::string>(pCode.error());
+        }
+        code += pCode.value() + ",";
     }
     if(!node.params.empty()) code.pop_back();
     code += ">";
@@ -1161,9 +1346,11 @@ Result<std::string> CodeGenerationVisitor::visit(const SumTypeNode &node) {
 	std::string code = "std::variant<";
 	for(const auto& type: node.types) {
 		Result<std::string> typeCode = visit(*type);
-		if(typeCode.hasError()) return typeCode;
+		if (!typeCode.has_value()) {
+			return Err<std::string>(typeCode.error());
+		}
 
-		code += typeCode.getValue() + ",";
+		code += typeCode.value() + ",";
 	}
 
 	if (!node.types.empty()) {
@@ -1187,30 +1374,32 @@ Result<std::string> CodeGenerationVisitor::visit(const IntersectionTypeNode &nod
 
 Result<std::string> CodeGenerationVisitor::visit(const PrefixedTypeNode &node) {
     auto base = visit(*node.type);
-    if(base.hasError()) return base;
+    if (!base.has_value()) {
+        return Err<std::string>(base.error());
+    }
     std::string code;
     
     switch(node.prefix) {
         case PrefixedTypeNode::Pointer:
-            code = base.getValue() + "*";
+            code = base.value() + "*";
             break;
         case PrefixedTypeNode::Owned:
-            code = "std::unique_ptr<" + base.getValue() + ">";
+            code = "std::unique_ptr<" + base.value() + ">";
             break;
         case PrefixedTypeNode::SharedRef:
-            code = "std::shared_ptr<" + base.getValue() + ">";
+            code = "std::shared_ptr<" + base.value() + ">";
             break;
         case PrefixedTypeNode::WeakRef:
-            code = "std::weak_ptr<" + base.getValue() + ">";
+            code = "std::weak_ptr<" + base.value() + ">";
             break;
         case PrefixedTypeNode::ImmutableRef:
-            code = "const " + base.getValue() + "&";
+            code = "const " + base.value() + "&";
             break;
         case PrefixedTypeNode::MutableRef:
-            code = base.getValue() + "&";
+            code = base.value() + "&";
             break;
         default:
-            code = base.getValue();
+            code = base.value();
             break;
     }
     return { code };
@@ -1239,8 +1428,10 @@ Result<std::string> CodeGenerationVisitor::visit(const EnumDeclarationNode &node
                 code += "std::tuple<";
                 for (const auto& field : variant.fields) {
                     auto fieldResult = visit(*field);
-                    if (fieldResult.hasError()) return fieldResult;
-                    code += fieldResult.getValue() + ", ";
+                    if (!fieldResult.has_value()) {
+                        return Err<std::string>(fieldResult.error());
+                    }
+                    code += fieldResult.value() + ", ";
                 }
                 if (!variant.fields.empty()) code.pop_back(), code.pop_back();
                 code += ">, ";
@@ -1269,8 +1460,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ConstraintDeclarationNode
     
     // Generate template parameters if present
     auto genericResult = generateGenericParameters(node.genericParams);
-    if (genericResult.hasError()) return genericResult;
-    code += genericResult.getValue();
+    if (!genericResult.has_value()) {
+        return Err<std::string>(genericResult.error());
+    }
+    code += genericResult.value();
     
     // Generate constraint as a concept or type alias
     code += "concept " + node.constraintName + " = ";
@@ -1284,9 +1477,11 @@ Result<std::string> CodeGenerationVisitor::visit(const ConstraintDeclarationNode
     // Restore previous context
     isConstraintContext = previousConstraintContext;
     
-    if (constraintResult.hasError()) return constraintResult;
+    if (!constraintResult.has_value()) {
+        return Err<std::string>(constraintResult.error());
+    }
     
-    code += constraintResult.getValue() + ";\n";
+    code += constraintResult.value() + ";\n";
     return { code };
 }
 
@@ -1296,8 +1491,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ModuleDeclarationNode &no
     
     for (const auto& stmt : node.body) {
         auto stmtResult = visit(*stmt);
-        if (stmtResult.hasError()) return stmtResult;
-        code += stmtResult.getValue();
+        if (!stmtResult.has_value()) {
+            return Err<std::string>(stmtResult.error());
+        }
+        code += stmtResult.value();
     }
     
     code += "} // namespace " + node.moduleName + "\n";
@@ -1326,8 +1523,10 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionTypeNode &node) {
 		code += "std::function<";
 		if (node.returnType) {
 			auto retType = visit(*node.returnType);
-			if (retType.hasError()) return retType;
-			code += retType.getValue();
+			if (!retType.has_value()) {
+				return Err<std::string>(retType.error());
+			}
+			code += retType.value();
 		} else {
 			code += "void";
 		}
@@ -1337,8 +1536,10 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionTypeNode &node) {
 		code += "std::function<";
 		if (node.returnType) {
 			auto retType = visit(*node.returnType);
-			if (retType.hasError()) return retType;
-			code += retType.getValue();
+			if (!retType.has_value()) {
+				return Err<std::string>(retType.error());
+			}
+			code += retType.value();
 		} else {
 			code += "void";
 		}
@@ -1346,8 +1547,10 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionTypeNode &node) {
 		
 		for (size_t i = 0; i < node.parameterTypes.size(); ++i) {
 			auto paramType = visit(*node.parameterTypes[i]);
-			if (paramType.hasError()) return paramType;
-			code += paramType.getValue();
+			if (!paramType.has_value()) {
+				return Err<std::string>(paramType.error());
+			}
+			code += paramType.value();
 			if (i < node.parameterTypes.size() - 1) {
 				code += ", ";
 			}
@@ -1363,16 +1566,20 @@ Result<std::string> CodeGenerationVisitor::visit(const ArrayTypeNode &node) {
 	std::string code;
 	
 	auto elemType = visit(*node.elementType);
-	if (elemType.hasError()) return elemType;
+	if (!elemType.has_value()) {
+		return Err<std::string>(elemType.error());
+	}
 	
 	if (node.size) {
 		// Fixed-size array: i32[10] -> std::array<int32_t, 10>
 		auto sizeExpr = visit(*node.size);
-		if (sizeExpr.hasError()) return sizeExpr;
-		code += "std::array<" + elemType.getValue() + ", " + sizeExpr.getValue() + ">";
+		if (!sizeExpr.has_value()) {
+			return Err<std::string>(sizeExpr.error());
+		}
+		code += "std::array<" + elemType.value() + ", " + sizeExpr.value() + ">";
 	} else {
 		// Dynamic array: i32[] -> std::vector<int32_t>
-		code += "std::vector<" + elemType.getValue() + ">";
+		code += "std::vector<" + elemType.value() + ">";
 	}
 	
 	return { code };
@@ -1381,9 +1588,11 @@ Result<std::string> CodeGenerationVisitor::visit(const ArrayTypeNode &node) {
 Result<std::string> CodeGenerationVisitor::visit(const VariadicTypeNode &node) {
 	// Variadic type: ...i32 -> std::vector<i32> (or similar container)
 	auto baseType = visit(*node.baseType);
-	if (baseType.hasError()) return baseType;
+	if (!baseType.has_value()) {
+		return Err<std::string>(baseType.error());
+	}
 	
-	return { "std::vector<" + baseType.getValue() + ">" };
+	return { "std::vector<" + baseType.value() + ">" };
 }
 
 // Pattern node implementations
@@ -1407,11 +1616,7 @@ Result<std::string> CodeGenerationVisitor::visit(const PatternNode &node) {
 		case ASTNodeType::RangePattern:
 			return visit(dynamic_cast<const RangePatternNode&>(node));
 		default:
-			return { 
-				ErrorFormatter::formatCodeGenError("Unknown pattern type", ASTNodeTypeToString(node.getNodeType())),
-				"",
-				Trace(node.getNodeType(), node.position)
-			};
+			return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Unknown pattern type", node.position));
 	}
 }
 
@@ -1437,8 +1642,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ArrayPatternNode &node) {
 	for (const auto& pattern : node.elements) {
 		if (!first) code += ", ";
 		auto patternCode = visit(*pattern);
-		if (patternCode.hasError()) return patternCode;
-		code += patternCode.getValue();
+		if (!patternCode.has_value()) {
+			return Err<std::string>(patternCode.error());
+		}
+		code += patternCode.value();
 		first = false;
 	}
 	code += "]";
@@ -1453,8 +1660,10 @@ Result<std::string> CodeGenerationVisitor::visit(const StructPatternNode &node) 
 		if (!first) code += ", ";
 		code += field.first + ": ";
 		auto patternCode = visit(*field.second);
-		if (patternCode.hasError()) return patternCode;
-		code += patternCode.getValue();
+		if (!patternCode.has_value()) {
+			return Err<std::string>(patternCode.error());
+		}
+		code += patternCode.value();
 		first = false;
 	}
 	code += "}";
@@ -1468,8 +1677,10 @@ Result<std::string> CodeGenerationVisitor::visit(const ConstructorPatternNode &n
 	for (const auto& arg : node.arguments) {
 		if (!first) code += ", ";
 		auto argCode = visit(*arg);
-		if (argCode.hasError()) return argCode;
-		code += argCode.getValue();
+		if (!argCode.has_value()) {
+			return Err<std::string>(argCode.error());
+		}
+		code += argCode.value();
 		first = false;
 	}
 	code += ")";
@@ -1479,19 +1690,25 @@ Result<std::string> CodeGenerationVisitor::visit(const ConstructorPatternNode &n
 Result<std::string> CodeGenerationVisitor::visit(const TypePatternNode &node) {
 	// Type pattern - check if value is of specific type
 	auto typeCode = visit(*node.type);
-	if (typeCode.hasError()) return typeCode;
-	return { typeCode.getValue() };
+	if (!typeCode.has_value()) {
+		return Err<std::string>(typeCode.error());
+	}
+	return { typeCode.value() };
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const RangePatternNode &node) {
 	// Range pattern start to end or start to= end
 	auto startCode = visit(*node.start);
-	if (startCode.hasError()) return startCode;
+	if (!startCode.has_value()) {
+		return Err<std::string>(startCode.error());
+	}
 	
 	auto endCode = visit(*node.end);
-	if (endCode.hasError()) return endCode;
+	if (!endCode.has_value()) {
+		return Err<std::string>(endCode.error());
+	}
 	
-	std::string code = startCode.getValue() + (node.isInclusive ? " to= " : " to ") + endCode.getValue();
+	std::string code = startCode.value() + (node.isInclusive ? " to= " : " to ") + endCode.value();
 	return { code };
 }
 
@@ -1503,7 +1720,7 @@ Result<std::string> CodeGenerationVisitor::generateDestructuring(const PatternNo
 		case ASTNodeType::ArrayPattern: {
 			const ArrayPatternNode* arrayPattern = dynamic_cast<const ArrayPatternNode*>(pattern);
 			if(!arrayPattern) {
-				return { "Failed to cast to ArrayPatternNode", "", Trace(ASTNodeType::ArrayPattern, pattern->position) };
+				return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Failed to cast to ArrayPatternNode", pattern->position));
 			}
 			
 			// Generate assignments for each element using runtime utilities
@@ -1521,8 +1738,10 @@ Result<std::string> CodeGenerationVisitor::generateDestructuring(const PatternNo
 					code += "auto " + elementVar + " = ArgonLang::Runtime::destructure_array_element(" + sourceVar + ", " + std::to_string(i) + ");";
 					
 					Result<std::string> nestedDestructuring = generateDestructuring(element, elementVar);
-					if(nestedDestructuring.hasError()) return nestedDestructuring;
-					code += nestedDestructuring.getValue();
+					if (!nestedDestructuring.has_value()) {
+						return Err<std::string>(nestedDestructuring.error());
+					}
+					code += nestedDestructuring.value();
 				}
 			}
 			
@@ -1543,7 +1762,7 @@ Result<std::string> CodeGenerationVisitor::generateDestructuring(const PatternNo
 		case ASTNodeType::StructPattern: {
 			const StructPatternNode* structPattern = dynamic_cast<const StructPatternNode*>(pattern);
 			if(!structPattern) {
-				return { "Failed to cast to StructPatternNode", "", Trace(ASTNodeType::StructPattern, pattern->position) };
+				return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Failed to cast to StructPatternNode", pattern->position));
 			}
 			
 			// Generate assignments for each field: auto field = sourceVar.fieldName;
@@ -1562,8 +1781,10 @@ Result<std::string> CodeGenerationVisitor::generateDestructuring(const PatternNo
 					code += "auto " + fieldVar + " = " + sourceVar + "." + fieldName + ";";
 					
 					Result<std::string> nestedDestructuring = generateDestructuring(fieldPattern, fieldVar);
-					if(nestedDestructuring.hasError()) return nestedDestructuring;
-					code += nestedDestructuring.getValue();
+					if (!nestedDestructuring.has_value()) {
+						return Err<std::string>(nestedDestructuring.error());
+					}
+					code += nestedDestructuring.value();
 				}
 			}
 			break;
@@ -1578,8 +1799,7 @@ Result<std::string> CodeGenerationVisitor::generateDestructuring(const PatternNo
 		}
 		
 		default:
-			return { "Unsupported pattern type for destructuring: " + std::string(ASTNodeTypeToString(pattern->getNodeType())), 
-					"", Trace(pattern->getNodeType(), pattern->position) };
+			return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Unsupported pattern type for destructuring", pattern->position));
 	}
 	
 	return { code };
@@ -1596,23 +1816,23 @@ Result<std::string> CodeGenerationVisitor::generateCompoundDestructuring(const s
 	for(size_t i = 0; i < patterns.size(); ++i) {
 		if(patterns[i]->getNodeType() == ASTNodeType::ArrayPattern) {
 			if(arrayPatternIndex != -1) {
-				return { "Only one array pattern allowed in compound destructuring", "", Trace(ASTNodeType::VariableDeclaration, patterns[i]->position) };
+				return Err<std::string>(create_parse_error(ErrorType::InvalidStatement, "Only one array pattern allowed in compound destructuring", patterns[i]->position));
 			}
 			arrayPatternIndex = static_cast<int>(i);
 		} else if(patterns[i]->getNodeType() == ASTNodeType::IdentifierPattern) {
 			identifierIndices.push_back(static_cast<int>(i));
 		} else {
-			return { "Compound destructuring only supports array patterns and identifier patterns", "", Trace(ASTNodeType::VariableDeclaration, patterns[i]->position) };
+			return Err<std::string>(create_parse_error(ErrorType::InvalidStatement, "Compound destructuring only supports array patterns and identifier patterns", patterns[i]->position));
 		}
 	}
 	
 	if(arrayPatternIndex == -1) {
-		return { "Compound destructuring requires at least one array pattern", "", Trace(ASTNodeType::VariableDeclaration, patterns[0]->position) };
+		return Err<std::string>(create_parse_error(ErrorType::InvalidStatement, "Compound destructuring requires at least one array pattern", patterns[0]->position));
 	}
 	
 	const ArrayPatternNode* arrayPattern = dynamic_cast<const ArrayPatternNode*>(patterns[arrayPatternIndex].get());
 	if(!arrayPattern) {
-		return { "Failed to cast to ArrayPatternNode", "", Trace(ASTNodeType::ArrayPattern, patterns[arrayPatternIndex]->position) };
+		return Err<std::string>(create_parse_error(ErrorType::InvalidCodeGeneration, "Failed to cast to ArrayPatternNode", patterns[arrayPatternIndex]->position));
 	}
 	
 	size_t arrayElementCount = arrayPattern->elements.size();
@@ -1693,16 +1913,20 @@ Result<std::string> CodeGenerationVisitor::generateGenericParameters(const std::
 		if (i > 0) code += ", ";
 		
 		auto paramResult = generateGenericParameter(*genericParams[i]);
-		if (paramResult.hasError()) return paramResult;
+		if (!paramResult.has_value()) {
+			return Err<std::string>(paramResult.error());
+		}
 		
-		code += paramResult.getValue();
+		code += paramResult.value();
 		
 		// Collect requires clauses for constraints
 		if (genericParams[i]->constraint) {
 			auto constraintResult = visit(*genericParams[i]->constraint);
-			if (constraintResult.hasError()) return constraintResult;
+			if (!constraintResult.has_value()) {
+				return Err<std::string>(constraintResult.error());
+			}
 			
-			std::string constraint = constraintResult.getValue();
+			std::string constraint = constraintResult.value();
 			std::string paramName = genericParams[i]->name;
 			
 			// Check if this looks like a concept (starts with uppercase) or a concrete type
