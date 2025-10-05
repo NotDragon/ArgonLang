@@ -2,151 +2,151 @@
 
 using namespace ArgonLang;
 
-ASTNodeType StringLiteralNode::getNodeType() const {
+ASTNodeType StringLiteralNode::get_node_type() const {
 	return ASTNodeType::StringLiteral;
 }
 
-ASTNodeType CharLiteralNode::getNodeType() const {
+ASTNodeType CharLiteralNode::get_node_type() const {
 	return ASTNodeType::CharLiteral;
 }
 
-ASTNodeType IntegralLiteralNode::getNodeType() const {
+ASTNodeType IntegralLiteralNode::get_node_type() const {
 	return ASTNodeType::IntegralLiteral;
 }
 
-ASTNodeType FloatLiteralNode::getNodeType() const {
+ASTNodeType FloatLiteralNode::get_node_type() const {
 	return ASTNodeType::FloatLiteral;
 }
 
-ASTNodeType BooleanLiteralNode::getNodeType() const {
+ASTNodeType BooleanLiteralNode::get_node_type() const {
 	return ASTNodeType::BooleanLiteral;
 }
 
-ASTNodeType IdentifierNode::getNodeType() const {
+ASTNodeType IdentifierNode::get_node_type() const {
 	return ASTNodeType::Identifier;
 }
 
-ASTNodeType BinaryExpressionNode::getNodeType() const {
+ASTNodeType BinaryExpressionNode::get_node_type() const {
 	return ASTNodeType::BinaryExpression;
 }
 
-ASTNodeType UnaryExpressionNode::getNodeType() const {
+ASTNodeType UnaryExpressionNode::get_node_type() const {
 	return ASTNodeType::UnaryExpression;
 }
 
-ASTNodeType NullExpressionNode::getNodeType() const {
+ASTNodeType NullExpressionNode::get_node_type() const {
 	return ASTNodeType::NullExpression;
 }
 
-ASTNodeType FunctionCallExpressionNode::getNodeType() const {
+ASTNodeType FunctionCallExpressionNode::get_node_type() const {
 	return ASTNodeType::FunctionCallExpression;
 }
 
-ASTNodeType ToExpressionNode::getNodeType() const {
+ASTNodeType ToExpressionNode::get_node_type() const {
 	return ASTNodeType::ToExpression;
 }
 
-ASTNodeType LambdaExpressionNode::getNodeType() const {
+ASTNodeType LambdaExpressionNode::get_node_type() const {
 	return ASTNodeType::LambdaExpression;
 }
 
-ASTNodeType ComparisonExpressionNode::getNodeType() const {
+ASTNodeType ComparisonExpressionNode::get_node_type() const {
 	return ASTNodeType::ComparisonExpression;
 }
 
-ASTNodeType AssignmentExpressionNode::getNodeType() const {
+ASTNodeType AssignmentExpressionNode::get_node_type() const {
 	return ASTNodeType::AssignmentExpression;
 }
 
-ASTNodeType IndexExpressionNode::getNodeType() const {
+ASTNodeType IndexExpressionNode::get_node_type() const {
 	return ASTNodeType::IndexExpression;
 }
 
-ASTNodeType SliceExpressionNode::getNodeType() const {
+ASTNodeType SliceExpressionNode::get_node_type() const {
 	return ASTNodeType::SliceExpression;
 }
 
-ASTNodeType MultipleIndexExpressionNode::getNodeType() const {
+ASTNodeType MultipleIndexExpressionNode::get_node_type() const {
 	return ASTNodeType::MultipleIndexExpression;
 }
 
-ASTNodeType MatchExpressionNode::getNodeType() const {
+ASTNodeType MatchExpressionNode::get_node_type() const {
 	return ASTNodeType::MatchExpression;
 }
 
-ASTNodeType TernaryExpressionNode::getNodeType() const {
+ASTNodeType TernaryExpressionNode::get_node_type() const {
 	return ASTNodeType::TernaryExpression;
 }
 
-ASTNodeType ParallelExpressionNode::getNodeType() const {
+ASTNodeType ParallelExpressionNode::get_node_type() const {
 	return ASTNodeType::ParallelExpression;
 }
 
-ASTNodeType StructExpressionNode::getNodeType() const {
+ASTNodeType StructExpressionNode::get_node_type() const {
 	return ASTNodeType::StructExpression;
 }
 
-ASTNodeType RangeExpressionNode::getNodeType() const {
+ASTNodeType RangeExpressionNode::get_node_type() const {
 	return ASTNodeType::RangeExpression;
 }
 
-ASTNodeType ProgramNode::getNodeType() const {
+ASTNodeType ProgramNode::get_node_type() const {
 	return ASTNodeType::Program;
 }
 
-ASTNodeType ReturnStatementNode::getNodeType() const {
+ASTNodeType ReturnStatementNode::get_node_type() const {
 	return ASTNodeType::ReturnStatement;
 }
 
-ASTNodeType VariableDeclarationNode::getNodeType() const {
+ASTNodeType VariableDeclarationNode::get_node_type() const {
 	return ASTNodeType::VariableDeclaration;
 }
 
-ASTNodeType IfStatementNode::getNodeType() const {
+ASTNodeType IfStatementNode::get_node_type() const {
 	return ASTNodeType::IfStatement;
 }
 
-ASTNodeType ForStatementNode::getNodeType() const {
+ASTNodeType ForStatementNode::get_node_type() const {
 	return ASTNodeType::ForStatement;
 }
 
-ASTNodeType UnionDeclarationNode::getNodeType() const {
+ASTNodeType UnionDeclarationNode::get_node_type() const {
 	return ASTNodeType::UnionDeclaration;
 }
 
-ASTNodeType YieldStatementNode::getNodeType() const {
+ASTNodeType YieldStatementNode::get_node_type() const {
 	return ASTNodeType::YieldStatement;
 }
 
-ASTNodeType WhileStatementNode::getNodeType() const {
+ASTNodeType WhileStatementNode::get_node_type() const {
 	return ASTNodeType::WhileStatement;
 }
 
-ASTNodeType BreakStatementNode::getNodeType() const {
+ASTNodeType BreakStatementNode::get_node_type() const {
 	return ASTNodeType::BreakStatement;
 }
 
-ASTNodeType ContinueStatementNode::getNodeType() const {
+ASTNodeType ContinueStatementNode::get_node_type() const {
 	return ASTNodeType::ContinueStatement;
 }
 
-ASTNodeType BlockNode::getNodeType() const {
+ASTNodeType BlockNode::get_node_type() const {
 	return ASTNodeType::Block;
 }
 
-ASTNodeType SumTypeNode::getNodeType() const {
+ASTNodeType SumTypeNode::get_node_type() const {
 	return ASTNodeType::SumType;
 }
 
-ASTNodeType IdentifierTypeNode::getNodeType() const {
+ASTNodeType IdentifierTypeNode::get_node_type() const {
 	return ASTNodeType::IdentifierType;
 }
 
-ASTNodeType TypeAliasNode::getNodeType() const {
+ASTNodeType TypeAliasNode::get_node_type() const {
 	return ASTNodeType::TypeAlias;
 }
 
-ASTNodeType GenericTypeNode::getNodeType() const {
+ASTNodeType GenericTypeNode::get_node_type() const {
 	return ASTNodeType::GenericType;
 }
 
@@ -162,46 +162,44 @@ ASTNodeType FunctionArgument::getNodeType() const {
 	return ASTNodeType::FunctionArgument;
 }
 
-ASTNodeType ClassDeclarationNode::getNodeType() const {
+ASTNodeType ClassDeclarationNode::get_node_type() const {
 	return ASTNodeType::ClassDeclaration;
 }
 
-ASTNodeType FunctionDeclarationNode::getNodeType() const {
+ASTNodeType FunctionDeclarationNode::get_node_type() const {
 	return ASTNodeType::FunctionDeclaration;
 }
 
-ASTNodeType FunctionDefinitionNode::getNodeType() const {
+ASTNodeType FunctionDefinitionNode::get_node_type() const {
 	return ASTNodeType::FunctionDefinition;
 }
 
-ASTNodeType ConstructorStatementNode::getNodeType() const {
+ASTNodeType ConstructorStatementNode::get_node_type() const {
 	return ASTNodeType::ConstructorStatement;
 }
 
-ASTNodeType ImplStatementNode::getNodeType() const {
+ASTNodeType ImplStatementNode::get_node_type() const {
 	return ASTNodeType::ImplStatement;
 }
 
-ASTNodeType MemberAccessExpressionNode::getNodeType() const {
+ASTNodeType MemberAccessExpressionNode::get_node_type() const {
 	return ASTNodeType::MemberAccessExpression;
 }
 
-ArgonLang::ASTNodeType ArgonLang::IntersectionTypeNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::IntersectionTypeNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::IntersectionType;
 }
 
-ArgonLang::ASTNodeType ArgonLang::PrefixedTypeNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::PrefixedTypeNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::PrefixedType;
 }
 
 // New AST node getNodeType implementations
-ArgonLang::ASTNodeType ArgonLang::EnumDeclarationNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::EnumDeclarationNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::EnumDeclaration;
 }
 
-
-
-ArgonLang::ASTNodeType ArgonLang::ConstraintDeclarationNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::ConstraintDeclarationNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::ConstraintDeclaration;
 }
 
@@ -213,57 +211,55 @@ ArgonLang::ASTNodeGroup ArgonLang::GenericParameter::getNodeGroup() {
 	return ArgonLang::ASTNodeGroup::Type;
 }
 
-ArgonLang::ASTNodeType ArgonLang::ModuleDeclarationNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::ModuleDeclarationNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::ModuleDeclaration;
 }
 
-ArgonLang::ASTNodeType ArgonLang::ImportStatementNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::ImportStatementNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::ImportStatement;
 }
 
-ArgonLang::ASTNodeType ArgonLang::FunctionTypeNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::FunctionTypeNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::FunctionType;
 }
 
-ArgonLang::ASTNodeType ArgonLang::ArrayTypeNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::ArrayTypeNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::ArrayType;
 }
 
-
-
-ArgonLang::ASTNodeType ArgonLang::VariadicTypeNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::VariadicTypeNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::VariadicType;
 }
 
 // Pattern node getNodeType implementations
-ArgonLang::ASTNodeType ArgonLang::WildcardPatternNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::WildcardPatternNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::WildcardPattern;
 }
 
-ArgonLang::ASTNodeType ArgonLang::LiteralPatternNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::LiteralPatternNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::LiteralPattern;
 }
 
-ArgonLang::ASTNodeType ArgonLang::IdentifierPatternNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::IdentifierPatternNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::IdentifierPattern;
 }
 
-ArgonLang::ASTNodeType ArgonLang::ArrayPatternNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::ArrayPatternNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::ArrayPattern;
 }
 
-ArgonLang::ASTNodeType ArgonLang::StructPatternNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::StructPatternNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::StructPattern;
 }
 
-ArgonLang::ASTNodeType ArgonLang::ConstructorPatternNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::ConstructorPatternNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::ConstructorPattern;
 }
 
-ArgonLang::ASTNodeType ArgonLang::TypePatternNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::TypePatternNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::TypePattern;
 }
 
-ArgonLang::ASTNodeType ArgonLang::RangePatternNode::getNodeType() const {
+ArgonLang::ASTNodeType ArgonLang::RangePatternNode::get_node_type() const {
 	return ArgonLang::ASTNodeType::RangePattern;
 }

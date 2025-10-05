@@ -1,260 +1,267 @@
 #include "backend/Parser.h"
 #include "Error/Error.h"
 #include "Error/Result.h"
+
 #include <stdexcept>
 
 using namespace ArgonLang;
 
-Result<std::unique_ptr<ASTNode>> Parser::parseStatement() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_statement() {
 	switch (peek().type) {
-		case Token::KeywordUnion:
-			return parseUnionDeclaration();
-//		case Token::KeywordEval:
-//			break;
-//		case Token::KeywordType:
-//			break;
-		case Token::KeywordDef:
-			return parseVariableDeclaration();
-		case Token::KeywordIf:
-			return parseIfStatement();
-		case Token::KeywordWhile:
-			return parseWhileStatement();
-		case Token::KeywordFor:
-			return parseForStatement();
-		case Token::KeywordReturn:
-			return parseReturnStatement();
-		case Token::KeywordFunc:
-			return parseFunctionDeclaration();
-		case Token::KeywordClass:
-			return parseClassDeclaration();
-		case Token::KeywordConstructor:
-			return parseConstructorStatement();
-		case Token::KeywordImpl:
-			return parseImplStatement();
-		case Token::KeywordUsing:
-			return parseTypeAlias();
-		case Token::KeywordYield:
-			return parseYieldStatement();
-		case Token::KeywordEnum:
-			return parseEnumDeclaration();
-		case Token::KeywordConstraint:
-			return parseConstraintDeclaration();
-		case Token::KeywordModule:
-			return parseModuleDeclaration();
-		case Token::KeywordImport:
-			return parseImportStatement();
-		case Token::KeywordPar:
-			return parseParallelExpression();
-		case Token::KeywordBreak:
-			return parseBreakStatement();
-		case Token::KeywordContinue:
-			return parseContinueStatement();
-		case Token::LeftBrace:
-			return parseBlock();
-		default:
-			return parseExpression();
+	case Token::KeywordUnion:
+		return parse_union_declaration();
+		//		case Token::KeywordEval:
+		//			break;
+		//		case Token::KeywordType:
+		//			break;
+	case Token::KeywordDef:
+		return parse_variable_declaration();
+	case Token::KeywordIf:
+		return parse_if_statement();
+	case Token::KeywordWhile:
+		return parse_while_statement();
+	case Token::KeywordFor:
+		return parse_for_statement();
+	case Token::KeywordReturn:
+		return parse_return_statement();
+	case Token::KeywordFunc:
+		return parse_function_declaration();
+	case Token::KeywordClass:
+		return parse_class_declaration();
+	case Token::KeywordConstructor:
+		return parse_constructor_statement();
+	case Token::KeywordImpl:
+		return parse_impl_statement();
+	case Token::KeywordUsing:
+		return parse_type_alias();
+	case Token::KeywordYield:
+		return parse_yield_statement();
+	case Token::KeywordEnum:
+		return parse_enum_declaration();
+	case Token::KeywordConstraint:
+		return parse_constraint_declaration();
+	case Token::KeywordModule:
+		return parse_module_declaration();
+	case Token::KeywordImport:
+		return parse_import_statement();
+	case Token::KeywordPar:
+		return parse_parallel_expression();
+	case Token::KeywordBreak:
+		return parse_break_statement();
+	case Token::KeywordContinue:
+		return parse_continue_statement();
+	case Token::LeftBrace:
+		return parse_block();
+	default:
+		return parse_expression();
 	}
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseVariableDeclaration() {
-	Result<Token> keywordResult = advance();
-	if (!keywordResult.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(keywordResult.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_variable_declaration() {
+	Result<Token> keyword_result = advance();
+	if (!keyword_result.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(keyword_result.error());
 	}
-	Token keyword = keywordResult.value();
+	Token keyword = keyword_result.value();
 
 	// Parse the left-hand side (can be simple name, single pattern, or compound patterns)
-	bool isSimple = false;
-	bool isSinglePattern = false;
-	bool isCompoundPattern = false;
+	bool is_simple = false;
+	bool is_single_pattern = false;
+	bool is_compound_pattern = false;
 	std::string name = "";
 	std::unique_ptr<PatternNode> pattern = nullptr;
-	std::vector<std::unique_ptr<PatternNode>> compoundPatterns;
-	
+	std::vector<std::unique_ptr<PatternNode>> compound_patterns;
+
 	// Parse first element
-	if(peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
+	if (peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
 		// Starts with a pattern
-		Result<std::unique_ptr<PatternNode>> firstPattern = parsePattern();
-		if (!firstPattern.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(firstPattern.error());
+		Result<std::unique_ptr<PatternNode>> first_pattern = parse_pattern();
+		if (!first_pattern.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(first_pattern.error());
 		}
-		
+
 		// Check if there's a comma (compound pattern)
-		if(peek().type == Token::Comma) {
+		if (peek().type == Token::Comma) {
 			// This is compound destructuring: [first], rest = ...
-			isCompoundPattern = true;
-			compoundPatterns.push_back(std::move(firstPattern.value()));
-			
+			is_compound_pattern = true;
+			compound_patterns.push_back(std::move(first_pattern.value()));
+
 			// Parse remaining patterns
-			while(peek().type == Token::Comma) {
+			while (peek().type == Token::Comma) {
 				advance(); // consume comma
-				
-				if(peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
+
+				if (peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
 					// Another pattern
-					Result<std::unique_ptr<PatternNode>> nextPattern = parsePattern();
-					if (!nextPattern.has_value()) {
-						return Err<std::unique_ptr<ASTNode>>(nextPattern.error());
+					Result<std::unique_ptr<PatternNode>> next_pattern = parse_pattern();
+					if (!next_pattern.has_value()) {
+						return Err<std::unique_ptr<ASTNode>>(next_pattern.error());
 					}
-					compoundPatterns.push_back(std::move(nextPattern.value()));
-				} else if(peek().type == Token::Identifier) {
+					compound_patterns.push_back(std::move(next_pattern.value()));
+				} else if (peek().type == Token::Identifier) {
 					// Rest identifier
-					Result<Token> restId = advance();
-					if (!restId.has_value()) {
-						return Err<std::unique_ptr<ASTNode>>(restId.error());
+					Result<Token> rest_id = advance();
+					if (!rest_id.has_value()) {
+						return Err<std::unique_ptr<ASTNode>>(rest_id.error());
 					}
-					compoundPatterns.push_back(std::make_unique<IdentifierPatternNode>(restId.value().position, restId.value().value));
+					compound_patterns.push_back(
+					    std::make_unique<IdentifierPatternNode>(rest_id.value().position, rest_id.value().value));
 				} else {
-					Token currentToken = peek();
-				Error error = create_parse_error(ErrorType::UnexpectedToken,
-					"Expected pattern or identifier after comma in compound destructuring",
-					currentToken.position);
-				error.withExpected("pattern or identifier").withActual(currentToken.value);
-				return Err<std::unique_ptr<ASTNode>>(error);
+					Token current_token = peek();
+					Error error = create_parse_error(
+					    ErrorType::UnexpectedToken,
+					    "Expected pattern or identifier after comma in compound destructuring", current_token.position);
+					error.withExpected("pattern or identifier").withActual(current_token.value);
+					return Err<std::unique_ptr<ASTNode>>(error);
 				}
 			}
 		} else {
 			// Single pattern destructuring: def [a, b] = ...
-			isSinglePattern = true;
-			pattern = std::move(firstPattern.value());
+			is_single_pattern = true;
+			pattern = std::move(first_pattern.value());
 		}
-	} else if(peek().type == Token::Identifier) {
+	} else if (peek().type == Token::Identifier) {
 		// Could be simple declaration or compound starting with identifier
-		Result<Token> firstId = advance();
-		if (!firstId.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(firstId.error());
+		Result<Token> first_id = advance();
+		if (!first_id.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(first_id.error());
 		}
-		
-		if(peek().type == Token::Comma) {
+
+		if (peek().type == Token::Comma) {
 			// Compound destructuring starting with identifier: def rest, [last] = ...
-			isCompoundPattern = true;
-			compoundPatterns.push_back(std::make_unique<IdentifierPatternNode>(firstId.value().position, firstId.value().value));
-			
+			is_compound_pattern = true;
+			compound_patterns.push_back(
+			    std::make_unique<IdentifierPatternNode>(first_id.value().position, first_id.value().value));
+
 			// Parse remaining patterns
-			while(peek().type == Token::Comma) {
+			while (peek().type == Token::Comma) {
 				advance(); // consume comma
-				
-				if(peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
-				Result<std::unique_ptr<PatternNode>> nextPattern = parsePattern();
-				if (!nextPattern.has_value()) {
-					return Err<std::unique_ptr<ASTNode>>(nextPattern.error());
-				}
-				compoundPatterns.push_back(std::move(nextPattern.value()));
-				} else if(peek().type == Token::Identifier) {
-				Result<Token> restId = advance();
-				if (!restId.has_value()) {
-					return Err<std::unique_ptr<ASTNode>>(restId.error());
-				}
-					compoundPatterns.push_back(std::make_unique<IdentifierPatternNode>(restId.value().position, restId.value().value));
+
+				if (peek().type == Token::LeftBracket || peek().type == Token::LeftBrace) {
+					Result<std::unique_ptr<PatternNode>> next_pattern = parse_pattern();
+					if (!next_pattern.has_value()) {
+						return Err<std::unique_ptr<ASTNode>>(next_pattern.error());
+					}
+					compound_patterns.push_back(std::move(next_pattern.value()));
+				} else if (peek().type == Token::Identifier) {
+					Result<Token> rest_id = advance();
+					if (!rest_id.has_value()) {
+						return Err<std::unique_ptr<ASTNode>>(rest_id.error());
+					}
+					compound_patterns.push_back(
+					    std::make_unique<IdentifierPatternNode>(rest_id.value().position, rest_id.value().value));
 				} else {
-					return Err<std::unique_ptr<ASTNode>>(create_parse_error(ErrorType::UnexpectedToken, "Expected pattern or identifier after comma in compound destructuring", peek().position));
+					return Err<std::unique_ptr<ASTNode>>(create_parse_error(
+					    ErrorType::UnexpectedToken,
+					    "Expected pattern or identifier after comma in compound destructuring", peek().position));
 				}
 			}
 		} else {
 			// Simple declaration: def name = ...
-			isSimple = true;
-			name = firstId.value().value;
+			is_simple = true;
+			name = first_id.value().value;
 		}
 	} else {
-		return Err<std::unique_ptr<ASTNode>>(create_parse_error(ErrorType::UnexpectedToken, "Expected identifier or pattern after 'def'", keyword.position));
+		return Err<std::unique_ptr<ASTNode>>(create_parse_error(
+		    ErrorType::UnexpectedToken, "Expected identifier or pattern after 'def'", keyword.position));
 	}
 
 	Result<std::unique_ptr<TypeNode>> type;
 	Result<std::unique_ptr<ASTNode>> value;
 
-	if(peek().type == Token::Colon) {
+	if (peek().type == Token::Colon) {
 		Result<Token> token = advance();
 		if (!token.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(token.error());
 		}
-		
-		type = parseType();
+
+		type = parse_type();
 		if (!type.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(type.error());
 		}
 	}
 
-	if(peek().type == Token::Assign) {
+	if (peek().type == Token::Assign) {
 		Result<Token> token = advance();
 		if (!token.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(token.error());
 		}
 
-		value = parseExpression();
+		value = parse_expression();
 		if (!value.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(value.error());
-	}
+		}
 	}
 	Token::Position smiColonPos = peek().position;
-	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if (!semiColon.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(semiColon.error());
+	Result<Token> semi_colon = expect(Token::Semicolon, "Expected ';'");
+	if (!semi_colon.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(semi_colon.error());
 	}
 
 	if (!type.has_value() && !value.has_value()) {
-//		return { "Expected either value or type, in variable declaration" };
+		//		return { "Expected either value or type, in variable declaration" };
 	}
 
-	if(isCompoundPattern) {
-		return Ok(std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), 
-									   type.has_value() ? std::move(type.value()) : nullptr,
-									   value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
-									   std::move(compoundPatterns)));
-	} else if(isSinglePattern) {
-		return Ok(std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), 
-									   type.has_value() ? std::move(type.value()) : nullptr,
-									   value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
-									   std::move(pattern)));
+	if (is_compound_pattern) {
+		return Ok(std::make_unique<VariableDeclarationNode>(
+		    keyword.position, (keyword.value == "const"), type.has_value() ? std::move(type.value()) : nullptr,
+		    value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
+		    std::move(compound_patterns)));
+	} else if (is_single_pattern) {
+		return Ok(std::make_unique<VariableDeclarationNode>(
+		    keyword.position, (keyword.value == "const"), type.has_value() ? std::move(type.value()) : nullptr,
+		    value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
+		    std::move(pattern)));
 	} else {
-		return Ok(std::make_unique<VariableDeclarationNode>(keyword.position, (keyword.value == "const"), 
-									   type.has_value() ? std::move(type.value()) : nullptr,
-								   value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
-									   name));
+		return Ok(std::make_unique<VariableDeclarationNode>(
+		    keyword.position, (keyword.value == "const"), type.has_value() ? std::move(type.value()) : nullptr,
+		    value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr, name));
 	}
 }
 
-Result<std::unique_ptr<FunctionArgument>> Parser::parseFunctionArgument() {
-	Token::Position startPos = peek().position;
+Result<std::unique_ptr<FunctionArgument>> Parser::parse_function_argument() {
+	Token::Position start_pos = peek().position;
 
-	Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
-	if (!argIdentifier.has_value()) {
-		return Err<std::unique_ptr<FunctionArgument>>(argIdentifier.error());
+	Result<Token> arg_identifier = expect(Token::Identifier, "Expected identifier in function argument");
+	if (!arg_identifier.has_value()) {
+		return Err<std::unique_ptr<FunctionArgument>>(arg_identifier.error());
 	}
 
 	std::unique_ptr<TypeNode> type;
 	std::unique_ptr<ExpressionNode> value;
 
-	if(peek().type == Token::Colon) {
+	if (peek().type == Token::Colon) {
 		Result<Token> colon = advance();
 		if (!colon.has_value()) {
 			return Err<std::unique_ptr<FunctionArgument>>(colon.error());
 		}
 
-		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
-		if (!typeRes.has_value()) {
-			return Err<std::unique_ptr<FunctionArgument>>(typeRes.error());
+		Result<std::unique_ptr<TypeNode>> type_res = parse_type();
+		if (!type_res.has_value()) {
+			return Err<std::unique_ptr<FunctionArgument>>(type_res.error());
 		}
 
-		type = std::move(typeRes.value());
+		type = std::move(type_res.value());
 	}
 
-	if(peek().type == Token::Assign) {
+	if (peek().type == Token::Assign) {
 		Result<Token> assign = advance();
 		if (!assign.has_value()) {
 			return Err<std::unique_ptr<FunctionArgument>>(assign.error());
 		}
-		
-		Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
-		if (!valueRes.has_value()) {
-			return Err<std::unique_ptr<FunctionArgument>>(valueRes.error());
+
+		Result<std::unique_ptr<ASTNode>> value_res = parse_expression();
+		if (!value_res.has_value()) {
+			return Err<std::unique_ptr<FunctionArgument>>(value_res.error());
 		}
 
-		value = dynamic_unique_cast<ExpressionNode>(std::move(valueRes.value()));
+		value = dynamic_unique_cast<ExpressionNode>(std::move(value_res.value()));
 	}
 
-	return Ok(std::make_unique<FunctionArgument>(startPos, std::move(type), std::move(value), argIdentifier.value().value));
+	return Ok(
+	    std::make_unique<FunctionArgument>(start_pos, std::move(type), std::move(value), arg_identifier.value().value));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_function_declaration() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
@@ -262,23 +269,24 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 
 	// Parse generic parameters if present: func<T, U>
 	std::vector<std::unique_ptr<GenericParameter>> genericParams;
-	if(peek().type == Token::Less) {
+	if (peek().type == Token::Less) {
 		Token::Position lessPos = peek().position;
 		Result<Token> less = advance();
 		if (!less.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(less.error());
 		}
 
-		while(peek().type != Token::Greater) {
+		while (peek().type != Token::Greater) {
 			Token::Position pos = peek().position;
-			Result<std::unique_ptr<GenericParameter>> param = parseGenericParameter();
+			Result<std::unique_ptr<GenericParameter>> param = parse_generic_parameter();
 			if (!param.has_value()) {
 				return Err<std::unique_ptr<ASTNode>>(param.error());
 			}
 
 			genericParams.push_back(std::move(param.value()));
 
-			if(peek().type == Token::Greater) break;
+			if (peek().type == Token::Greater)
+				break;
 			Token::Position commaPos = peek().position;
 			Result<Token> comma = expect(Token::Comma, "Expected ',' between generic parameters");
 			if (!comma.has_value()) {
@@ -292,34 +300,36 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 			return Err<std::unique_ptr<ASTNode>>(greater.error());
 		}
 	}
-	
-	Result<std::unique_ptr<ASTNode>> identifier = parseMemberAccessExpression();
+
+	Result<std::unique_ptr<ASTNode>> identifier = parse_member_access_expression();
 	if (!identifier.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(identifier.error());
 	}
 
-	if (identifier.has_value() && identifier.value()->getNodeType() == ASTNodeType::Identifier) {
-		auto tempIdentifier = dynamic_cast<IdentifierNode*>(identifier.value().get());
-		if(tempIdentifier->identifier == "main") mainCounter++;
+	if (identifier.has_value() && identifier.value()->get_node_type() == ASTNodeType::Identifier) {
+		auto tempIdentifier = dynamic_unique_cast<IdentifierNode>(std::move(identifier.value()));
+		if (tempIdentifier->identifier == "main")
+			main_counter++;
 	}
 
-	Token::Position leftParenPos = peek().position;
-	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after function declaration");
-	if (!leftParen.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(leftParen.error());
+	Token::Position left_paren_pos = peek().position;
+	Result<Token> left_paren = expect(Token::LeftParen, "Expected '(' after function declaration");
+	if (!left_paren.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(left_paren.error());
 	}
 
 	std::vector<std::unique_ptr<FunctionArgument>> args;
-	while(peek().type != Token::RightParen) {
-		Token::Position argPos = peek().position;
-		Result<std::unique_ptr<FunctionArgument>> arg = parseFunctionArgument();
+	while (peek().type != Token::RightParen) {
+		Token::Position arg_pos = peek().position;
+		Result<std::unique_ptr<FunctionArgument>> arg = parse_function_argument();
 		if (!arg.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(arg.error());
 		}
 
 		args.push_back(std::move(arg.value()));
 
-		if(peek().type == Token::RightParen) break;
+		if (peek().type == Token::RightParen)
+			break;
 
 		Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
 		if (!comma.has_value()) {
@@ -327,93 +337,95 @@ Result<std::unique_ptr<ASTNode>> Parser::parseFunctionDeclaration() {
 		}
 	}
 
-	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after function declaration");
-	if (!rightParen.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(rightParen.error());
+	Result<Token> right_paren = expect(Token::RightParen, "Expected ')' after function declaration");
+	if (!right_paren.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(right_paren.error());
 	}
 
-	Result<std::unique_ptr<TypeNode>> returnType;
-	
+	Result<std::unique_ptr<TypeNode>> return_type;
+
 	// Handle function syntax patterns:
 	// 1. func name(args) ReturnType -> expression;  (inline expression with return type)
 	// 2. func name(args) -> expression;             (inline expression without return type)
 	// 3. func name(args) ReturnType { body }        (function with return type and body)
 	// 4. func name(args) { body }                   (function without return type)
 	// 5. func name(args);                           (declaration only)
-	
+
 	// First, check if we have a return type (not immediately -> or { or ;)
-	if(peek().type != Token::Arrow && peek().type != Token::LeftBrace && peek().type != Token::Semicolon) {
+	if (peek().type != Token::Arrow && peek().type != Token::LeftBrace && peek().type != Token::Semicolon) {
 		// Parse return type: func name(args) ReturnType ...
-		Token::Position typePos = peek().position;
-		
-		Result<std::unique_ptr<TypeNode>> typeResult = parseType();
-		if (typeResult.has_value()) {
-			returnType = std::move(typeResult);
+		Token::Position type_pos = peek().position;
+
+		Result<std::unique_ptr<TypeNode>> type_result = parse_type();
+		if (type_result.has_value()) {
+			return_type = std::move(type_result);
 		}
 		// If type parsing failed, we'll continue and let the arrow/body/semicolon parsing handle it
 	}
-	
+
 	// Now check for arrow (inline expression)
-	if(peek().type == Token::Arrow) {
+	if (peek().type == Token::Arrow) {
 		// Arrow syntax for inline expression: -> expression;
 		Result<Token> arrow = advance();
 		if (!arrow.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(arrow.error());
 		}
 
-		Token::Position exprPos = peek().position;
-		
+		Token::Position expr_pos = peek().position;
+
 		// Parse the inline expression
-		Result<std::unique_ptr<ASTNode>> expr = parseExpression();
+		Result<std::unique_ptr<ASTNode>> expr = parse_expression();
 		if (!expr.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(expr.error());
 		}
 
-		std::unique_ptr<ReturnStatementNode> body = std::make_unique<ReturnStatementNode>(exprPos, dynamic_unique_cast<ExpressionNode>(std::move(expr.value())), false);
+		std::unique_ptr<ReturnStatementNode> body = std::make_unique<ReturnStatementNode>(
+		    expr_pos, dynamic_unique_cast<ExpressionNode>(std::move(expr.value())), false);
 
-		Result<Token> semiColon = expect(Token::Semicolon, "Expected ';' after inline function");
-		if (!semiColon.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(semiColon.error());
+		Result<Token> semi_colon = expect(Token::Semicolon, "Expected ';' after inline function");
+		if (!semi_colon.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(semi_colon.error());
 		}
 
-		return Ok(std::make_unique<FunctionDeclarationNode>(token.value().position, std::move(returnType.value()), std::move(args), std::move(body), dynamic_unique_cast<ExpressionNode>(std::move(identifier.value())), std::move(genericParams)));
+		return Ok(std::make_unique<FunctionDeclarationNode>(
+		    token.value().position, std::move(return_type.value()), std::move(args), std::move(body),
+		    dynamic_unique_cast<ExpressionNode>(std::move(identifier.value())), std::move(genericParams)));
 	}
 
-	if(peek().type == Token::Semicolon) {
+	if (peek().type == Token::Semicolon) {
 		Result<Token> semicolon = advance();
 		if (!semicolon.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(semicolon.error());
 		}
-		return Ok(std::make_unique<FunctionDefinitionNode>(token.value().position, std::move(returnType.value()), std::move(args), dynamic_unique_cast<ExpressionNode>(std::move(identifier.value())), std::move(genericParams)));
+		return Ok(std::make_unique<FunctionDefinitionNode>(
+		    token.value().position, std::move(return_type.value()), std::move(args),
+		    dynamic_unique_cast<ExpressionNode>(std::move(identifier.value())), std::move(genericParams)));
 	}
 
-	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	Result<std::unique_ptr<ASTNode>> body = parse_statement();
 	if (!body.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(body.error());
 	}
 
 	return Ok(std::make_unique<FunctionDeclarationNode>(
-			token.value().position,
-			returnType.has_value() ? std::move(returnType.value()) : nullptr,
-			std::move(args),
-			std::move(body.value()),
-			dynamic_unique_cast<ExpressionNode>(std::move(identifier.value())),
-			std::move(genericParams)));
+	    token.value().position, return_type.value() ? std::move(return_type.value()) : nullptr, std::move(args),
+	    std::move(body.value()), dynamic_unique_cast<ExpressionNode>(std::move(identifier.value())),
+	    std::move(genericParams)));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_if_statement() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
 	}
 
-	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after if statement");
-	if (!leftParen.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(leftParen.error());
+	Result<Token> left_paren = expect(Token::LeftParen, "Expected '(' after if statement");
+	if (!left_paren.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(left_paren.error());
 	}
 
-	Token::Position conditionPos = peek().position;
-	Result<std::unique_ptr<ASTNode>> condition = parseExpression();
+	Token::Position condition_pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> condition = parse_expression();
 	if (!condition.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(condition.error());
 	}
@@ -423,56 +435,54 @@ Result<std::unique_ptr<ASTNode>> Parser::parseIfStatement() {
 		return Err<std::unique_ptr<ASTNode>>(rightParen.error());
 	}
 
-	Token::Position bodyPos = peek().position;
-	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	Token::Position body_pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> body = parse_statement();
 	if (!body.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(body.error());
 	}
 
-	Result<std::unique_ptr<ASTNode>> elseStatement;
+	Result<std::unique_ptr<ASTNode>> else_statement;
 
-	if(peek().type == Token::KeywordElse) {
+	if (peek().type == Token::KeywordElse) {
 		Result<Token> token1 = advance();
 		if (!token1.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(token1.error());
 		}
 
-
-		elseStatement = parseStatement();
-		if (!elseStatement.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(elseStatement.error());
+		else_statement = parse_statement();
+		if (!else_statement.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(else_statement.error());
 		}
 	}
 	return Ok(std::make_unique<IfStatementNode>(
-			token.value().position,
-			dynamic_unique_cast<ExpressionNode>(std::move(condition.value())),
-	        dynamic_unique_cast<StatementNode>(std::move(body.value())),
-			elseStatement.has_value() ? dynamic_unique_cast<StatementNode>(std::move(elseStatement.value())) : nullptr));
+	    token.value().position, dynamic_unique_cast<ExpressionNode>(std::move(condition.value())),
+	    dynamic_unique_cast<StatementNode>(std::move(body.value())),
+	    else_statement.value() ? dynamic_unique_cast<StatementNode>(std::move(else_statement.value())) : nullptr));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseForStatement() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_for_statement() {
 	Result<Token> keyword = advance();
 	if (!keyword.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(keyword.error());
 	}
-	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after for statement");
-	if (!leftParen.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(leftParen.error());
+	Result<Token> left_paren = expect(Token::LeftParen, "Expected '(' after for statement");
+	if (!left_paren.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(left_paren.error());
 	}
 
-	Result<Token> identifierRes = expect(Token::Identifier, "Expected identifier");
-	if (!identifierRes.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(identifierRes.error());
+	Result<Token> identifier_res = expect(Token::Identifier, "Expected identifier");
+	if (!identifier_res.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(identifier_res.error());
 	}
 
 	std::unique_ptr<TypeNode> type;
-	if(peek().type == Token::Colon) {
+	if (peek().type == Token::Colon) {
 		Result<Token> colon = advance();
 		if (!colon.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(colon.error());
 		}
 
-		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
+		Result<std::unique_ptr<TypeNode>> typeRes = parse_type();
 		if (!typeRes.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(typeRes.error());
 		}
@@ -484,44 +494,41 @@ Result<std::unique_ptr<ASTNode>> Parser::parseForStatement() {
 		return Err<std::unique_ptr<ASTNode>>(arrow.error());
 	}
 
-	Result<std::unique_ptr<ASTNode>> iterator = parseExpression();
+	Result<std::unique_ptr<ASTNode>> iterator = parse_expression();
 	if (!iterator.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(iterator.error());
 	}
 
-	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after expression");
-	if (!rightParen.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(rightParen.error());
+	Result<Token> right_paren = expect(Token::RightParen, "Expected ')' after expression");
+	if (!right_paren.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(right_paren.error());
 	}
 
-	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	Result<std::unique_ptr<ASTNode>> body = parse_statement();
 	if (!body.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(body.error());
 	}
 
-	return Ok(std::make_unique<ForStatementNode>(
-			keyword.value().position,
-			identifierRes.value().value,
-			dynamic_unique_cast<ExpressionNode>(std::move(iterator.value())),
-			dynamic_unique_cast<StatementNode>(std::move(body.value())),
-			std::move(type)
-	));
+	return Ok(std::make_unique<ForStatementNode>(keyword.value().position, identifier_res.value().value,
+	                                             dynamic_unique_cast<ExpressionNode>(std::move(iterator.value())),
+	                                             dynamic_unique_cast<StatementNode>(std::move(body.value())),
+	                                             std::move(type)));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseWhileStatement() {
-	Result<Token> keywordRes = advance();
-	if (!keywordRes.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(keywordRes.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_while_statement() {
+	Result<Token> keyword_res = advance();
+	if (!keyword_res.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(keyword_res.error());
 	}
-	Token keyword = keywordRes.value();
+	Token keyword = keyword_res.value();
 
-	Result<Token> leftParen = expect(Token::LeftParen, "Expected '(' after while statement");
-	if (!leftParen.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(leftParen.error());
+	Result<Token> left_paren = expect(Token::LeftParen, "Expected '(' after while statement");
+	if (!left_paren.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(left_paren.error());
 	}
 
-	Token::Position conditionPos = peek().position;
-	Result<std::unique_ptr<ASTNode>> condition = parseExpression();
+	Token::Position condition_pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> condition = parse_expression();
 	if (!condition.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(condition.error());
 	}
@@ -531,42 +538,39 @@ Result<std::unique_ptr<ASTNode>> Parser::parseWhileStatement() {
 		return Err<std::unique_ptr<ASTNode>>(rightParen.error());
 	}
 
-	Token::Position bodyPos = peek().position;
-	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	Token::Position body_pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> body = parse_statement();
 	if (!body.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(body.error());
 	}
 
-	Result<std::unique_ptr<ASTNode>> elseStatement;
+	Result<std::unique_ptr<ASTNode>> else_statement;
 
-	if(peek().type == Token::KeywordElse) {
+	if (peek().type == Token::KeywordElse) {
 		Result<Token> token = advance();
 		if (!token.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(token.error());
 		}
 
-		elseStatement = parseStatement();
-		if (!elseStatement.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(elseStatement.error());
-	}
+		else_statement = parse_statement();
+		if (!else_statement.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(else_statement.error());
+		}
 	}
 	return Ok(std::make_unique<WhileStatementNode>(
-			keyword.position,
-			keyword.value == "dowhile",
-			dynamic_unique_cast<ExpressionNode>(std::move(condition.value())),
-			dynamic_unique_cast<StatementNode>(std::move(body.value())),
-			elseStatement.has_value() ? dynamic_unique_cast<StatementNode>(std::move(elseStatement.value())) : nullptr));
+	    keyword.position, keyword.value == "dowhile", dynamic_unique_cast<ExpressionNode>(std::move(condition.value())),
+	    dynamic_unique_cast<StatementNode>(std::move(body.value())),
+	    else_statement.value() ? dynamic_unique_cast<StatementNode>(std::move(else_statement.value())) : nullptr));
 }
 
-
-Result<std::unique_ptr<ASTNode>> Parser::parseReturnStatement() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_return_statement() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
 	}
 
 	bool isSuper = false;
-	if(peek().type == Token::KeywordSuper) {
+	if (peek().type == Token::KeywordSuper) {
 		isSuper = true;
 		Result<Token> super = advance();
 		if (!super.has_value()) {
@@ -574,51 +578,52 @@ Result<std::unique_ptr<ASTNode>> Parser::parseReturnStatement() {
 		}
 	}
 
-	Result<std::unique_ptr<ASTNode>> expr = parseExpression();
+	Result<std::unique_ptr<ASTNode>> expr = parse_expression();
 	if (!expr.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(expr.error());
 	}
 
-	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if (!semiColon.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(semiColon.error());
+	Result<Token> semi_colon = expect(Token::Semicolon, "Expected ';'");
+	if (!semi_colon.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(semi_colon.error());
 	}
 
-	return Ok(std::make_unique<ReturnStatementNode>(token.value().position, dynamic_unique_cast<ExpressionNode>(std::move(expr.value())), isSuper));
+	return Ok(std::make_unique<ReturnStatementNode>(
+	    token.value().position, dynamic_unique_cast<ExpressionNode>(std::move(expr.value())), isSuper));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseBreakStatement() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_break_statement() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
 	}
 
-	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if (!semiColon.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(semiColon.error());
+	Result<Token> semi_colon = expect(Token::Semicolon, "Expected ';'");
+	if (!semi_colon.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(semi_colon.error());
 	}
 
 	return Ok(std::make_unique<BreakStatementNode>(token.value().position));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseContinueStatement() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_continue_statement() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
 	}
 
-	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if (!semiColon.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(semiColon.error());
+	Result<Token> semi_colon = expect(Token::Semicolon, "Expected ';'");
+	if (!semi_colon.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(semi_colon.error());
 	}
 
 	return Ok(std::make_unique<ContinueStatementNode>(token.value().position));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {
-	Result<Token> typeAlias = advance();
-	if (!typeAlias.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(typeAlias.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_type_alias() {
+	Result<Token> type_alias = advance();
+	if (!type_alias.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(type_alias.error());
 	}
 
 	Result<Token> identifier = expect(Token::Identifier, "Expected identifier after using");
@@ -632,37 +637,34 @@ Result<std::unique_ptr<ASTNode>> Parser::parseTypeAlias() {
 	}
 
 	Token::Position pos = peek().position;
-	Result<std::unique_ptr<TypeNode>> type = parseType();
+	Result<std::unique_ptr<TypeNode>> type = parse_type();
 	if (!type.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(type.error());
 	}
 
-	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';' after type alias");
-	if (!semiColon.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(semiColon.error());
+	Result<Token> semi_colon = expect(Token::Semicolon, "Expected ';' after type alias");
+	if (!semi_colon.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(semi_colon.error());
 	}
 
-	return Ok(std::make_unique<TypeAliasNode>(
-			typeAlias.value().position,
-			identifier.value().value,
-			std::move(type.value())
-		));
+	return Ok(std::make_unique<TypeAliasNode>(type_alias.value().position, identifier.value().value,
+	                                          std::move(type.value())));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
-	Result<Token> classKeyword = advance();
-	if (!classKeyword.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(classKeyword.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_class_declaration() {
+	Result<Token> class_keyword = advance();
+	if (!class_keyword.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(class_keyword.error());
 	}
 
-	Result<Token> className = advance();
-	if (!className.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(className.error());
+	Result<Token> class_name = advance();
+	if (!class_name.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(class_name.error());
 	}
 
 	// Parse generic parameters if present: class Name<T, U> { ... }
 	std::vector<std::unique_ptr<GenericParameter>> genericParams;
-	if(peek().type == Token::Less) {
+	if (peek().type == Token::Less) {
 		Token::Position lessPos = peek().position;
 		Result<Token> less = advance();
 		if (!less.has_value()) {
@@ -671,15 +673,15 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 
 		// Parse generic parameters
 		do {
-			Token::Position paramPos = peek().position;
-			Result<std::unique_ptr<GenericParameter>> param = parseGenericParameter();
+			Token::Position param_pos = peek().position;
+			Result<std::unique_ptr<GenericParameter>> param = parse_generic_parameter();
 			if (!param.has_value()) {
 				return Err<std::unique_ptr<ASTNode>>(param.error());
 			}
-			
+
 			genericParams.push_back(std::move(param.value()));
 
-			if(peek().type == Token::Comma) {
+			if (peek().type == Token::Comma) {
 				Token::Position commaPos = peek().position;
 				Result<Token> comma = advance();
 				if (!comma.has_value()) {
@@ -688,7 +690,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 			} else {
 				break;
 			}
-		} while(true);
+		} while (true);
 
 		Token::Position greaterPos = peek().position;
 		Result<Token> greater = expect(Token::Greater, "Expected '>' after generic parameters");
@@ -700,43 +702,51 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 	std::vector<ConstructorStatementNode> constructors;
 	std::vector<ClassDeclarationNode::ClassMember> members;
 
-//  TODO: in the very far future
-//	if(peek().type == Token::RightParen) {
-//
-//	}
+	//  TODO: in the very far future
+	//	if(peek().type == Token::RightParen) {
+	//
+	//	}
 
 	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after class declaration");
 	if (!leftBrace.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(leftBrace.error());
 	}
 
-	while(peek().type != Token::RightBrace) {
+	while (peek().type != Token::RightBrace) {
 		MemberVisibility visibility = MemberVisibility::PRI;
 
-		if(	peek().type == Token::KeywordPub ||
-			peek().type == Token::KeywordPri ||
-			peek().type == Token::KeywordPro) {
-			Result<Token> visKeyword = advance();
-			if (!visKeyword.has_value()) {
-				return Err<std::unique_ptr<ASTNode>>(visKeyword.error());
+		if (peek().type == Token::KeywordPub || peek().type == Token::KeywordPri || peek().type == Token::KeywordPro) {
+			Result<Token> vis_keyword = advance();
+			if (!vis_keyword.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(vis_keyword.error());
 			}
 
-			visibility = 	visKeyword.value().type == Token::KeywordPub ? MemberVisibility::PUB :
-							visKeyword.value().type == Token::KeywordPri ? MemberVisibility::PRI :
-							MemberVisibility::PRO;
-
+			visibility = vis_keyword.value().type == Token::KeywordPub   ? MemberVisibility::PUB
+			             : vis_keyword.value().type == Token::KeywordPri ? MemberVisibility::PRI
+			                                                             : MemberVisibility::PRO;
 		}
 
-		if(peek().type != Token::KeywordDef &&
-		   peek().type != Token::KeywordFunc &&
-		   peek().type != Token::KeywordConstructor)
-			return Err<std::unique_ptr<ASTNode>>(create_parse_error(ErrorType::UnexpectedToken, "Expected either function declaration, variable declaration or constructor declaration", peek().position));
+		if (peek().type != Token::KeywordDef && peek().type != Token::KeywordFunc &&
+		    peek().type != Token::KeywordConstructor)
+			return Err<std::unique_ptr<ASTNode>>(create_parse_error(
+			    ErrorType::UnexpectedToken,
+			    "Expected either function declaration, variable declaration or constructor declaration",
+			    peek().position));
 
-		Result<std::unique_ptr<ASTNode>> member = parseStatement();
+		Result<std::unique_ptr<ASTNode>> member = parse_statement();
 		if (!member.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(member.error());
 		}
 		Token::Position memberPosition = member.value()->position;
+
+		// Check if the parsed member is actually a StatementNode
+		if (member.value()->get_node_group() != ASTNodeGroup::Statement) {
+			return Err<std::unique_ptr<ASTNode>>(create_parse_error(
+			    ErrorType::UnexpectedToken,
+			    "Expected statement in class body, got " + ast_node_type_to_string(member.value()->get_node_type()),
+			    memberPosition));
+		}
+
 		members.emplace_back(memberPosition, dynamic_unique_cast<StatementNode>(std::move(member.value())), visibility);
 	}
 
@@ -745,15 +755,11 @@ Result<std::unique_ptr<ASTNode>> Parser::parseClassDeclaration() {
 		return Err<std::unique_ptr<ASTNode>>(rightBrace.error());
 	}
 
-	return Ok(std::make_unique<ClassDeclarationNode>(
-		classKeyword.value().position,
-		className.value().value,
-		std::move(members),
-		std::move(genericParams)
-	));
+	return Ok(std::make_unique<ClassDeclarationNode>(class_keyword.value().position, class_name.value().value,
+	                                                 std::move(members), std::move(genericParams)));
 }
 
-Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::parseConstructorArgument() {
+Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::parse_constructor_argument() {
 	Result<Token> argIdentifier = expect(Token::Identifier, "Expected identifier in function argument");
 	if (!argIdentifier.has_value()) {
 		return Err<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>>(argIdentifier.error());
@@ -763,7 +769,7 @@ Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::p
 	std::unique_ptr<ExpressionNode> value;
 	std::string initializes;
 
-	if(peek().type == Token::LeftParen) {
+	if (peek().type == Token::LeftParen) {
 		Result<Token> leftParen = expect(Token::LeftParen, "Expected '('");
 		if (!leftParen.has_value()) {
 			return Err<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>>(leftParen.error());
@@ -781,14 +787,13 @@ Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::p
 		}
 	}
 
-	if(peek().type == Token::Colon) {
+	if (peek().type == Token::Colon) {
 		Result<Token> colon = advance();
 		if (!colon.has_value()) {
 			return Err<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>>(colon.error());
 		}
 
-		
-		Result<std::unique_ptr<TypeNode>> typeRes = parseType();
+		Result<std::unique_ptr<TypeNode>> typeRes = parse_type();
 		if (!typeRes.has_value()) {
 			return Err<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>>(typeRes.error());
 		}
@@ -796,14 +801,13 @@ Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::p
 		type = std::move(typeRes.value());
 	}
 
-	if(peek().type == Token::Assign) {
+	if (peek().type == Token::Assign) {
 		Result<Token> assign = advance();
 		if (!assign.has_value()) {
 			return Err<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>>(assign.error());
 		}
 
-		
-		Result<std::unique_ptr<ASTNode>> valueRes = parseExpression();
+		Result<std::unique_ptr<ASTNode>> valueRes = parse_expression();
 		if (!valueRes.has_value()) {
 			return Err<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>>(valueRes.error());
 		}
@@ -811,14 +815,14 @@ Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::p
 		value = dynamic_unique_cast<ExpressionNode>(std::move(valueRes.value()));
 	}
 
-	return { std::make_unique<ConstructorStatementNode::ConstructorArgument>(argIdentifier.value().position, argIdentifier.value().value, initializes, std::move(type), std::move(value)) };
-
+	return Ok(std::make_unique<ConstructorStatementNode::ConstructorArgument>(
+	    argIdentifier.value().position, argIdentifier.value().value, initializes, std::move(type), std::move(value)));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseConstructorStatement() {
-	Result<Token> constructorKeyword = advance();
-	if (!constructorKeyword.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(constructorKeyword.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_constructor_statement() {
+	Result<Token> constructor_keyword = advance();
+	if (!constructor_keyword.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(constructor_keyword.error());
 	}
 
 	std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args;
@@ -828,21 +832,21 @@ Result<std::unique_ptr<ASTNode>> Parser::parseConstructorStatement() {
 		return Err<std::unique_ptr<ASTNode>>(leftParen.error());
 	}
 
-	while(true) {
-		Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> arg = parseConstructorArgument();
+	while (true) {
+		Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> arg = parse_constructor_argument();
 		if (!arg.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(arg.error());
 		}
 
 		args.push_back(std::move(arg.value()));
 
-		if(peek().type == Token::RightParen) break;
+		if (peek().type == Token::RightParen)
+			break;
 
 		Result<Token> comma = expect(Token::Comma, "Expected ',' between arguments");
 		if (!comma.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(comma.error());
 		}
-
 	}
 
 	Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after constructor");
@@ -850,36 +854,37 @@ Result<std::unique_ptr<ASTNode>> Parser::parseConstructorStatement() {
 		return Err<std::unique_ptr<ASTNode>>(rightParen.error());
 	}
 
-	if(peek().type == Token::Semicolon) {
-		return Ok(std::make_unique<ConstructorStatementNode>(constructorKeyword.value().position, std::move(args), nullptr));
+	if (peek().type == Token::Semicolon) {
+		return Ok(
+		    std::make_unique<ConstructorStatementNode>(constructor_keyword.value().position, std::move(args), nullptr));
 	}
 
-	
-	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	Result<std::unique_ptr<ASTNode>> body = parse_statement();
 	if (!body.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(body.error());
 	}
 
-	return Ok(std::make_unique<ConstructorStatementNode>(constructorKeyword.value().position, std::move(args), std::move(body.value())));
+	return Ok(std::make_unique<ConstructorStatementNode>(constructor_keyword.value().position, std::move(args),
+	                                                     std::move(body.value())));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_block() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
 	}
 
 	std::vector<std::unique_ptr<ASTNode>> body;
-	while(peek().type != Token::RightBrace) {
-		Result<std::unique_ptr<ASTNode>> statement = parseStatement();
+	while (peek().type != Token::RightBrace) {
+		Result<std::unique_ptr<ASTNode>> statement = parse_statement();
 		if (!statement.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(statement.error());
 		}
 
-		if(statement.value()->getNodeGroup() == ASTNodeGroup::Expression) {
-			Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-			if (!semiColon.has_value()) {
-				return Err<std::unique_ptr<ASTNode>>(semiColon.error());
+		if (statement.value()->get_node_group() == ASTNodeGroup::Expression) {
+			Result<Token> semi_colon = expect(Token::Semicolon, "Expected ';'");
+			if (!semi_colon.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(semi_colon.error());
 			}
 		}
 
@@ -894,15 +899,15 @@ Result<std::unique_ptr<ASTNode>> Parser::parseBlock() {
 	return Ok(std::make_unique<BlockNode>(token.value().position, std::move(body)));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_impl_statement() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
 	}
 
-	Result<Token> className = expect(Token::Identifier, "Expected Class Name");
-	if (!className.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(className.error());
+	Result<Token> class_name = expect(Token::Identifier, "Expected Class Name");
+	if (!class_name.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(class_name.error());
 	}
 
 	Result<Token> keyword = advance();
@@ -911,12 +916,11 @@ Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
 	}
 
 	MemberVisibility visibility = MemberVisibility::PRI;
-	if(	keyword.value().type == Token::KeywordPub ||
-		keyword.value().type == Token::KeywordPri ||
-		keyword.value().type == Token::KeywordPro) {
-		visibility = 	keyword.value().type == Token::KeywordPub ? MemberVisibility::PUB :
-						keyword.value().type == Token::KeywordPri ? MemberVisibility::PRI :
-						MemberVisibility::PRO;
+	if (keyword.value().type == Token::KeywordPub || keyword.value().type == Token::KeywordPri ||
+	    keyword.value().type == Token::KeywordPro) {
+		visibility = keyword.value().type == Token::KeywordPub   ? MemberVisibility::PUB
+		             : keyword.value().type == Token::KeywordPri ? MemberVisibility::PRI
+		                                                         : MemberVisibility::PRO;
 
 		keyword = advance();
 		if (!keyword.has_value()) {
@@ -924,64 +928,60 @@ Result<std::unique_ptr<ASTNode>> Parser::parseImplStatement() {
 		}
 	}
 
-	
-	if(keyword.value().type != Token::KeywordFunc && keyword.value().type != Token::KeywordDef) {
-		return Err<std::unique_ptr<ASTNode>>(create_parse_error(ErrorType::UnexpectedToken, "Expected variable or function declaration", token.value().position));
+	if (keyword.value().type != Token::KeywordFunc && keyword.value().type != Token::KeywordDef) {
+		return Err<std::unique_ptr<ASTNode>>(create_parse_error(
+		    ErrorType::UnexpectedToken, "Expected variable or function declaration", token.value().position));
 	}
 
-	Token::Position bodyPos = peek().position;
-	Result<std::unique_ptr<ASTNode>> body = parseStatement();
+	Token::Position body_pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> body = parse_statement();
 	if (!body.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(body.error());
 	}
 
-	return Ok(std::make_unique<ImplStatementNode>(
-			token.value().position,
-			className.value().value,
-			dynamic_unique_cast<StatementNode>(std::move(body.value())), visibility));
+	return Ok(std::make_unique<ImplStatementNode>(token.value().position, class_name.value().value,
+	                                              dynamic_unique_cast<StatementNode>(std::move(body.value())),
+	                                              visibility));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseYieldStatement() {
+Result<std::unique_ptr<ASTNode>> Parser::parse_yield_statement() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
 	}
 
-	
-	Result<std::unique_ptr<ASTNode>> expr = parseExpression();
+	Result<std::unique_ptr<ASTNode>> expr = parse_expression();
 	if (!expr.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(expr.error());
 	}
 
-	Result<Token> semiColon = expect(Token::Semicolon, "Expected ';'");
-	if (!semiColon.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(semiColon.error());
+	Result<Token> semi_colon = expect(Token::Semicolon, "Expected ';'");
+	if (!semi_colon.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(semi_colon.error());
 	}
 
-	return Ok(std::make_unique<YieldStatementNode>(
-					token.value().position,
-					dynamic_unique_cast<ExpressionNode>(std::move(expr.value()))
-			        ));
+	return Ok(std::make_unique<YieldStatementNode>(token.value().position,
+	                                               dynamic_unique_cast<ExpressionNode>(std::move(expr.value()))));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseEnumDeclaration() {
-	Result<Token> enumKeyword = advance();
-	if (!enumKeyword.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(enumKeyword.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_enum_declaration() {
+	Result<Token> enum_keyword = advance();
+	if (!enum_keyword.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(enum_keyword.error());
 	}
 
-	bool isUnion = false;
-	if(peek().type == Token::KeywordUnion) {
-		isUnion = true;
-		Result<Token> unionKeyword = advance();
-		if (!unionKeyword.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(unionKeyword.error());
+	bool is_union = false;
+	if (peek().type == Token::KeywordUnion) {
+		is_union = true;
+		Result<Token> union_keyword = advance();
+		if (!union_keyword.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(union_keyword.error());
 		}
 	}
 
-	Result<Token> enumName = expect(Token::Identifier, "Expected enum name");
-	if (!enumName.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(enumName.error());
+	Result<Token> enum_name = expect(Token::Identifier, "Expected enum name");
+	if (!enum_name.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(enum_name.error());
 	}
 
 	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after enum name");
@@ -990,33 +990,34 @@ Result<std::unique_ptr<ASTNode>> Parser::parseEnumDeclaration() {
 	}
 
 	std::vector<EnumDeclarationNode::EnumVariant> variants;
-	while(peek().type != Token::RightBrace) {
+	while (peek().type != Token::RightBrace) {
 		Result<Token> variantName = expect(Token::Identifier, "Expected variant name");
 		if (!variantName.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(variantName.error());
 		}
 
 		std::vector<std::unique_ptr<TypeNode>> fields;
-		if(peek().type == Token::LeftParen) {
+		if (peek().type == Token::LeftParen) {
 			Result<Token> leftParen = advance();
 			if (!leftParen.has_value()) {
 				return Err<std::unique_ptr<ASTNode>>(leftParen.error());
 			}
 
-			while(peek().type != Token::RightParen) {
+			while (peek().type != Token::RightParen) {
 				Token::Position pos = peek().position;
-				Result<std::unique_ptr<TypeNode>> fieldType = parseType();
-			if (!fieldType.has_value()) {
-				return Err<std::unique_ptr<ASTNode>>(fieldType.error());
-			}
+				Result<std::unique_ptr<TypeNode>> field_type = parse_type();
+				if (!field_type.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(field_type.error());
+				}
 
-			fields.push_back(std::move(fieldType.value()));
+				fields.push_back(std::move(field_type.value()));
 
-				if(peek().type == Token::RightParen) break;
+				if (peek().type == Token::RightParen)
+					break;
 				Result<Token> comma = expect(Token::Comma, "Expected ',' between enum fields");
-			if (!comma.has_value()) {
-				return Err<std::unique_ptr<ASTNode>>(comma.error());
-			}
+				if (!comma.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(comma.error());
+				}
 			}
 
 			Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after enum fields");
@@ -1027,7 +1028,8 @@ Result<std::unique_ptr<ASTNode>> Parser::parseEnumDeclaration() {
 
 		variants.emplace_back(variantName.value().position, variantName.value().value, std::move(fields));
 
-		if(peek().type == Token::RightBrace) break;
+		if (peek().type == Token::RightBrace)
+			break;
 		Result<Token> comma = expect(Token::Comma, "Expected ',' between enum variants");
 		if (!comma.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(comma.error());
@@ -1039,18 +1041,19 @@ Result<std::unique_ptr<ASTNode>> Parser::parseEnumDeclaration() {
 		return Err<std::unique_ptr<ASTNode>>(rightBrace.error());
 	}
 
-	return Ok(std::make_unique<EnumDeclarationNode>(enumKeyword.value().position, enumName.value().value, std::move(variants), isUnion));
+	return Ok(std::make_unique<EnumDeclarationNode>(enum_keyword.value().position, enum_name.value().value,
+	                                                std::move(variants), is_union));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseUnionDeclaration() {
-	Result<Token> unionKeyword = advance();
-	if (!unionKeyword.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(unionKeyword.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_union_declaration() {
+	Result<Token> union_keyword = advance();
+	if (!union_keyword.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(union_keyword.error());
 	}
 
-	Result<Token> unionName = expect(Token::Identifier, "Expected union name");
-	if (!unionName.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(unionName.error());
+	Result<Token> union_name = expect(Token::Identifier, "Expected union name");
+	if (!union_name.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(union_name.error());
 	}
 
 	Result<Token> equals = expect(Token::Assign, "Expected '=' after union name");
@@ -1059,24 +1062,24 @@ Result<std::unique_ptr<ASTNode>> Parser::parseUnionDeclaration() {
 	}
 
 	std::vector<std::unique_ptr<TypeNode>> types;
-	
+
 	// Parse first type
 	Token::Position firstTypePos = peek().position;
-	Result<std::unique_ptr<TypeNode>> firstType = parseType();
+	Result<std::unique_ptr<TypeNode>> firstType = parse_type();
 	if (!firstType.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(firstType.error());
 	}
 	types.push_back(std::move(firstType.value()));
 
 	// Parse additional types separated by |
-	while(peek().type == Token::BitwiseOr) {
+	while (peek().type == Token::BitwiseOr) {
 		Result<Token> pipe = advance();
 		if (!pipe.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(pipe.error());
 		}
 
-		Token::Position typePos = peek().position;
-		Result<std::unique_ptr<TypeNode>> type = parseType();
+		Token::Position type_pos = peek().position;
+		Result<std::unique_ptr<TypeNode>> type = parse_type();
 		if (!type.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(type.error());
 		}
@@ -1088,41 +1091,43 @@ Result<std::unique_ptr<ASTNode>> Parser::parseUnionDeclaration() {
 		return Err<std::unique_ptr<ASTNode>>(semicolon.error());
 	}
 
-	return Ok(std::make_unique<UnionDeclarationNode>(unionKeyword.value().position, unionName.value().value, std::move(types)));
+	return Ok(std::make_unique<UnionDeclarationNode>(union_keyword.value().position, union_name.value().value,
+	                                                 std::move(types)));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseConstraintDeclaration() {
-	Token::Position startPos = peek().position;
-	Result<Token> constraintKeyword = advance();
-	if (!constraintKeyword.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(constraintKeyword.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_constraint_declaration() {
+	Token::Position start_pos = peek().position;
+	Result<Token> constraint_keyword = advance();
+	if (!constraint_keyword.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(constraint_keyword.error());
 	}
 
-	Token::Position namePos = peek().position;
-	Result<Token> constraintName = expect(Token::Identifier, "Expected constraint name");
-	if (!constraintName.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(constraintName.error());
+	Token::Position name_pos = peek().position;
+	Result<Token> constraint_name = expect(Token::Identifier, "Expected constraint name");
+	if (!constraint_name.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(constraint_name.error());
 	}
 
 	// Parse generic parameters if present
 	std::vector<std::unique_ptr<GenericParameter>> genericParams;
-	if(peek().type == Token::Less) {
+	if (peek().type == Token::Less) {
 		Token::Position lessPos = peek().position;
 		Result<Token> less = advance();
 		if (!less.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(less.error());
 		}
 
-		while(peek().type != Token::Greater) {
+		while (peek().type != Token::Greater) {
 			Token::Position pos = peek().position;
-			Result<std::unique_ptr<GenericParameter>> param = parseGenericParameter();
+			Result<std::unique_ptr<GenericParameter>> param = parse_generic_parameter();
 			if (!param.has_value()) {
 				return Err<std::unique_ptr<ASTNode>>(param.error());
 			}
 
 			genericParams.push_back(std::move(param.value()));
 
-			if(peek().type == Token::Greater) break;
+			if (peek().type == Token::Greater)
+				break;
 			Token::Position commaPos = peek().position;
 			Result<Token> comma = expect(Token::Comma, "Expected ',' between generic parameters");
 			if (!comma.has_value()) {
@@ -1143,13 +1148,14 @@ Result<std::unique_ptr<ASTNode>> Parser::parseConstraintDeclaration() {
 		return Err<std::unique_ptr<ASTNode>>(assign.error());
 	}
 
-	Token::Position exprPos = peek().position;
-	Result<std::unique_ptr<ASTNode>> constraintExpressionRes = parseExpression();
+	Token::Position expr_pos = peek().position;
+	Result<std::unique_ptr<ASTNode>> constraintExpressionRes = parse_expression();
 	if (!constraintExpressionRes.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(constraintExpressionRes.error());
 	}
-	
-	std::unique_ptr<ExpressionNode> constraintExpression = dynamic_unique_cast<ExpressionNode>(std::move(constraintExpressionRes.value()));
+
+	std::unique_ptr<ExpressionNode> constraintExpression =
+	    dynamic_unique_cast<ExpressionNode>(std::move(constraintExpressionRes.value()));
 
 	Token::Position semicolonPos = peek().position;
 	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after constraint expression");
@@ -1157,20 +1163,22 @@ Result<std::unique_ptr<ASTNode>> Parser::parseConstraintDeclaration() {
 		return Err<std::unique_ptr<ASTNode>>(semicolon.error());
 	}
 
-	return Ok(std::make_unique<ConstraintDeclarationNode>(constraintKeyword.value().position, constraintName.value().value, std::move(genericParams), std::move(constraintExpression)));
+	return Ok(std::make_unique<ConstraintDeclarationNode>(constraint_keyword.value().position,
+	                                                      constraint_name.value().value, std::move(genericParams),
+	                                                      std::move(constraintExpression)));
 }
 
-Result<std::unique_ptr<GenericParameter>> Parser::parseGenericParameter() {
-	Token::Position namePos = peek().position;
+Result<std::unique_ptr<GenericParameter>> Parser::parse_generic_parameter() {
+	Token::Position name_pos = peek().position;
 	Result<Token> name = expect(Token::Identifier, "Expected generic parameter name");
 	if (!name.has_value()) {
 		return Err<std::unique_ptr<GenericParameter>>(name.error());
 	}
 
 	std::unique_ptr<TypeNode> constraint = nullptr;
-	
+
 	// Check for constraint: T: Number
-	if(peek().type == Token::Colon) {
+	if (peek().type == Token::Colon) {
 		Token::Position colonPos = peek().position;
 		Result<Token> colon = advance();
 		if (!colon.has_value()) {
@@ -1178,7 +1186,7 @@ Result<std::unique_ptr<GenericParameter>> Parser::parseGenericParameter() {
 		}
 
 		Token::Position constraintPos = peek().position;
-		Result<std::unique_ptr<TypeNode>> constraintResult = parseType();
+		Result<std::unique_ptr<TypeNode>> constraintResult = parse_type();
 		if (!constraintResult.has_value()) {
 			return Err<std::unique_ptr<GenericParameter>>(constraintResult.error());
 		}
@@ -1189,15 +1197,15 @@ Result<std::unique_ptr<GenericParameter>> Parser::parseGenericParameter() {
 	return Ok(std::make_unique<GenericParameter>(namePos, name.value().value, std::move(constraint)));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseModuleDeclaration() {
-	Result<Token> moduleKeyword = advance();
-	if (!moduleKeyword.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(moduleKeyword.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_module_declaration() {
+	Result<Token> module_keyword = advance();
+	if (!module_keyword.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(module_keyword.error());
 	}
 
-	Result<Token> moduleName = expect(Token::Identifier, "Expected module name");
-	if (!moduleName.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(moduleName.error());
+	Result<Token> module_name = expect(Token::Identifier, "Expected module name");
+	if (!module_name.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(module_name.error());
 	}
 
 	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after module declaration");
@@ -1207,22 +1215,23 @@ Result<std::unique_ptr<ASTNode>> Parser::parseModuleDeclaration() {
 
 	// For now, we'll create a simple module declaration without body
 	// In a full implementation, we'd parse the module body
-	return Ok(std::make_unique<ModuleDeclarationNode>(moduleKeyword.value().position, moduleName.value().value, std::vector<std::unique_ptr<StatementNode>>()));
+	return Ok(std::make_unique<ModuleDeclarationNode>(module_keyword.value().position, module_name.value().value,
+	                                                  std::vector<std::unique_ptr<StatementNode>>()));
 }
 
-Result<std::unique_ptr<ASTNode>> Parser::parseImportStatement() {
-	Result<Token> importKeyword = advance();
-	if (!importKeyword.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(importKeyword.error());
+Result<std::unique_ptr<ASTNode>> Parser::parse_import_statement() {
+	Result<Token> import_keyword = advance();
+	if (!import_keyword.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(import_keyword.error());
 	}
 
-	Result<Token> moduleName = expect(Token::Identifier, "Expected module name");
-	if (!moduleName.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(moduleName.error());
+	Result<Token> module_name = expect(Token::Identifier, "Expected module name");
+	if (!module_name.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(module_name.error());
 	}
 
-	std::vector<std::string> importedItems;
-	if(peek().type == Token::Arrow) {
+	std::vector<std::string> imported_items;
+	if (peek().type == Token::Arrow) {
 		Result<Token> arrow = advance();
 		if (!arrow.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(arrow.error());
@@ -1235,17 +1244,17 @@ Result<std::unique_ptr<ASTNode>> Parser::parseImportStatement() {
 				return Err<std::unique_ptr<ASTNode>>(item.error());
 			}
 
-			importedItems.push_back(item.value().value);
+			imported_items.push_back(item.value().value);
 
-			if(peek().type == Token::Comma) {
+			if (peek().type == Token::Comma) {
 				Result<Token> comma = advance();
-			if (!comma.has_value()) {
-				return Err<std::unique_ptr<ASTNode>>(comma.error());
-			}
+				if (!comma.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(comma.error());
+				}
 			} else {
 				break;
 			}
-		} while(true);
+		} while (true);
 	}
 
 	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after import statement");
@@ -1253,5 +1262,6 @@ Result<std::unique_ptr<ASTNode>> Parser::parseImportStatement() {
 		return Err<std::unique_ptr<ASTNode>>(semicolon.error());
 	}
 
-	return Ok(std::make_unique<ImportStatementNode>(importKeyword.value().position, moduleName.value().value, std::move(importedItems)));
+	return Ok(std::make_unique<ImportStatementNode>(import_keyword.value().position, module_name.value().value,
+	                                                std::move(imported_items)));
 }

@@ -21,13 +21,13 @@ using Result = std::expected<T, Error>;
 
 // Success cases
 template<typename T>
-Result<T> Ok(T&& value) {
-    return Result<T>(std::forward<T>(value));
+Result<std::remove_reference_t<T>> Ok(T&& value) {
+    return Result<std::remove_reference_t<T>>(std::forward<T>(value));
 }
 
-template<typename T>
-Result<T> Ok(const T& value) {
-    return Result<T>(value);
+// Overload for string literals to convert to std::string
+inline Result<std::string> Ok(const char* value) {
+    return Result<std::string>(std::string(value));
 }
 
 // Error cases

@@ -2,19 +2,19 @@
 #include "Error/Error.h"
 #include "Error/Result.h"
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseType() {
-	return parseSumType();
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_type() {
+	return parse_sum_type();
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseIdentifierType() {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_identifier_type() {
 	Result<Token> left = advance();
 	if (!left.has_value()) {
 		return Err<std::unique_ptr<TypeNode>>(left.error());
 	}
 
-	if(left.value().type == Token::LeftParen) {
-		Result<std::unique_ptr<TypeNode>> type = parseType();
-		Result<Token> tokenError1 = expect(Token::RightParen, "Expected closing ')'");
+	if (left.value().type == Token::LeftParen) {
+		Result<std::unique_ptr<TypeNode>> type = parse_type();
+		Result<Token> token_error1 = expect(Token::RightParen, "Expected closing ')'");
 		if (!tokenError1.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(tokenError1.error());
 		}
@@ -22,38 +22,39 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	}
 
 	// Handle function types: func(i32, i32) i32 or func i32
-	if(left.value().type == Token::KeywordFunc) {
-		return parseFunctionType(left.value().position);
+	if (left.value().type == Token::KeywordFunc) {
+		return parse_function_type(left.value().position);
 	}
 
 	// Handle variadic types: ...i32
-	if(left.value().type == Token::Ellipsis) {
-		return parseVariadicType(left.value().position);
+	if (left.value().type == Token::Ellipsis) {
+		return parse_variadic_type(left.value().position);
 	}
 
-	if(left.value().type != Token::Identifier && left.value().type != Token::PrimitiveType) {
-		return Err<std::unique_ptr<TypeNode>>(create_parse_error(ErrorType::UnexpectedToken, "Expected type", left.value().position));
+	if (left.value().type != Token::Identifier && left.value().type != Token::PrimitiveType) {
+		return Err<std::unique_ptr<TypeNode>>(
+		    create_parse_error(ErrorType::UnexpectedToken, "Expected type", left.value().position));
 	}
 
 	if (peek().type == Token::Identifier || peek().type == Token::PrimitiveType) {
-		return Err<std::unique_ptr<TypeNode>>(create_parse_error(ErrorType::UnexpectedToken, "Expected '&' or '|' between types", left.value().position));
+		return Err<std::unique_ptr<TypeNode>>(
+		    create_parse_error(ErrorType::UnexpectedToken, "Expected '&' or '|' between types", left.value().position));
 	}
 
-	return Ok(std::make_unique<IdentifierTypeNode>(
-			left.value().position, left.value().value));
+	return Ok(std::make_unique<IdentifierTypeNode>(left.value().position, left.value().value));
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parsePrefixedType() {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_prefixed_type() {
 	PrefixedTypeNode::Prefix prefix;
 	switch (peek().type) {
-		case Token::Multiply:
-			prefix = PrefixedTypeNode::Prefix::Pointer;
-			break;
-		case Token::Ownership:
-			prefix = PrefixedTypeNode::Prefix::Owned;
-			break;
-		default:
-			return parseIdentifierType();
+	case Token::Multiply:
+		prefix = PrefixedTypeNode::Prefix::Pointer;
+		break;
+	case Token::Ownership:
+		prefix = PrefixedTypeNode::Prefix::Owned;
+		break;
+	default:
+		return parse_identifier_type();
 	}
 
 	Result<Token> pref = advance();
@@ -62,7 +63,7 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	}
 
 	Token::Position pos = peek().position;
-	Result<std::unique_ptr<TypeNode>> base = parseIdentifierType();
+	Result<std::unique_ptr<TypeNode>> base = parse_identifier_type();
 	if (!base.has_value()) {
 		return Err<std::unique_ptr<TypeNode>>(base.error());
 	}
@@ -70,32 +71,32 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	return Ok(std::make_unique<PrefixedTypeNode>(base.value()->position, std::move(base.value()), prefix));
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseArrayType() {
-	Result<std::unique_ptr<TypeNode>> base = parsePrefixedType();
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_array_type() {
+	Result<std::unique_ptr<TypeNode>> base = parse_prefixed_type();
 	if (!base.has_value()) {
 		return Err<std::unique_ptr<TypeNode>>(base.error());
 	}
 
 	// Check for array type: i32[10]
-	if(peek().type == Token::LeftBracket) {
+	if (peek().type == Token::LeftBracket) {
 		Token::Position pos = peek().position;
-		Result<Token> leftBracket = advance();
+		Result<Token> left_bracket = advance();
 		if (!leftBracket.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(leftBracket.error());
 		}
 
 		std::unique_ptr<ExpressionNode> size = nullptr;
-		if(peek().type != Token::RightBracket) {
+		if (peek().type != Token::RightBracket) {
 			// Parse array size expression
-			auto sizeResult = parseExpression();
-			if (!sizeResult.has_value()) {
-				return Err<std::unique_ptr<TypeNode>>(sizeResult.error());
+			auto size_result = parse_expression();
+			if (!size_result.has_value()) {
+				return Err<std::unique_ptr<TypeNode>>(size_result.error());
 			}
 			// We need to cast to ExpressionNode since parseExpression returns ASTNode
-			size = std::unique_ptr<ExpressionNode>(static_cast<ExpressionNode*>(sizeResult.value().release()));
+			size = std::unique_ptr<ExpressionNode>(static_cast<ExpressionNode*>(size_result.value().release()));
 		}
 
-		Result<Token> rightBracket = expect(Token::RightBracket, "Expected ']' after array size");
+		Result<Token> right_bracket = expect(Token::RightBracket, "Expected ']' after array size");
 		if (!rightBracket.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(rightBracket.error());
 		}
@@ -104,16 +105,18 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	}
 
 	// If not an array type, continue with generic type parsing
-	if(peek().type != Token::Less) return base;
+	if (peek().type != Token::Less)
+		return base;
 
-	return parseGenericTypeWithBase(std::move(base.value()));
+	return parse_generic_type_with_base(std::move(base.value()));
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseGenericType() {
-	return parseArrayType();
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_generic_type() {
+	return parse_array_type();
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseGenericTypeWithBase(std::unique_ptr<TypeNode> base) {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>>
+ArgonLang::Parser::parse_generic_type_with_base(std::unique_ptr<TypeNode> base) {
 	Token::Position pos = peek().position;
 	Result<Token> less = advance();
 	if (!less.has_value()) {
@@ -121,16 +124,17 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	}
 
 	std::vector<std::unique_ptr<TypeNode>> args;
-	while(peek().type != Token::Greater) {
+	while (peek().type != Token::Greater) {
 		Token::Position pos = peek().position;
-		Result<std::unique_ptr<TypeNode>> arg = parseType();
+		Result<std::unique_ptr<TypeNode>> arg = parse_type();
 		if (!arg.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(arg.error());
 		}
 
 		args.push_back(std::move(arg.value()));
 
-		if (peek().type == Token::Greater) break;
+		if (peek().type == Token::Greater)
+			break;
 
 		Result<Token> comma = expect(Token::Comma, "Expected ',' or '>'");
 		if (!comma.has_value()) {
@@ -146,24 +150,25 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	return Ok(std::make_unique<GenericTypeNode>(base->position, std::move(base), std::move(args)));
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseSumType() {
-	Token::Position leftPos = peek().position;
-	Result<std::unique_ptr<TypeNode>> left = parseIntersectionType();
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_sum_type() {
+	Token::Position left_pos = peek().position;
+	Result<std::unique_ptr<TypeNode>> left = parse_intersection_type();
 	if (!left.has_value()) {
 		return Err<std::unique_ptr<TypeNode>>(left.error());
 	}
-	if(peek().type != Token::FilterRange) return left;
+	if (peek().type != Token::FilterRange)
+		return left;
 
 	std::vector<std::unique_ptr<TypeNode>> types;
 	types.push_back(std::move(left.value()));
-	while(peek().type == Token::FilterRange) {
-		Result<Token> orToken = advance();
+	while (peek().type == Token::FilterRange) {
+		Result<Token> or_token = advance();
 		if (!orToken.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(orToken.error());
 		}
 
 		Token::Position pos = peek().position;
-		Result<std::unique_ptr<TypeNode>> right = parseIntersectionType();
+		Result<std::unique_ptr<TypeNode>> right = parse_intersection_type();
 		if (!right.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(right.error());
 		}
@@ -171,27 +176,28 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		types.push_back(std::move(right.value()));
 	}
 
-	return Ok(std::make_unique<SumTypeNode>(leftPos, std::move(types)));
+	return Ok(std::make_unique<SumTypeNode>(left_pos, std::move(types)));
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseIntersectionType() {
-	Token::Position leftPos = peek().position;
-	Result<std::unique_ptr<TypeNode>> left = parseGenericType();
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_intersection_type() {
+	Token::Position left_pos = peek().position;
+	Result<std::unique_ptr<TypeNode>> left = parse_generic_type();
 	if (!left.has_value()) {
 		return Err<std::unique_ptr<TypeNode>>(left.error());
 	}
-	if(peek().type != Token::MapRange) return left;
+	if (peek().type != Token::MapRange)
+		return left;
 
 	std::vector<std::unique_ptr<TypeNode>> types;
 	types.push_back(std::move(left.value()));
-	while(peek().type == Token::MapRange) {
-		Result<Token> andToken = advance();
+	while (peek().type == Token::MapRange) {
+		Result<Token> and_token = advance();
 		if (!andToken.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(andToken.error());
 		}
 
 		Token::Position pos = peek().position;
-		Result<std::unique_ptr<TypeNode>> right = parseGenericType();
+		Result<std::unique_ptr<TypeNode>> right = parse_generic_type();
 		if (!right.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(right.error());
 		}
@@ -199,33 +205,34 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 		types.push_back(std::move(right.value()));
 	}
 
-	return Ok(std::make_unique<IntersectionTypeNode>(leftPos, std::move(types)));
+	return Ok(std::make_unique<IntersectionTypeNode>(left_pos, std::move(types)));
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseFunctionType(Token::Position pos) {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_function_type(Token::Position pos) {
 	// func(i32, i32) i32 or func i32 (closure)
-	
-	std::vector<std::unique_ptr<TypeNode>> paramTypes;
-	std::unique_ptr<TypeNode> returnType = nullptr;
-	bool isClosure = false;
+
+	std::vector<std::unique_ptr<TypeNode>> param_types;
+	std::unique_ptr<TypeNode> return_type = nullptr;
+	bool is_closure = false;
 
 	// Check if it's a closure (func i32) or regular function (func(i32, i32) i32)
-	if(peek().type == Token::LeftParen) {
+	if (peek().type == Token::LeftParen) {
 		// Regular function type: func(i32, i32) i32
-		Result<Token> leftParen = advance();
+		Result<Token> left_paren = advance();
 		if (!leftParen.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(leftParen.error());
 		}
 
 		// Parse parameter types
-		while(peek().type != Token::RightParen) {
-			auto paramType = parseType();
-			if (!paramType.has_value()) {
-				return Err<std::unique_ptr<TypeNode>>(paramType.error());
+		while (peek().type != Token::RightParen) {
+			auto param_type = parse_type();
+			if (!param_type.has_value()) {
+				return Err<std::unique_ptr<TypeNode>>(param_type.error());
 			}
-			paramTypes.push_back(std::move(paramType.value()));
+			param_types.push_back(std::move(param_type.value()));
 
-			if(peek().type == Token::RightParen) break;
+			if (peek().type == Token::RightParen)
+				break;
 
 			Result<Token> comma = expect(Token::Comma, "Expected ',' between parameter types");
 			if (!comma.has_value()) {
@@ -233,40 +240,39 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 			}
 		}
 
-		Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after parameter types");
+		Result<Token> right_paren = expect(Token::RightParen, "Expected ')' after parameter types");
 		if (!rightParen.has_value()) {
 			return Err<std::unique_ptr<TypeNode>>(rightParen.error());
 		}
 
 		// Parse optional return type
-		if(peek().type != Token::Semicolon && peek().type != Token::Comma && 
-		   peek().type != Token::RightParen && peek().type != Token::RightBrace && 
-		   peek().type != Token::FilterRange && peek().type != Token::MapRange) {
-			auto retType = parseType();
-			if (!retType.has_value()) {
-				return Err<std::unique_ptr<TypeNode>>(retType.error());
+		if (peek().type != Token::Semicolon && peek().type != Token::Comma && peek().type != Token::RightParen &&
+		    peek().type != Token::RightBrace && peek().type != Token::FilterRange && peek().type != Token::MapRange) {
+			auto ret_type = parse_type();
+			if (!ret_type.has_value()) {
+				return Err<std::unique_ptr<TypeNode>>(ret_type.error());
 			}
-			returnType = std::move(retType.value());
+			return_type = std::move(ret_type.value());
 		}
 	} else {
 		// Closure type: func i32
-		isClosure = true;
-		auto retType = parseType();
-		if (!retType.has_value()) {
-			return Err<std::unique_ptr<TypeNode>>(retType.error());
+		is_closure = true;
+		auto ret_type = parse_type();
+		if (!ret_type.has_value()) {
+			return Err<std::unique_ptr<TypeNode>>(ret_type.error());
 		}
-		returnType = std::move(retType.value());
+		return_type = std::move(ret_type.value());
 	}
 
-	return Ok(std::make_unique<FunctionTypeNode>(pos, std::move(paramTypes), std::move(returnType), isClosure));
+	return Ok(std::make_unique<FunctionTypeNode>(pos, std::move(param_types), std::move(return_type), is_closure));
 }
 
-ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parseVariadicType(Token::Position pos) {
+ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse_variadic_type(Token::Position pos) {
 	// ...i32
-	auto baseType = parseType();
-	if (!baseType.has_value()) {
-		return Err<std::unique_ptr<TypeNode>>(baseType.error());
+	auto base_type = parse_type();
+	if (!base_type.has_value()) {
+		return Err<std::unique_ptr<TypeNode>>(base_type.error());
 	}
 
-	return Ok(std::make_unique<VariadicTypeNode>(pos, std::move(baseType.value())));
+	return Ok(std::make_unique<VariadicTypeNode>(pos, std::move(base_type.value())));
 }

@@ -148,13 +148,13 @@ namespace ArgonLang {
     class TokenizeResult {
     public:
         std::vector<Token> tokens;
-        std::string errorMsg;
-        Token::Position errorPosition;
+        std::string error_msg;
+        Token::Position error_position;
         
-        bool hasError() const { return !errorMsg.empty(); }
+        bool has_error() const { return !error_msg.empty(); }
         
-        TokenizeResult(std::vector<Token> tokens) : tokens(std::move(tokens)), errorPosition{0, 0} {}
-        TokenizeResult(std::string error, Token::Position pos) : errorMsg(std::move(error)), errorPosition(pos) {}
+        TokenizeResult(std::vector<Token> tokens) : tokens(std::move(tokens)), error_position{0, 0} {}
+        TokenizeResult(std::string error, Token::Position pos) : error_msg(std::move(error)), error_position(pos) {}
     };
 
     TokenizeResult tokenize(const std::string& input);

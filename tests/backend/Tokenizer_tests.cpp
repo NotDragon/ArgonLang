@@ -5,7 +5,7 @@ TEST(TokenizerTests, KeywordTokenization) {
 	std::string input = "def x: i32;";
 	auto tokenizeResult = ArgonLang::tokenize(input);
 
-	ASSERT_FALSE(tokenizeResult.hasError()) << "Tokenization failed: " << tokenizeResult.errorMsg;
+	ASSERT_FALSE(tokenizeResult.has_error()) << "Tokenization failed: " << tokenizeResult.error_msg;
 	auto& tokens = tokenizeResult.tokens;
 	
 	ASSERT_EQ(tokens.size(), 6); // Number of tokens

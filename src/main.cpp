@@ -1,9 +1,10 @@
-#include <fstream>
-#include <iostream>
 #include "backend/Parser.h"
 #include "backend/Tokenizer.h"
 #include "frontend/AnalysisVisitor.h"
 #include "frontend/CodeGenerationVisitor.h"
+
+#include <fstream>
+#include <iostream>
 
 int main(int argc, char** argv) {
 	std::string filename;
@@ -35,22 +36,22 @@ int main(int argc, char** argv) {
 		}
 	}
 
-    std::ifstream file(filename);
+	std::ifstream file(filename);
 
-	std::string str((std::istreambuf_iterator<char>(file)),
-							 std::istreambuf_iterator<char>());
+	std::string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
 	auto tokenizeResult = ArgonLang::tokenize(str);
-	if (tokenizeResult.hasError()) {
-		std::cerr << "Tokenization failed: " << tokenizeResult.errorMsg << "\n";
-		std::cerr << "At: " << tokenizeResult.errorPosition.line << ":" << tokenizeResult.errorPosition.column << "\n";
+	if (tokenizeResult.has_error()) {
+		std::cerr << "Tokenization failed: " << tokenizeResult.error_msg << "\n";
+		std::cerr << "At: " << tokenizeResult.error_position.line << ":" << tokenizeResult.error_position.column
+		          << "\n";
 		return 1;
 	}
 
-    ArgonLang::Parser parser(tokenizeResult.tokens);
+	ArgonLang::Parser parser(tokenizeResult.tokens);
 	ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> program = parser.parse();
 
-	if(!program.has_value()) {
+	if (!program.has_value()) {
 		std::cerr << "Parsing error occurred:\n\t" << program.error().message << "\n";
 
 		// Get initial position information safely
@@ -68,12 +69,12 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	if(parser.getMainCounter() == 0) {
+	if (parser.get_main_counter() == 0) {
 		std::cerr << "The main function was not declared";
 		return 1;
 	}
 
-	if(parser.getMainCounter() > 1) {
+	if (parser.get_main_counter() > 1) {
 		std::cerr << "Multiple definition of the main function";
 		return 1;
 	}
@@ -83,7 +84,7 @@ int main(int argc, char** argv) {
 	analysis.visit(*program.value());
 	ArgonLang::Result<std::string> codeResult = codeGenerator.visit(*program.value());
 
-	if(!codeResult.has_value()) {
+	if (!codeResult.has_value()) {
 		std::cerr << codeResult.error().message << "\n";
 		return 1;
 	}
@@ -97,7 +98,7 @@ int main(int argc, char** argv) {
 		std::ofstream dotFile(argv[2]);
 		dotFile << "digraph AST {\n";
 		int nodeId = 0;
-		program.value()->toDot(dotFile, nodeId);
+		program.value()->to_dot(dotFile, nodeId);
 		dotFile << "}\n";
 
 		std::cout << "\nDOT file generated: ast.dot\n";

@@ -1,102 +1,117 @@
 #include "backend/AST.h"
 #ifdef DEBUG
 
-void ArgonLang::StringLiteralNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::StringLiteralNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"StringLiteral(" << value << ")\"];\n";
 }
 
-void ArgonLang::CharLiteralNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::CharLiteralNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"CharLiteral(" << value << ")\"];\n";
 }
 
-void ArgonLang::IntegralLiteralNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::IntegralLiteralNode::to_dot(std::ostream& os, int& nodeId) const {
 	os << "  node" << nodeId++ << " [label=\"IntegralLiteral: ";
 	switch (type) {
-		case PrimitiveType::INT8:   os << static_cast<int>(value.i8); break;
-		case PrimitiveType::INT16:  os << value.i16; break;
-		case PrimitiveType::INT32:  os << value.i32; break;
-		case PrimitiveType::INT64:  os << value.i64; break;
-		case PrimitiveType::INT128: os << static_cast<int64_t>(value.i128); break;
-		default:
-			throw std::runtime_error("Invalid type for IntegralLiteralNode");
+	case PrimitiveType::INT8:
+		os << static_cast<int>(value.i8);
+		break;
+	case PrimitiveType::INT16:
+		os << value.i16;
+		break;
+	case PrimitiveType::INT32:
+		os << value.i32;
+		break;
+	case PrimitiveType::INT64:
+		os << value.i64;
+		break;
+	case PrimitiveType::INT128:
+		os << static_cast<int64_t>(value.i128);
+		break;
+	default:
+		throw std::runtime_error("Invalid type for IntegralLiteralNode");
 	}
-	os << " (" << primitiveTypeToString(type) << ")\"];\n";
+	os << " (" << primitive_type_to_string(type) << ")\"];\n";
 }
 
-void ArgonLang::FloatLiteralNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::FloatLiteralNode::to_dot(std::ostream& os, int& nodeId) const {
 	os << "  node" << nodeId++ << " [label=\"FloatLiteral: ";
 	switch (type) {
-		case PrimitiveType::FLOAT32:  os << value.f32; break;
-		case PrimitiveType::FLOAT64:  os << value.f64; break;
-		case PrimitiveType::FLOAT128: os << value.f128; break;
-		default:
-			throw std::runtime_error("Invalid type for FloatLiteralNode");
+	case PrimitiveType::FLOAT32:
+		os << value.f32;
+		break;
+	case PrimitiveType::FLOAT64:
+		os << value.f64;
+		break;
+	case PrimitiveType::FLOAT128:
+		os << value.f128;
+		break;
+	default:
+		throw std::runtime_error("Invalid type for FloatLiteralNode");
 	}
-	os << " (" << primitiveTypeToString(type) << ")\"];\n";
+	os << " (" << primitive_type_to_string(type) << ")\"];\n";
 }
 
-void ArgonLang::IdentifierNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::IdentifierNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Identifier(" << identifier << ")\"];\n";
 }
 
-void ArgonLang::UnaryExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::UnaryExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"UnaryExpressionNode(" << op.value << ")\"];\n";
 	if (operand) {
 		int leftId = nodeId;
-		operand->toDot(os, nodeId);
+		operand->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << leftId << ";\n";
 	}
 }
 
-void ArgonLang::BooleanLiteralNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::BooleanLiteralNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"BooleanLiteral(" << value << ")\"];\n";
 }
 
-void ArgonLang::BinaryExpressionNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::BinaryExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"BinaryExpression(" << op.value << ")\"];\n";
 
 	if (left) {
 		int leftId = nodeId;
-		left->toDot(os, nodeId);
+		left->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << leftId << ";\n";
 	}
 	if (right) {
 		int rightId = nodeId;
-		right->toDot(os, nodeId);
+		right->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << rightId << ";\n";
 	}
 }
 
-void ArgonLang::ProgramNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::ProgramNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Program\"];\n";
 
-	if (nodes.empty()) return;
+	if (nodes.empty())
+		return;
 
 	for (const auto& statement : nodes) {
 		int branchId = nodeId;
-		statement->toDot(os, nodeId);
+		statement->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << branchId << " [label=\"node\"];\n";
 	}
 }
 
-void ArgonLang::NullExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	
-}
+void ArgonLang::NullExpressionNode::to_dot(std::ostream& os, int& nodeId) const {}
 
-void ArgonLang::ToExpressionNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::ToExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Range\"];\n";
 
 	if (lowerBound) {
 		int lowerId = nodeId;
-		lowerBound->toDot(os, nodeId);
+		lowerBound->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << lowerId << " [label=\"lower\"];\n";
 	} else {
 		os << "  node" << currentId << " -> node" << nodeId++ << " [label=\"lower: *\"];\n";
@@ -104,14 +119,14 @@ void ArgonLang::ToExpressionNode::toDot(std::ostream& os, int& nodeId) const {
 
 	if (upperBound) {
 		int upperId = nodeId;
-		upperBound->toDot(os, nodeId);
+		upperBound->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << upperId << " [label=\"upper\"];\n";
 	} else {
 		os << "  node" << currentId << " -> node" << nodeId++ << " [label=\"upper: *\"];\n";
 	}
 }
 
-void ArgonLang::FunctionCallExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::FunctionCallExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	std::string label = "FunctionCallExpression";
 	if (!genericTypeArgs.empty()) {
@@ -120,87 +135,83 @@ void ArgonLang::FunctionCallExpressionNode::toDot(std::ostream &os, int &nodeId)
 	os << "  node" << currentId << " [label=\"" << label << "\"];\n";
 
 	int nameId = nodeId;
-	function->toDot(os, nodeId);
+	function->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << nameId << " [label=\"Name\"];\n";
 
-	for(size_t i = 0; i < genericTypeArgs.size(); ++i) {
+	for (size_t i = 0; i < genericTypeArgs.size(); ++i) {
 		int typeId = nodeId;
-		genericTypeArgs[i]->toDot(os, nodeId);
+		genericTypeArgs[i]->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << typeId << " [label=\"TypeArg" << i << "\"];\n";
 	}
 
-	for(const auto& argument: arguments) {
+	for (const auto& argument : arguments) {
 		int argumentId = nodeId;
-		argument->toDot(os, nodeId);
+		argument->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << argumentId << " [label=\"Argument\"];\n";
 	}
 }
 
-void ArgonLang::LambdaExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	
-}
+void ArgonLang::LambdaExpressionNode::to_dot(std::ostream& os, int& nodeId) const {}
 
-void ArgonLang::ComparisonExpressionNode::toDot(std::ostream &os, int &nodeId) const {
-	
-}
+void ArgonLang::ComparisonExpressionNode::to_dot(std::ostream& os, int& nodeId) const {}
 
-void ArgonLang::IndexExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::IndexExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 
 	os << "  node" << currentId << " [label=\"IndexExpression\"];\n";
 
 	if (array) {
 		int arrayId = nodeId;
-		array->toDot(os, nodeId);
+		array->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << arrayId << " [label=\"array\"];\n";
 	}
 
 	if (index) {
 		int indexId = nodeId;
-		index->toDot(os, nodeId);
+		index->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << indexId << " [label=\"index\"];\n";
 	}
 }
 
-void ArgonLang::SliceExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::SliceExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 
 	os << "  node" << currentId << " [label=\"SliceExpression\"];\n";
 
 	if (array) {
 		int arrayId = nodeId;
-		array->toDot(os, nodeId);
+		array->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << arrayId << " [label=\"array\"];\n";
 	}
 
 	if (start) {
 		int startId = nodeId;
-		start->toDot(os, nodeId);
+		start->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << startId << " [label=\"start\"];\n";
 	}
 
 	if (end) {
 		int endId = nodeId;
-		end->toDot(os, nodeId);
+		end->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << endId << " [label=\"end\"];\n";
 	}
 }
 
-void ArgonLang::MultipleIndexExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::MultipleIndexExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 
 	os << "  node" << currentId << " [label=\"MultipleIndexExpression\"];\n";
 
 	if (array) {
 		int arrayId = nodeId;
-		array->toDot(os, nodeId);
+		array->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << arrayId << " [label=\"array\"];\n";
 	}
 
 	for (size_t i = 0; i < indices.size(); ++i) {
 		if (indices[i]) {
 			int indexId = nodeId;
-			indices[i]->toDot(os, nodeId);
+			indices[i]->to_dot(os, nodeId);
 			os << "  node" << currentId << " -> node" << indexId << " [label=\"index" << i << "\"];\n";
 		}
 	}
@@ -212,28 +223,28 @@ void ArgonLang::MatchBranch::toDot(std::ostream& os, int& nodeId) const {
 
 	if (pattern) {
 		int patternId = nodeId;
-		pattern->toDot(os, nodeId);
+		pattern->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << patternId << " [label=\"pattern\"];\n";
 	}
 	if (condition) {
 		int conditionId = nodeId;
-		condition->toDot(os, nodeId);
+		condition->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << conditionId << " [label=\"condition\"];\n";
 	}
 	if (body) {
 		int bodyId = nodeId;
-		body->toDot(os, nodeId);
+		body->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << bodyId << " [label=\"body\"];\n";
 	}
 }
 
-void ArgonLang::MatchExpressionNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::MatchExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Match\"];\n";
 
 	if (value) {
 		int valueId = nodeId;
-		value->toDot(os, nodeId);
+		value->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << valueId << " [label=\"value\"];\n";
 	}
 
@@ -244,113 +255,112 @@ void ArgonLang::MatchExpressionNode::toDot(std::ostream& os, int& nodeId) const 
 	}
 }
 
-void ArgonLang::TernaryExpressionNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::TernaryExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Conditional\"];\n";
 
 	if (condition) {
 		int conditionId = nodeId;
-		condition->toDot(os, nodeId);
+		condition->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << conditionId << " [label=\"condition\"];\n";
 	}
 
 	if (trueBranch) {
 		int trueId = nodeId;
-		trueBranch->toDot(os, nodeId);
+		trueBranch->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << trueId << " [label=\"true\"];\n";
 	}
 
 	if (falseBranch) {
 		int falseId = nodeId;
-		falseBranch->toDot(os, nodeId);
+		falseBranch->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << falseId << " [label=\"false\"];\n";
 	}
 }
 
-void ArgonLang::ReturnStatementNode::toDot(std::ostream &os, int &nodeId) const {
-	
-}
+void ArgonLang::ReturnStatementNode::to_dot(std::ostream& os, int& nodeId) const {}
 
-void ArgonLang::ParallelExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::ParallelExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"ParallelExpression\"];\n";
-	statementNode->toDot(os, nodeId);
+	statementNode->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << currentId + 1 << ";\n";
 }
 
-void ArgonLang::StructExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::StructExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"StructExpressionNode\"];\n";
-	for(const auto& filed: fields) {
+	for (const auto& filed : fields) {
 		int filedId = nodeId++;
 		filed.toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << filedId << ";\n";
 	}
 }
 
-void ArgonLang::RangeExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::RangeExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentNodeId = nodeId++;
 	os << "  node" << currentNodeId << " [label=\"RangeExpression\"];\n";
 
 	for (const auto& element : range) {
 		int elementNodeId = nodeId;
-		element->toDot(os, nodeId);
+		element->to_dot(os, nodeId);
 		os << "  node" << currentNodeId << " -> node" << elementNodeId << ";\n";
 	}
 }
 
-void ArgonLang::VariableDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::VariableDeclarationNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"VariableDeclarationNode(" << (isConst ? "const" : "") << "): " << name << "\"];\n";
+	os << "  node" << currentId << " [label=\"VariableDeclarationNode(" << (isConst ? "const" : "") << "): " << name
+	   << "\"];\n";
 
 	if (type) {
 		int targetId = nodeId;
-		type->toDot(os, nodeId);
+		type->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << targetId << " [label=\"type\"];\n";
 	}
 
 	if (value) {
 		int targetId = nodeId;
-		value->toDot(os, nodeId);
+		value->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << targetId << " [label=\"value\"];\n";
 	}
 }
 
-void ArgonLang::TypeAliasNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::TypeAliasNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"TypeAlias: " << aliasName << "\"];\n";
 
 	if (targetType) {
 		int targetId = nodeId;
-		targetType->toDot(os, nodeId);
+		targetType->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << targetId << " [label=\"target\"];\n";
 	}
 }
 
-void ArgonLang::IfStatementNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::IfStatementNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"If\"];\n";
 
 	if (condition) {
 		int conditionId = nodeId;
-		condition->toDot(os, nodeId);
+		condition->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << conditionId << " [label=\"condition\"];\n";
 	}
 
 	if (body) {
 		int thenId = nodeId;
-		body->toDot(os, nodeId);
+		body->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << thenId << " [label=\"then\"];\n";
 	}
 
 	if (elseBranch) {
 		int elseId = nodeId;
-		elseBranch->toDot(os, nodeId);
+		elseBranch->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << elseId << " [label=\"else\"];\n";
 	}
 }
 
-void ArgonLang::ForStatementNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::ForStatementNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"For\"];\n";
 
@@ -360,280 +370,276 @@ void ArgonLang::ForStatementNode::toDot(std::ostream& os, int& nodeId) const {
 
 	if (iterator) {
 		int iterId = nodeId;
-		iterator->toDot(os, nodeId);
+		iterator->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << iterId << " [label=\"iterator\"];\n";
 	}
 
 	if (body) {
 		int bodyId = nodeId;
-		body->toDot(os, nodeId);
+		body->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << bodyId << " [label=\"body\"];\n";
 	}
 }
 
-void ArgonLang::UnionDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::UnionDeclarationNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Union: " << unionName << "\"];\n";
 
 	for (const auto& type : types) {
 		int typeId = nodeId;
-		type->toDot(os, nodeId);
+		type->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
 	}
 }
 
-void ArgonLang::YieldStatementNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::YieldStatementNode::to_dot(std::ostream& os, int& nodeId) const {}
 
-}
-
-void ArgonLang::WhileStatementNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::WhileStatementNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
-	os << "  node" << currentId << " [label=\"" << (isDoWhile? "Dowhile": "While") << "\"];\n";
+	os << "  node" << currentId << " [label=\"" << (isDoWhile ? "Dowhile" : "While") << "\"];\n";
 
 	if (condition) {
 		int conditionId = nodeId;
-		condition->toDot(os, nodeId);
+		condition->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << conditionId << " [label=\"condition\"];\n";
 	}
 
 	if (body) {
 		int thenId = nodeId;
-		body->toDot(os, nodeId);
+		body->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << thenId << " [label=\"then\"];\n";
 	}
 
 	if (elseBranch) {
 		int elseId = nodeId;
-		elseBranch->toDot(os, nodeId);
+		elseBranch->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << elseId << " [label=\"else\"];\n";
 	}
 }
 
-void ArgonLang::BreakStatementNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::BreakStatementNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"BreakStatementNode\"];\n";
 }
 
-void ArgonLang::ContinueStatementNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::ContinueStatementNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"ContinueStatementNode\"];\n";
 }
 
-void ArgonLang::BlockNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::BlockNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Block\"];\n";
-	if(body.empty()) return;
+	if (body.empty())
+		return;
 	for (const auto& node : body) {
 		int branchId = nodeId;
-		node->toDot(os, nodeId);
+		node->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << branchId << ";\n";
 	}
 }
 
-void ArgonLang::StructField::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::StructField::toDot(std::ostream& os, int& nodeId) const {
 	int filedId = nodeId++;
 	os << " node" << filedId << " [label=\"Name: " << name << "\"];\n";
 
-	if(type) {
+	if (type) {
 		int typeId = nodeId;
-		type->toDot(os, nodeId);
+		type->to_dot(os, nodeId);
 		os << "  node" << filedId << " -> node" << typeId << " [label=\"Type\"];\n";
 	}
 
-	if(value) {
+	if (value) {
 		int expressionId = nodeId;
-		value->toDot(os, nodeId);
+		value->to_dot(os, nodeId);
 		os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
 	}
 }
 
-void ArgonLang::FunctionArgument::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::FunctionArgument::toDot(std::ostream& os, int& nodeId) const {
 	int filedId = nodeId++;
 	os << " node" << filedId << " [label=\"FunctionArgument: " << name << "\"];\n";
 
-	if(!type) return;
+	if (!type)
+		return;
 	int typeId = nodeId;
-	type->toDot(os, nodeId);
+	type->to_dot(os, nodeId);
 	os << "  node" << filedId << " -> node" << typeId << " [label=\"Type\"];\n";
 
-	if(!value) return;
+	if (!value)
+		return;
 	int expressionId = nodeId;
-	value->toDot(os, nodeId);
+	value->to_dot(os, nodeId);
 	os << "  node" << filedId << " -> node" << expressionId << " [label=\"Value\"];\n";
 }
 
-void ArgonLang::FunctionDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::FunctionDeclarationNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"" << "Function Declaration\"];\n";
 
 	int nameId = nodeId;
-	name->toDot(os, nodeId);
+	name->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << nameId << " [label=\"Name\"];\n";
 
-	for(const auto & arg : args) {
+	for (const auto& arg : args) {
 		int argId = nodeId;
 		arg->toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << argId << " [label=\"arg\"];\n";
 	}
 
 	int thenId = nodeId;
-	body->toDot(os, nodeId);
+	body->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << thenId << " [label=\"body\"];\n";
 
-	if(!returnType)  return;
+	if (!returnType)
+		return;
 
 	int typeId = nodeId;
-	returnType->toDot(os, nodeId);
+	returnType->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
 }
 
-void ArgonLang::FunctionDefinitionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::FunctionDefinitionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"" << "Function Definition: \"];\n";
 
 	int nameId = nodeId;
-	name->toDot(os, nodeId);
+	name->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << nameId << " [label=\"Name\"];\n";
 
-	for(const auto & arg : args) {
+	for (const auto& arg : args) {
 		int argId = nodeId;
 		arg->toDot(os, nodeId);
 		os << "  node" << currentId << " -> node" << argId << " [label=\"arg\"];\n";
 	}
 
-	if(!returnType)  return;
+	if (!returnType)
+		return;
 
 	int typeId = nodeId;
-	returnType->toDot(os, nodeId);
+	returnType->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
 }
 
-void ArgonLang::ImplStatementNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::ImplStatementNode::to_dot(std::ostream& os, int& nodeId) const {}
 
-}
+void ArgonLang::ConstructorStatementNode::ConstructorArgument::toDot(std::ostream& os, int& nodeId) const {}
 
-void ArgonLang::ConstructorStatementNode::ConstructorArgument::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::ConstructorStatementNode::to_dot(std::ostream& os, int& nodeId) const {}
 
-}
+void ArgonLang::ClassDeclarationNode::ClassMember::toDot(std::ostream& os, int& nodeId) const {}
 
-void ArgonLang::ConstructorStatementNode::toDot(std::ostream &os, int &nodeId) const {
-
-}
-
-void ArgonLang::ClassDeclarationNode::ClassMember::toDot(std::ostream &os, int &nodeId) const {
-
-}
-
-void ArgonLang::ClassDeclarationNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::ClassDeclarationNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	std::string label = "Class: " + className;
 	if (!genericParams.empty()) {
 		label += "<";
 		for (size_t i = 0; i < genericParams.size(); ++i) {
-			if (i > 0) label += ", ";
+			if (i > 0)
+				label += ", ";
 			label += genericParams[i]->name;
 		}
 		label += ">";
 	}
 	os << "  node" << currentId << " [label=\"" << label << "\"];\n";
-	
+
 	for (const auto& member : body) {
 		member.toDot(os, nodeId);
-		os << "  node" << currentId << " -> node" << (nodeId-1) << ";\n";
+		os << "  node" << currentId << " -> node" << (nodeId - 1) << ";\n";
 	}
 }
 
-void ArgonLang::MemberAccessExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::MemberAccessExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Member Access\"];\n";
 
 	if (parent) {
 		int leftId = nodeId;
-		parent->toDot(os, nodeId);
+		parent->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << leftId << ";\n";
 	}
 
-	if(member) {
+	if (member) {
 		int memberId = nodeId;
-		member->toDot(os, nodeId);
+		member->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << memberId << ";\n";
 	}
 }
 
-void ArgonLang::AssignmentExpressionNode::toDot(std::ostream &os, int &nodeId) const {
+void ArgonLang::AssignmentExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Assignment\"];\n";
 
 	if (left) {
 		int leftId = nodeId;
-		left->toDot(os, nodeId);
+		left->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << leftId << " [label=\"parent\"];\n";
 	}
 
 	if (right) {
 		int rightId = nodeId;
-		right->toDot(os, nodeId);
+		right->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << rightId << " [label=\"right\"];\n";
 	}
 }
 
-void ArgonLang::IdentifierTypeNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::IdentifierTypeNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"IdentifierType: " << typeName << "\"];";
 }
 
-void ArgonLang::GenericTypeNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::GenericTypeNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"GenericType\"];";
 
 	int baseId = nodeId;
-	base->toDot(os, nodeId);
+	base->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << baseId << " [label=\"base\"];";
 
 	for (const auto& param : params) {
 		int paramId = nodeId;
-		param->toDot(os, nodeId);
+		param->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << paramId << " [label=\"param\"];";
 	}
 }
 
-void ArgonLang::SumTypeNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::SumTypeNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"SumType\"];";
 
 	for (const auto& type : types) {
 		int typeId = nodeId;
-		type->toDot(os, nodeId);
+		type->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];";
 	}
 }
 
-void ArgonLang::IntersectionTypeNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::IntersectionTypeNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"IntersectionType\"];";
 
 	for (const auto& type : types) {
 		int typeId = nodeId;
-		type->toDot(os, nodeId);
+		type->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];";
 	}
 }
 
-void ArgonLang::PrefixedTypeNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::PrefixedTypeNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	std::string prefixLabel = (prefix == Prefix::Pointer) ? "Pointer" : "Owned";
 	os << "  node" << currentId << " [label=\"PrefixedType: " << prefixLabel << "\"];";
 
 	int typeId = nodeId;
-	type->toDot(os, nodeId);
+	type->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];";
 }
 
 // New AST node toDot implementations
-void ArgonLang::EnumDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::EnumDeclarationNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Enum: " << enumName << " (isUnion: " << isUnion << ")\"];\n";
-	
+
 	for (const auto& variant : variants) {
 		int variantId = nodeId++;
 		os << "  node" << variantId << " [label=\"Variant: " << variant.name << "\"];\n";
@@ -641,9 +647,7 @@ void ArgonLang::EnumDeclarationNode::toDot(std::ostream& os, int& nodeId) const 
 	}
 }
 
-
-
-void ArgonLang::ConstraintDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::ConstraintDeclarationNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Constraint: " << constraintName << "\"];\n";
 }
@@ -658,138 +662,136 @@ void ArgonLang::GenericParameter::toDot(std::ostream& os, int& nodeId) const {
 	os << "  node" << currentId << " [label=\"" << label << "\"];\n";
 }
 
-void ArgonLang::ModuleDeclarationNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::ModuleDeclarationNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Module: " << moduleName << "\"];\n";
 }
 
-void ArgonLang::ImportStatementNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::ImportStatementNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Import: " << moduleName << "\"];\n";
 }
 
-void ArgonLang::FunctionTypeNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::FunctionTypeNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	std::string label = isClosure ? "FunctionType (closure)" : "FunctionType";
 	os << "  node" << currentId << " [label=\"" << label << "\"];\n";
-	
+
 	for (const auto& paramType : parameterTypes) {
 		int paramId = nodeId;
-		paramType->toDot(os, nodeId);
+		paramType->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << paramId << " [label=\"param\"];\n";
 	}
-	
+
 	if (returnType) {
 		int retId = nodeId;
-		returnType->toDot(os, nodeId);
+		returnType->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << retId << " [label=\"return\"];\n";
 	}
 }
 
-void ArgonLang::ArrayTypeNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::ArrayTypeNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"ArrayType\"];\n";
-	
+
 	int elemId = nodeId;
-	elementType->toDot(os, nodeId);
+	elementType->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << elemId << " [label=\"element\"];\n";
-	
+
 	if (size) {
 		int sizeId = nodeId;
-		size->toDot(os, nodeId);
+		size->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << sizeId << " [label=\"size\"];\n";
 	}
 }
 
-
-
-void ArgonLang::VariadicTypeNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::VariadicTypeNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"VariadicType\"];\n";
-	
+
 	int baseId = nodeId;
-	baseType->toDot(os, nodeId);
+	baseType->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << baseId << " [label=\"base\"];\n";
 }
 
 // Pattern node toDot methods
-void ArgonLang::WildcardPatternNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::WildcardPatternNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"_\"];\n";
 }
 
-void ArgonLang::LiteralPatternNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::LiteralPatternNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"LiteralPattern\"];\n";
-	
+
 	int literalId = nodeId;
-	literal->toDot(os, nodeId);
+	literal->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << literalId << " [label=\"literal\"];\n";
 }
 
-void ArgonLang::IdentifierPatternNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::IdentifierPatternNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"" << name << "\"];\n";
 }
 
-void ArgonLang::ArrayPatternNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::ArrayPatternNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"ArrayPattern\"];\n";
-	
+
 	for (size_t i = 0; i < elements.size(); ++i) {
 		int elemId = nodeId;
-		elements[i]->toDot(os, nodeId);
+		elements[i]->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << elemId << " [label=\"elem" << i << "\"];\n";
 	}
-	
+
 	if (rest) {
 		int restId = nodeId;
-		rest->toDot(os, nodeId);
+		rest->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << restId << " [label=\"rest\"];\n";
 	}
 }
 
-void ArgonLang::StructPatternNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::StructPatternNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"StructPattern\"];\n";
-	
+
 	for (size_t i = 0; i < fields.size(); ++i) {
 		int fieldId = nodeId;
-		fields[i].second->toDot(os, nodeId);
+		fields[i].second->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << fieldId << " [label=\"" << fields[i].first << "\"];\n";
 	}
 }
 
-void ArgonLang::ConstructorPatternNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::ConstructorPatternNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"" << constructorName << "\"];\n";
-	
+
 	for (size_t i = 0; i < arguments.size(); ++i) {
 		int argId = nodeId;
-		arguments[i]->toDot(os, nodeId);
+		arguments[i]->to_dot(os, nodeId);
 		os << "  node" << currentId << " -> node" << argId << " [label=\"arg" << i << "\"];\n";
 	}
 }
 
-void ArgonLang::TypePatternNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::TypePatternNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"TypePattern\"];\n";
-	
+
 	int typeId = nodeId;
-	type->toDot(os, nodeId);
+	type->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
 }
 
-void ArgonLang::RangePatternNode::toDot(std::ostream& os, int& nodeId) const {
+void ArgonLang::RangePatternNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"RangePattern\"];\n";
-	
+
 	int startId = nodeId;
-	start->toDot(os, nodeId);
+	start->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << startId << " [label=\"start\"];\n";
-	
+
 	int endId = nodeId;
-	end->toDot(os, nodeId);
+	end->to_dot(os, nodeId);
 	os << "  node" << currentId << " -> node" << endId << " [label=\"end\"];\n";
 }
 

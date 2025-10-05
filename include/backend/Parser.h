@@ -31,111 +31,111 @@ namespace ArgonLang {
 	private:
     	const std::vector<Token>& tokens;
     	size_t current = 0;
-		int mainCounter = 0;
+		int main_counter = 0;
 
 	public:
 		explicit Parser(const std::vector<Token>& tokens);
 
-		int getMainCounter() const;
+		int get_main_counter() const;
 		Token peek() const;
 		Token peek(int offset) const;
 		bool eos() const;
 		void synchronize();
 
-		bool isLambdaExpression();
-		bool isSingleParameterLambda();
+		bool is_lambda_expression();
+		bool is_single_parameter_lambda();
 		Result<Token> advance();
 		Result<Token> expect(Token::Type type, const std::string& errorMessage);
 
 		Result<std::unique_ptr<ProgramNode>> parse();
-		Result<std::unique_ptr<ASTNode>> parseStatement();
-		Result<std::unique_ptr<ASTNode>> parseExpression();
+		Result<std::unique_ptr<ASTNode>> parse_statement();
+		Result<std::unique_ptr<ASTNode>> parse_expression();
 
-		Result<std::unique_ptr<FunctionArgument>> parseFunctionArgument();
-		Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> parseConstructorArgument();
+		Result<std::unique_ptr<FunctionArgument>> parse_function_argument();
+		Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> parse_constructor_argument();
 
 		// Helper methods for parsing specific types of expressions
-		Result<std::unique_ptr<ASTNode>> parsePrimary();
-		Result<std::unique_ptr<ASTNode>> parseAdditiveExpression();
-		Result<std::unique_ptr<ASTNode>> parseMultiplicativeExpression();
-		Result<std::unique_ptr<ASTNode>> parseLogicalOrExpression();
-		Result<std::unique_ptr<ASTNode>> parseLogicalAndExpression();
-		Result<std::unique_ptr<ASTNode>> parseEqualityExpression();
-		Result<std::unique_ptr<ASTNode>> parseRelationalExpression();
-		Result<std::unique_ptr<ASTNode>> parseBitwiseExpression();
-		Result<std::unique_ptr<ASTNode>> parseShiftExpression();
-		Result<std::unique_ptr<ASTNode>> parseAssignmentExpression();
-		Result<std::unique_ptr<ASTNode>> parsePipeExpression();
-		Result<std::unique_ptr<ASTNode>> parseParallelExpression();
-		Result<std::unique_ptr<ASTNode>> parseStructExpression();
-		Result<std::unique_ptr<ASTNode>> parseMatchExpression();
+		Result<std::unique_ptr<ASTNode>> parse_primary();
+		Result<std::unique_ptr<ASTNode>> parse_additive_expression();
+		Result<std::unique_ptr<ASTNode>> parse_multiplicative_expression();
+		Result<std::unique_ptr<ASTNode>> parse_logical_or_expression();
+		Result<std::unique_ptr<ASTNode>> parse_logical_and_expression();
+		Result<std::unique_ptr<ASTNode>> parse_equality_expression();
+		Result<std::unique_ptr<ASTNode>> parse_relational_expression();
+		Result<std::unique_ptr<ASTNode>> parse_bitwise_expression();
+		Result<std::unique_ptr<ASTNode>> parse_shift_expression();
+		Result<std::unique_ptr<ASTNode>> parse_assignment_expression();
+		Result<std::unique_ptr<ASTNode>> parse_pipe_expression();
+		Result<std::unique_ptr<ASTNode>> parse_parallel_expression();
+		Result<std::unique_ptr<ASTNode>> parse_struct_expression();
+		Result<std::unique_ptr<ASTNode>> parse_match_expression();
 		
 		// Pattern parsing methods
-		Result<std::unique_ptr<PatternNode>> parsePattern();
-		Result<std::unique_ptr<PatternNode>> parseWildcardPattern();
-		Result<std::unique_ptr<PatternNode>> parseLiteralPattern();
-		Result<std::unique_ptr<PatternNode>> parseIdentifierPattern();
-		Result<std::unique_ptr<PatternNode>> parseArrayPattern();
-		Result<std::unique_ptr<PatternNode>> parseStructPattern();
-		Result<std::unique_ptr<PatternNode>> parseConstructorPattern();
-		Result<std::unique_ptr<PatternNode>> parseTypePattern();
-		Result<std::unique_ptr<PatternNode>> parseRangePattern();
+		Result<std::unique_ptr<PatternNode>> parse_pattern();
+		Result<std::unique_ptr<PatternNode>> parse_wildcard_pattern();
+		Result<std::unique_ptr<PatternNode>> parse_literal_pattern();
+		Result<std::unique_ptr<PatternNode>> parse_identifier_pattern();
+		Result<std::unique_ptr<PatternNode>> parse_array_pattern();
+		Result<std::unique_ptr<PatternNode>> parse_struct_pattern();
+		Result<std::unique_ptr<PatternNode>> parse_constructor_pattern();
+		Result<std::unique_ptr<PatternNode>> parse_type_pattern();
+		Result<std::unique_ptr<PatternNode>> parse_range_pattern();
 		
-		Result<std::unique_ptr<ASTNode>> parseToExpression();
-		Result<std::unique_ptr<ASTNode>> parseDerefExpression();
-		Result<std::unique_ptr<ASTNode>> parseOwnershipExpression();
-		Result<std::unique_ptr<ASTNode>> parseReferenceExpression();
-		Result<std::unique_ptr<ASTNode>> parseIncrementExpression();
-		Result<std::unique_ptr<ASTNode>> parseAwaitExpression();
-		Result<std::unique_ptr<ASTNode>> parseIteratorExpression();
-		Result<std::unique_ptr<ASTNode>> parseUnaryMinusExpression();
-		Result<std::unique_ptr<ASTNode>> parseUnaryPlusExpression();
-		Result<std::unique_ptr<ASTNode>> parseLogicalNotExpression();
-		Result<std::unique_ptr<ASTNode>> parseBitwiseNotExpression();
-		Result<std::unique_ptr<ASTNode>> parseFilterExpression();
-		Result<std::unique_ptr<ASTNode>> parseMapExpression();
-		Result<std::unique_ptr<ASTNode>> parseReduceExpression();
-		Result<std::unique_ptr<ASTNode>> parseRangeExpression();
-		Result<std::unique_ptr<ASTNode>> parseFunctionCallExpression();
-		Result<std::unique_ptr<ASTNode>> parseIndexExpression();
-		Result<std::unique_ptr<ASTNode>> parseAdvancedArrayExpression(std::unique_ptr<ExpressionNode> arrayExpr);
-		Result<std::unique_ptr<ASTNode>> parseNestedArrayLiteral();
-		Result<std::unique_ptr<ASTNode>> parseMemberAccessExpression();
-		Result<std::unique_ptr<ASTNode>> parseLambdaExpression();
+		Result<std::unique_ptr<ASTNode>> parse_to_expression();
+		Result<std::unique_ptr<ASTNode>> parse_deref_expression();
+		Result<std::unique_ptr<ASTNode>> parse_ownership_expression();
+		Result<std::unique_ptr<ASTNode>> parse_reference_expression();
+		Result<std::unique_ptr<ASTNode>> parse_increment_expression();
+		Result<std::unique_ptr<ASTNode>> parse_await_expression();
+		Result<std::unique_ptr<ASTNode>> parse_iterator_expression();
+		Result<std::unique_ptr<ASTNode>> parse_unary_minus_expression();
+		Result<std::unique_ptr<ASTNode>> parse_unary_plus_expression();
+		Result<std::unique_ptr<ASTNode>> parse_logical_not_expression();
+		Result<std::unique_ptr<ASTNode>> parse_bitwise_not_expression();
+		Result<std::unique_ptr<ASTNode>> parse_filter_expression();
+		Result<std::unique_ptr<ASTNode>> parse_map_expression();
+		Result<std::unique_ptr<ASTNode>> parse_reduce_expression();
+		Result<std::unique_ptr<ASTNode>> parse_range_expression();
+		Result<std::unique_ptr<ASTNode>> parse_function_call_expression();
+		Result<std::unique_ptr<ASTNode>> parse_index_expression();
+		Result<std::unique_ptr<ASTNode>> parse_advanced_array_expression(std::unique_ptr<ExpressionNode> array_expr);
+		Result<std::unique_ptr<ASTNode>> parse_nested_array_literal();
+		Result<std::unique_ptr<ASTNode>> parse_member_access_expression();
+		Result<std::unique_ptr<ASTNode>> parse_lambda_expression();
 
 		// Methods for parsing statements
-		Result<std::unique_ptr<ASTNode>> parseVariableDeclaration();
-		Result<std::unique_ptr<ASTNode>> parseFunctionDeclaration();
-		Result<std::unique_ptr<ASTNode>> parseIfStatement();
-		Result<std::unique_ptr<ASTNode>> parseForStatement();
-		Result<std::unique_ptr<ASTNode>> parseWhileStatement();
-		Result<std::unique_ptr<ASTNode>> parseReturnStatement();
-		Result<std::unique_ptr<ASTNode>> parseBreakStatement();
-		Result<std::unique_ptr<ASTNode>> parseContinueStatement();
-		Result<std::unique_ptr<ASTNode>> parseTypeAlias();
-		Result<std::unique_ptr<ASTNode>> parseClassDeclaration();
-		Result<std::unique_ptr<ASTNode>> parseBlock();
-		Result<std::unique_ptr<ASTNode>> parseImplStatement();
-		Result<std::unique_ptr<ASTNode>> parseYieldStatement();
-		Result<std::unique_ptr<ASTNode>> parseConstructorStatement();
-		Result<std::unique_ptr<ASTNode>> parseEnumDeclaration();
-		Result<std::unique_ptr<ASTNode>> parseUnionDeclaration();
-		Result<std::unique_ptr<ASTNode>> parseConstraintDeclaration();
-		Result<std::unique_ptr<GenericParameter>> parseGenericParameter();
-		Result<std::unique_ptr<ASTNode>> parseModuleDeclaration();
-		Result<std::unique_ptr<ASTNode>> parseImportStatement();
+		Result<std::unique_ptr<ASTNode>> parse_variable_declaration();
+		Result<std::unique_ptr<ASTNode>> parse_function_declaration();
+		Result<std::unique_ptr<ASTNode>> parse_if_statement();
+		Result<std::unique_ptr<ASTNode>> parse_for_statement();
+		Result<std::unique_ptr<ASTNode>> parse_while_statement();
+		Result<std::unique_ptr<ASTNode>> parse_return_statement();
+		Result<std::unique_ptr<ASTNode>> parse_break_statement();
+		Result<std::unique_ptr<ASTNode>> parse_continue_statement();
+		Result<std::unique_ptr<ASTNode>> parse_type_alias();
+		Result<std::unique_ptr<ASTNode>> parse_class_declaration();
+		Result<std::unique_ptr<ASTNode>> parse_block();
+		Result<std::unique_ptr<ASTNode>> parse_impl_statement();
+		Result<std::unique_ptr<ASTNode>> parse_yield_statement();
+		Result<std::unique_ptr<ASTNode>> parse_constructor_statement();
+		Result<std::unique_ptr<ASTNode>> parse_enum_declaration();
+		Result<std::unique_ptr<ASTNode>> parse_union_declaration();
+		Result<std::unique_ptr<ASTNode>> parse_constraint_declaration();
+		Result<std::unique_ptr<GenericParameter>> parse_generic_parameter();
+		Result<std::unique_ptr<ASTNode>> parse_module_declaration();
+		Result<std::unique_ptr<ASTNode>> parse_import_statement();
 
 		// Methods for parsing types
-		Result<std::unique_ptr<TypeNode>> parseType();
-		Result<std::unique_ptr<TypeNode>> parseIdentifierType();
-		Result<std::unique_ptr<TypeNode>> parseGenericType();
-		Result<std::unique_ptr<TypeNode>> parseGenericTypeWithBase(std::unique_ptr<TypeNode> base);
-		Result<std::unique_ptr<TypeNode>> parseArrayType();
-		Result<std::unique_ptr<TypeNode>> parseFunctionType(Token::Position pos);
-		Result<std::unique_ptr<TypeNode>> parseVariadicType(Token::Position pos);
-		Result<std::unique_ptr<TypeNode>> parseSumType();
-		Result<std::unique_ptr<TypeNode>> parseIntersectionType();
-		Result<std::unique_ptr<TypeNode>> parsePrefixedType();
+		Result<std::unique_ptr<TypeNode>> parse_type();
+		Result<std::unique_ptr<TypeNode>> parse_identifier_type();
+		Result<std::unique_ptr<TypeNode>> parse_generic_type();
+		Result<std::unique_ptr<TypeNode>> parse_generic_type_with_base(std::unique_ptr<TypeNode> base);
+		Result<std::unique_ptr<TypeNode>> parse_array_type();
+		Result<std::unique_ptr<TypeNode>> parse_function_type(Token::Position pos);
+		Result<std::unique_ptr<TypeNode>> parse_variadic_type(Token::Position pos);
+		Result<std::unique_ptr<TypeNode>> parse_sum_type();
+		Result<std::unique_ptr<TypeNode>> parse_intersection_type();
+		Result<std::unique_ptr<TypeNode>> parse_prefixed_type();
 	};
 }
 

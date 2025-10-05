@@ -11,8 +11,8 @@ protected:
     
     ArgonLang::Result<std::unique_ptr<ArgonLang::ProgramNode>> parseCode(const std::string& input) {
         auto tokenizeResult = ArgonLang::tokenize(input);
-        if (tokenizeResult.hasError()) {
-            return ArgonLang::Err<std::unique_ptr<ArgonLang::ProgramNode>>(ArgonLang::create_parse_error(ArgonLang::ErrorType::InvalidExpression, tokenizeResult.errorMsg, ArgonLang::Token::Position()));
+        if (tokenizeResult.has_error()) {
+            return ArgonLang::Err<std::unique_ptr<ArgonLang::ProgramNode>>(ArgonLang::create_parse_error(ArgonLang::ErrorType::InvalidExpression, tokenizeResult.error_msg, ArgonLang::Token::Position()));
         }
         
         ArgonLang::Parser parser(tokenizeResult.tokens);

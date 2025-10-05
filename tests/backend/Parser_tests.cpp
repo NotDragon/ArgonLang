@@ -5,7 +5,7 @@
 TEST(ParserTests, ParseVariableDeclaration) {
 	std::string input = "def x: i32 = 42;";
 	auto tokenizeResult = ArgonLang::tokenize(input);
-	ASSERT_FALSE(tokenizeResult.hasError()) << "Tokenization failed: " << tokenizeResult.errorMsg;
+	ASSERT_FALSE(tokenizeResult.has_error()) << "Tokenization failed: " << tokenizeResult.error_msg;
 	
 	ArgonLang::Parser parser(tokenizeResult.tokens);
 
@@ -22,7 +22,7 @@ TEST(ParserTests, ParseVariableDeclaration) {
 TEST(ParserTests, ParseFunctionDeclaration) {
 	std::string input = "func add(a: i32, b: i32) i32 -> a + b;";
 	auto tokenizeResult = ArgonLang::tokenize(input);
-	ASSERT_FALSE(tokenizeResult.hasError()) << "Tokenization failed: " << tokenizeResult.errorMsg;
+	ASSERT_FALSE(tokenizeResult.has_error()) << "Tokenization failed: " << tokenizeResult.error_msg;
 	
 	ArgonLang::Parser parser(tokenizeResult.tokens);
 
@@ -34,5 +34,5 @@ TEST(ParserTests, ParseFunctionDeclaration) {
 	auto node = dynamic_cast<ArgonLang::FunctionDeclarationNode*>(program->nodes[0].get());
 	ASSERT_NE(node, nullptr);
 	EXPECT_EQ(node->args.size(), 2);
-	EXPECT_EQ(node->returnType->getNodeType(), ArgonLang::ASTNodeType::IdentifierType);
+	EXPECT_EQ(node->returnType->get_node_type(), ArgonLang::ASTNodeType::IdentifierType);
 }

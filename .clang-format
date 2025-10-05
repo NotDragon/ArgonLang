@@ -1,0 +1,103 @@
+---
+# ClangFormat configuration for ArgonLang
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: ForIndentation
+ContinuationIndentWidth: 4
+
+# Line length
+ColumnLimit: 120
+
+# Braces
+BreakBeforeBraces: Attach
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+
+# Pointers and References
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+
+# Spacing
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInAngles: Never
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignEscapedNewlines: Left
+AlignOperands: Align
+AlignTrailingComments: true
+
+# Breaking
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+
+# Constructor initializers
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerIndentWidth: 4
+Cpp11BracedListStyle: true
+
+# Namespaces
+CompactNamespaces: false
+FixNamespaceComments: true
+NamespaceIndentation: None
+
+# Include sorting
+SortIncludes: CaseInsensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"(backend|frontend|Error|runtime|TranslationUnit)/'
+    Priority: 1
+  - Regex: '^<[a-z_]+>'
+    Priority: 2
+  - Regex: '^<'
+    Priority: 3
+  - Regex: '.*'
+    Priority: 4
+
+# Other
+IndentCaseLabels: false
+IndentPPDirectives: None
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+ReflowComments: true
+SortUsingDeclarations: true
+
+# Penalties (for line breaking decisions)
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 60
+
+# Standard
+Standard: c++20
