@@ -203,18 +203,18 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_variable_declaration() {
 
 	if (is_compound_pattern) {
 		return Ok(std::make_unique<VariableDeclarationNode>(
-		    keyword.position, (keyword.value == "const"), type.has_value() ? std::move(type.value()) : nullptr,
-		    value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
+		    keyword.position, (keyword.value == "const"), type.value() ? std::move(type.value()) : nullptr,
+		    value.value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
 		    std::move(compound_patterns)));
 	} else if (is_single_pattern) {
 		return Ok(std::make_unique<VariableDeclarationNode>(
-		    keyword.position, (keyword.value == "const"), type.has_value() ? std::move(type.value()) : nullptr,
-		    value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
+		    keyword.position, (keyword.value == "const"), type.value() ? std::move(type.value()) : nullptr,
+		    value.value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr,
 		    std::move(pattern)));
 	} else {
 		return Ok(std::make_unique<VariableDeclarationNode>(
-		    keyword.position, (keyword.value == "const"), type.has_value() ? std::move(type.value()) : nullptr,
-		    value.has_value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr, name));
+		    keyword.position, (keyword.value == "const"), type.value() ? std::move(type.value()) : nullptr,
+		    value.value() ? dynamic_unique_cast<ExpressionNode>(std::move(value.value())) : nullptr, name));
 	}
 }
 
@@ -307,7 +307,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_function_declaration() {
 	}
 
 	if (identifier.has_value() && identifier.value()->get_node_type() == ASTNodeType::Identifier) {
-		auto tempIdentifier = dynamic_unique_cast<IdentifierNode>(std::move(identifier.value()));
+		auto tempIdentifier = dynamic_cast<IdentifierNode*>(identifier.value().get());
 		if (tempIdentifier->identifier == "main")
 			main_counter++;
 	}
@@ -1194,7 +1194,7 @@ Result<std::unique_ptr<GenericParameter>> Parser::parse_generic_parameter() {
 		constraint = std::move(constraintResult.value());
 	}
 
-	return Ok(std::make_unique<GenericParameter>(namePos, name.value().value, std::move(constraint)));
+	return Ok(std::make_unique<GenericParameter>(name_pos, name.value().value, std::move(constraint)));
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parse_module_declaration() {
