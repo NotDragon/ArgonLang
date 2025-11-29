@@ -289,6 +289,142 @@ namespace Runtime {
     extern template bool match_value(double&& value, double&& pattern);
     extern template bool match_value(const double& value, const double& pattern);
 
+    // Try/Result type for error handling (Rust-style Result)
+    template<typename T, typename E = std::string>
+    class Try {
+    private:
+        std::variant<T, E> data_;
+        bool is_ok_;
+        
+    public:
+        // Constructors
+        static Try Ok(T&& value) {
+            Try result;
+            result.data_ = std::move(value);
+            result.is_ok_ = true;
+            return result;
+        }
+        
+        static Try Ok(const T& value) {
+            Try result;
+            result.data_ = value;
+            result.is_ok_ = true;
+            return result;
+        }
+        
+        static Try Err(E&& error) {
+            Try result;
+            result.data_ = std::move(error);
+            result.is_ok_ = false;
+            return result;
+        }
+        
+        static Try Err(const E& error) {
+            Try result;
+            result.data_ = error;
+            result.is_ok_ = false;
+            return result;
+        }
+        
+        // Check if result is Ok or Err
+        bool is_ok() const { return is_ok_; }
+        bool is_err() const { return !is_ok_; }
+        
+        // Get value (throws if Err)
+        T& unwrap() {
+            if (!is_ok_) {
+                throw std::runtime_error("Called unwrap() on an Err value");
+            }
+            return std::get<T>(data_);
+        }
+        
+        const T& unwrap() const {
+            if (!is_ok_) {
+                throw std::runtime_error("Called unwrap() on an Err value");
+            }
+            return std::get<T>(data_);
+        }
+        
+        // Get error (throws if Ok)
+        E& unwrap_err() {
+            if (is_ok_) {
+                throw std::runtime_error("Called unwrap_err() on an Ok value");
+            }
+            return std::get<E>(data_);
+        }
+        
+        const E& unwrap_err() const {
+            if (is_ok_) {
+                throw std::runtime_error("Called unwrap_err() on an Ok value");
+            }
+            return std::get<E>(data_);
+        }
+        
+        // Get value or default
+        T unwrap_or(T&& default_value) const {
+            if (is_ok_) {
+                return std::get<T>(data_);
+            }
+            return std::move(default_value);
+        }
+        
+        // Map operation
+        template<typename F>
+        auto map(F&& func) -> Try<std::invoke_result_t<F, T>, E> {
+            if (is_ok_) {
+                return Try<std::invoke_result_t<F, T>, E>::Ok(func(std::get<T>(data_)));
+            } else {
+                return Try<std::invoke_result_t<F, T>, E>::Err(std::get<E>(data_));
+            }
+        }
+        
+        // Map error operation
+        template<typename F>
+        auto map_err(F&& func) -> Try<T, std::invoke_result_t<F, E>> {
+            if (is_ok_) {
+                return Try<T, std::invoke_result_t<F, E>>::Ok(std::get<T>(data_));
+            } else {
+                return Try<T, std::invoke_result_t<F, E>>::Err(func(std::get<E>(data_)));
+            }
+        }
+        
+        // And then operation (flatMap)
+        template<typename F>
+        auto and_then(F&& func) -> std::invoke_result_t<F, T> {
+            if (is_ok_) {
+                return func(std::get<T>(data_));
+            } else {
+                using ReturnType = std::invoke_result_t<F, T>;
+                return ReturnType::Err(std::get<E>(data_));
+            }
+        }
+        
+        // Or else operation
+        template<typename F>
+        Try or_else(F&& func) {
+            if (is_ok_) {
+                return *this;
+            } else {
+                return func(std::get<E>(data_));
+            }
+        }
+        
+    private:
+        Try() : is_ok_(false) {}
+    };
+    
+    // Helper function to wrap an expression in a Try block
+    template<typename F>
+    auto try_catch(F&& func) -> Try<std::invoke_result_t<F>, std::string> {
+        try {
+            return Try<std::invoke_result_t<F>, std::string>::Ok(func());
+        } catch (const std::exception& e) {
+            return Try<std::invoke_result_t<F>, std::string>::Err(std::string(e.what()));
+        } catch (...) {
+            return Try<std::invoke_result_t<F>, std::string>::Err(std::string("Unknown error"));
+        }
+    }
+
     // Helper macros for code generation
     #define ARGON_SCOPE_BEGIN() ArgonLang::Runtime::ScopeGuard __scope_guard;
     

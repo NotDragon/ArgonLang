@@ -22,6 +22,4 @@ concept Number = std::is_arithmetic_v<T>;
 template<typename T>
 concept Type = true; // Any type
 
-using namespace math;
-using namespace std::io;
-void bubbleSort(vec<int32_t> arr,int32_t n){ARGON_SCOPE_BEGIN();for(int32_t i : std::ranges::iota_view(0,n)){ARGON_SCOPE_BEGIN();for(int32_t j : std::ranges::iota_view(0,n)){ARGON_SCOPE_BEGIN();if(arr[j] > arr[j + 1]){ARGON_SCOPE_BEGIN();int32_t temp = arr[j];arr[j] = arr[j + 1];arr[j + 1] = temp;}}}}int32_t main(){ARGON_SCOPE_BEGIN();int32_t x = 0;while(x < 10){ARGON_SCOPE_BEGIN();x = x + 1;}return x;}
+int32_t main(){ARGON_SCOPE_BEGIN();int32_t x = 0;while(x < 10){ARGON_SCOPE_BEGIN();x=x + 1;}return x;}

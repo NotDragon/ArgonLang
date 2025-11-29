@@ -410,6 +410,11 @@ inline Error create_parse_error(ErrorType type, const std::string& message,
     return Error(type, message, pos);
 }
 
+inline Error create_parse_error(ErrorType type, const std::string& message,
+                                const Position& pos) {
+    return Error(type, message, pos);
+}
+
 inline Error create_parse_error(ErrorType type, const std::string& message, 
                             const Token::Position& start_pos, const Token::Position& end_pos, 
                             const std::string& filename = "") {

@@ -19,15 +19,15 @@ protected:
 
     Result<std::unique_ptr<ProgramNode>> parseAndGenerate(const std::string& code) {
         // Tokenize
-        TokenizeResult tokenizeResult = Tokenizer::tokenize(code);
-        if (tokenizeResult.hasError()) {
+        TokenizeResult tokenizeResult = ArgonLang::tokenize(code);
+        if (tokenizeResult.has_error()) {
             return Err<std::unique_ptr<ProgramNode>>(create_parse_error(
-                ErrorType::InvalidExpression, tokenizeResult.errorMsg, Token::Position()));
+                ErrorType::InvalidExpression, tokenizeResult.error_msg, Token::Position()));
         }
 
         // Parse
         Parser parser(tokenizeResult.tokens);
-        Result<std::unique_ptr<ProgramNode>> parseResult = parser.parseProgram();
+        Result<std::unique_ptr<ProgramNode>> parseResult = parser.parse();
         if (!parseResult.has_value()) {
             return Err<std::unique_ptr<ProgramNode>>(parseResult.error());
         }

@@ -245,6 +245,11 @@ Result<bool> AnalysisVisitor::visit(const ParallelExpressionNode& node) {
 	return {};
 }
 
+Result<bool> AnalysisVisitor::visit(const TryExpressionNode& node) {
+	std::cout << "TryExpressionNode\n";
+	return {};
+}
+
 Result<bool> AnalysisVisitor::visit(const StructField& node) {
 	std::cout << "StructField\n";
 	return {};

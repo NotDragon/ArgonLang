@@ -245,6 +245,8 @@ void ArgonLang::YieldStatementNode::print() const {}
 
 void ArgonLang::ParallelExpressionNode::print() const {}
 
+void ArgonLang::TryExpressionNode::print() const {}
+
 void ArgonLang::WhileStatementNode::print() const {}
 
 void ArgonLang::BreakStatementNode::print() const {}

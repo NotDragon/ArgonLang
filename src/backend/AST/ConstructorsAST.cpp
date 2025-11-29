@@ -193,6 +193,10 @@ ArgonLang::ParallelExpressionNode::ParallelExpressionNode(Token::Position positi
                                                           std::unique_ptr<ASTNode> statementNode)
     : statementNode(std::move(statementNode)), ExpressionNode(position) {}
 
+ArgonLang::TryExpressionNode::TryExpressionNode(Token::Position position,
+                                                std::unique_ptr<ExpressionNode> expression)
+    : expression(std::move(expression)), ExpressionNode(position) {}
+
 ArgonLang::WhileStatementNode::WhileStatementNode(Token::Position position, bool isDoWhile,
                                                   std::unique_ptr<ExpressionNode> condition,
                                                   std::unique_ptr<ASTNode> body,
@@ -249,9 +253,10 @@ ArgonLang::ClassDeclarationNode::ClassMember::ClassMember(Token::Position positi
 
 ArgonLang::ClassDeclarationNode::ClassDeclarationNode(Token::Position position, std::string className,
                                                       std::vector<ClassMember> body,
-                                                      std::vector<std::unique_ptr<GenericParameter>> genericParams)
+                                                      std::vector<std::unique_ptr<GenericParameter>> genericParams,
+                                                      std::vector<std::unique_ptr<TypeNode>> baseClasses)
     : className(std::move(className)), body(std::move(body)), genericParams(std::move(genericParams)),
-      StatementNode(position) {}
+      baseClasses(std::move(baseClasses)), StatementNode(position) {}
 
 ArgonLang::MemberAccessExpressionNode::MemberAccessExpressionNode(Token::Position position,
                                                                   std::unique_ptr<ExpressionNode> leftExpression,
@@ -291,10 +296,10 @@ ArgonLang::ModuleDeclarationNode::ModuleDeclarationNode(Token::Position position
                                                         std::vector<std::string> exports)
     : moduleName(std::move(moduleName)), body(std::move(body)), exports(std::move(exports)), StatementNode(position) {}
 
-ArgonLang::ImportStatementNode::ImportStatementNode(Token::Position position, std::string moduleName,
+ArgonLang::ImportStatementNode::ImportStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> moduleName,
                                                     std::vector<std::string> importedItems, std::string alias)
-    : moduleName(std::move(moduleName)), importedItems(std::move(importedItems)), alias(std::move(alias)),
-      StatementNode(position) {}
+    : StatementNode(position), moduleName(std::move(moduleName)), importedItems(std::move(importedItems)),
+      alias(std::move(alias)) {}
 
 ArgonLang::FunctionTypeNode::FunctionTypeNode(Token::Position position,
                                               std::vector<std::unique_ptr<TypeNode>> paramTypes,

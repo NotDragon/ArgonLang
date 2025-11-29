@@ -47,6 +47,7 @@ namespace ArgonLang {
 		Result<bool> visit(const RangePatternNode &node) override;
 		Result<bool> visit(const TernaryExpressionNode &node) override;
 		Result<bool> visit(const ParallelExpressionNode &node) override;
+		Result<bool> visit(const TryExpressionNode &node) override;
 		Result<bool> visit(const StructField &node) override;
 		Result<bool> visit(const StructExpressionNode &node) override;
 		Result<bool> visit(const RangeExpressionNode &node) override;

@@ -88,6 +88,8 @@ std::string ArgonLang::ast_node_type_to_string(ASTNodeType type) {
 		return "TernaryExpression";
 	case ASTNodeType::ParallelExpression:
 		return "ParallelExpression";
+	case ASTNodeType::TryExpression:
+		return "TryExpression";
 	case ASTNodeType::StructExpression:
 		return "StructExpression";
 	case ASTNodeType::RangeExpression:

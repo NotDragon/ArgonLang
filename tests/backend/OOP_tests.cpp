@@ -466,3 +466,184 @@ TEST_F(OOPTest, GenerateCompleteClassExample) {
     EXPECT_TRUE(code.find("v.length()") != std::string::npos);
     EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
 }
+
+// Inheritance Tests
+TEST_F(OOPTest, ParseSingleInheritance) {
+    std::string input = R"(
+        class Shape {
+            pub def color: str;
+        }
+        
+        class Circle impl Shape {
+            pub def radius: i32;
+        }
+    )";
+    auto result = parseCode(input);
+    
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
+    
+    ASSERT_EQ(program->nodes.size(), 2);
+    
+    auto circleNode = dynamic_cast<ArgonLang::ClassDeclarationNode*>(program->nodes[1].get());
+    ASSERT_NE(circleNode, nullptr);
+    EXPECT_EQ(circleNode->className, "Circle");
+    EXPECT_EQ(circleNode->baseClasses.size(), 1);
+}
+
+TEST_F(OOPTest, GenerateSingleInheritance) {
+    std::string input = R"(
+        class Shape {
+            pub def color: str;
+        }
+        
+        class Circle impl Shape {
+            pub def radius: i32;
+        }
+    )";
+    std::string code = generateCode(input);
+    
+    EXPECT_TRUE(code.find("class Shape{") != std::string::npos);
+    EXPECT_TRUE(code.find("class Circle : public Shape{") != std::string::npos);
+    EXPECT_TRUE(code.find("public:int32_t radius") != std::string::npos);
+    EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
+    EXPECT_FALSE(code.find("CODEGEN_ERROR") != std::string::npos);
+}
+
+TEST_F(OOPTest, ParseMultipleInheritance) {
+    std::string input = R"(
+        class Drawable {
+            pub func draw() void { }
+        }
+        
+        class Movable {
+            pub func move() void { }
+        }
+        
+        class Sprite impl Drawable, Movable {
+            pub def x: i32;
+            pub def y: i32;
+        }
+    )";
+    auto result = parseCode(input);
+    
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
+    
+    ASSERT_EQ(program->nodes.size(), 3);
+    
+    auto spriteNode = dynamic_cast<ArgonLang::ClassDeclarationNode*>(program->nodes[2].get());
+    ASSERT_NE(spriteNode, nullptr);
+    EXPECT_EQ(spriteNode->className, "Sprite");
+    EXPECT_EQ(spriteNode->baseClasses.size(), 2);
+}
+
+TEST_F(OOPTest, GenerateMultipleInheritance) {
+    std::string input = R"(
+        class Drawable {
+            pub func draw() void { }
+        }
+        
+        class Movable {
+            pub func move() void { }
+        }
+        
+        class Sprite impl Drawable, Movable {
+            pub def x: i32;
+            pub def y: i32;
+        }
+    )";
+    std::string code = generateCode(input);
+    
+    EXPECT_TRUE(code.find("class Drawable{") != std::string::npos);
+    EXPECT_TRUE(code.find("class Movable{") != std::string::npos);
+    EXPECT_TRUE(code.find("class Sprite : public Drawable, public Movable{") != std::string::npos);
+    EXPECT_TRUE(code.find("public:int32_t x") != std::string::npos);
+    EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
+    EXPECT_FALSE(code.find("CODEGEN_ERROR") != std::string::npos);
+}
+
+TEST_F(OOPTest, GenerateGenericClassWithInheritance) {
+    std::string input = R"(
+        class Container<T: Type> {
+            pub def value: T;
+        }
+        
+        class NumberContainer<T: Number> impl Container<T> {
+            pub func double() T { return value * 2; }
+        }
+    )";
+    std::string code = generateCode(input);
+    
+    EXPECT_TRUE(code.find("template<typename T> requires Type<T>") != std::string::npos);
+    EXPECT_TRUE(code.find("class Container{") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T> requires Number<T>") != std::string::npos);
+    EXPECT_TRUE(code.find("class NumberContainer : public Container<T>{") != std::string::npos);
+    EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
+    EXPECT_FALSE(code.find("CODEGEN_ERROR") != std::string::npos);
+}
+
+TEST_F(OOPTest, ParseClassWithoutInheritance) {
+    std::string input = R"(
+        class SimpleClass {
+            pub def value: i32;
+        }
+    )";
+    auto result = parseCode(input);
+    
+    ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
+    auto program = std::move(result.value());
+    
+    ASSERT_EQ(program->nodes.size(), 1);
+    
+    auto classNode = dynamic_cast<ArgonLang::ClassDeclarationNode*>(program->nodes[0].get());
+    ASSERT_NE(classNode, nullptr);
+    EXPECT_EQ(classNode->className, "SimpleClass");
+    EXPECT_EQ(classNode->baseClasses.size(), 0);
+}
+
+TEST_F(OOPTest, GenerateInterfaceImplementation) {
+    std::string input = R"(
+        class Printable {
+            pub func print() void { }
+        }
+        
+        class Document impl Printable {
+            pub def content: str;
+            
+            pub func print() void {
+                return;
+            }
+        }
+    )";
+    std::string code = generateCode(input);
+    
+    EXPECT_TRUE(code.find("class Printable{") != std::string::npos);
+    EXPECT_TRUE(code.find("class Document : public Printable{") != std::string::npos);
+    EXPECT_TRUE(code.find("void print()") != std::string::npos);
+    EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
+    EXPECT_FALSE(code.find("CODEGEN_ERROR") != std::string::npos);
+}
+
+TEST_F(OOPTest, GenerateChainedInheritance) {
+    std::string input = R"(
+        class Animal {
+            pub def name: str;
+        }
+        
+        class Mammal impl Animal {
+            pub def furColor: str;
+        }
+        
+        class Dog impl Mammal {
+            pub def breed: str;
+        }
+    )";
+    std::string code = generateCode(input);
+    
+    EXPECT_TRUE(code.find("class Animal{") != std::string::npos);
+    EXPECT_TRUE(code.find("class Mammal : public Animal{") != std::string::npos);
+    EXPECT_TRUE(code.find("class Dog : public Mammal{") != std::string::npos);
+    EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
+    EXPECT_FALSE(code.find("CODEGEN_ERROR") != std::string::npos);
+}

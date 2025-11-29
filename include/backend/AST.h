@@ -62,6 +62,7 @@ namespace ArgonLang
 		RangePattern,
 		TernaryExpression,
 		ParallelExpression,
+		TryExpression,
 		StructField,
 		StructExpression,
 		RangeExpression,
@@ -603,6 +604,19 @@ namespace ArgonLang
     #endif
     };
 
+    class TryExpressionNode : public ExpressionNode {
+    public:
+        std::unique_ptr<ExpressionNode> expression;
+
+        explicit TryExpressionNode(Token::Position position, std::unique_ptr<ExpressionNode> expression);
+
+		ASTNodeType get_node_type() const override;
+    #ifdef DEBUG
+        void print() const override;
+        void to_dot(std::ostream& os, int& nodeId) const override;
+    #endif
+    };
+
 	class StructField {
 	public:
 		std::string name;
@@ -851,11 +865,11 @@ namespace ArgonLang
 
 	class ImportStatementNode : public StatementNode {
 	public:
-		std::string moduleName;
+		std::unique_ptr<ExpressionNode> moduleName;
 		std::vector<std::string> importedItems; // empty means import all
 		std::string alias; // for "import as" syntax
 
-		explicit ImportStatementNode(Token::Position position, std::string moduleName,
+		explicit ImportStatementNode(Token::Position position, std::unique_ptr<ExpressionNode> moduleName,
 			std::vector<std::string> importedItems = {},
 			std::string alias = "");
 
@@ -929,8 +943,9 @@ namespace ArgonLang
 		std::string className;
 		std::vector<ClassMember> body;
 		std::vector<std::unique_ptr<GenericParameter>> genericParams;
+		std::vector<std::unique_ptr<TypeNode>> baseClasses; // Base classes/interfaces to inherit from
 
-		explicit ClassDeclarationNode(Token::Position position, std::string className, std::vector<ClassMember> body, std::vector<std::unique_ptr<GenericParameter>> genericParams = {});
+		explicit ClassDeclarationNode(Token::Position position, std::string className, std::vector<ClassMember> body, std::vector<std::unique_ptr<GenericParameter>> genericParams = {}, std::vector<std::unique_ptr<TypeNode>> baseClasses = {});
 		ASTNodeType get_node_type() const override;
 
 #ifdef DEBUG

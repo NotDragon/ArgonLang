@@ -699,6 +699,34 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_class_declaration() {
 		}
 	}
 
+	// Parse base classes if present: class Name impl Base1, Base2 { ... }
+	std::vector<std::unique_ptr<TypeNode>> baseClasses;
+	if (peek().type == Token::KeywordImpl) {
+		Result<Token> impl_keyword = advance();
+		if (!impl_keyword.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(impl_keyword.error());
+		}
+
+		// Parse base class list
+		do {
+			Result<std::unique_ptr<TypeNode>> base_type = parse_type();
+			if (!base_type.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(base_type.error());
+			}
+
+			baseClasses.push_back(std::move(base_type.value()));
+
+			if (peek().type == Token::Comma) {
+				Result<Token> comma = advance();
+				if (!comma.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(comma.error());
+				}
+			} else {
+				break;
+			}
+		} while (true);
+	}
+
 	std::vector<ConstructorStatementNode> constructors;
 	std::vector<ClassDeclarationNode::ClassMember> members;
 
@@ -756,7 +784,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_class_declaration() {
 	}
 
 	return Ok(std::make_unique<ClassDeclarationNode>(class_keyword.value().position, class_name.value().value,
-	                                                 std::move(members), std::move(genericParams)));
+	                                                 std::move(members), std::move(genericParams), std::move(baseClasses)));
 }
 
 Result<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> Parser::parse_constructor_argument() {
@@ -1225,20 +1253,19 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_import_statement() {
 		return Err<std::unique_ptr<ASTNode>>(import_keyword.error());
 	}
 
-	Result<Token> module_name = expect(Token::Identifier, "Expected module name");
+	Result<std::unique_ptr<ASTNode>> module_name = parse_member_access_expression();
 	if (!module_name.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(module_name.error());
 	}
 
 	std::vector<std::string> imported_items;
-	if (peek().type == Token::Arrow) {
-		Result<Token> arrow = advance();
-		if (!arrow.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(arrow.error());
+	if (peek().type == Token::LeftBrace) {
+		Result<Token> left_brace = advance();
+		if (!left_brace.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(left_brace.error());
 		}
 
-		// Parse imported items
-		do {
+		while (peek().type != Token::RightBrace) {
 			Result<Token> item = expect(Token::Identifier, "Expected imported item name");
 			if (!item.has_value()) {
 				return Err<std::unique_ptr<ASTNode>>(item.error());
@@ -1246,15 +1273,17 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_import_statement() {
 
 			imported_items.push_back(item.value().value);
 
-			if (peek().type == Token::Comma) {
-				Result<Token> comma = advance();
+			if (peek().type != Token::RightBrace) {
+				Result<Token> comma = expect(Token::Comma, "Expected ',' or ';' between items");
 				if (!comma.has_value()) {
 					return Err<std::unique_ptr<ASTNode>>(comma.error());
 				}
-			} else {
-				break;
 			}
-		} while (true);
+		}
+		Result<Token> right_brace = expect(Token::RightBrace, "Expected '}' after import items");
+		if (!right_brace.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(right_brace.error());
+		}
 	}
 
 	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after import statement");
@@ -1262,6 +1291,6 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_import_statement() {
 		return Err<std::unique_ptr<ASTNode>>(semicolon.error());
 	}
 
-	return Ok(std::make_unique<ImportStatementNode>(import_keyword.value().position, module_name.value().value,
+	return Ok(std::make_unique<ImportStatementNode>(import_keyword.value().position, dynamic_unique_cast<ExpressionNode>(std::move(module_name.value())),
 	                                                std::move(imported_items)));
 }

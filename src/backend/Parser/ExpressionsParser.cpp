@@ -391,7 +391,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_advanced_array_expression(std::un
 	Token::Position start_pos = peek().position;
 
 	// Parse the first expression (could be start index or first index)
-	Result<std::unique_ptr<ASTNode>> firstExpr = parse_function_call_expression();
+	Result<std::unique_ptr<ASTNode>> firstExpr = parse_expression();
 	if (!firstExpr.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(firstExpr.error());
 	}

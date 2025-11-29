@@ -82,6 +82,10 @@ ASTNodeType ParallelExpressionNode::get_node_type() const {
 	return ASTNodeType::ParallelExpression;
 }
 
+ASTNodeType TryExpressionNode::get_node_type() const {
+	return ASTNodeType::TryExpression;
+}
+
 ASTNodeType StructExpressionNode::get_node_type() const {
 	return ASTNodeType::StructExpression;
 }

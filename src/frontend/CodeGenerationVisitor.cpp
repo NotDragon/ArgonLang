@@ -168,29 +168,8 @@ Result<std::string> CodeGenerationVisitor::visit(const TypeNode& node) {
 
 Result<std::string> CodeGenerationVisitor::visit(const ProgramNode& node) {
 	std::string code = "#include <cstdint>\n";
-	code += "#include <algorithm>\n";
-	code += "#include <numeric>\n";
-	code += "#include <ranges>\n";
-	code += "#include <memory>\n";
-	code += "#include <functional>\n";
-	code += "#include <utility>\n";
-	code += "#include <iterator>\n";
-	code += "#include <variant>\n";
-	code += "#include <vector>\n";
-	code += "#include <iostream>\n";
-	code += "#include <future>\n";
-	code += "#include <thread>\n";
-	code += "#include <chrono>\n";
-	code += "#include <type_traits>\n";
 	code += "#include \"runtime/ArgonRuntime.h\"\n";
 	code += "\n";
-
-	// Add built-in concepts
-	code += "// Built-in concepts\n";
-	code += "template<typename T>\n";
-	code += "concept Number = std::is_arithmetic_v<T>;\n\n";
-	code += "template<typename T>\n";
-	code += "concept Type = true; // Any type\n\n";
 
 	for (const auto& child : node.nodes) {
 		auto result = visit(*child);
@@ -268,11 +247,11 @@ Result<std::string> CodeGenerationVisitor::visit(const BinaryExpressionNode& nod
 	} else if (node.op.value == "||>") {
 		// Map pipe: left ||> right becomes ArgonLang::Runtime::map_pipe
 		return Ok("ArgonLang::Runtime::map_pipe(" + left.value() + ", " + right.value() + ")" +
-		          (isStatementContext ? ";" : ""));
+		          (is_statement_context ? ";" : ""));
 	} else if (node.op.value == "|") {
 		// Filter operator: left | right becomes ArgonLang::Runtime::filter
 		return Ok("ArgonLang::Runtime::filter(" + left.value() + ", " + right.value() + ")" +
-		          (isStatementContext ? ";" : ""));
+		          (is_statement_context ? ";" : ""));
 	} else if (node.op.value == "&") {
 		// In constraint context, & is bitwise AND; otherwise it's the map operator
 		if (isConstraintContext) {
@@ -280,20 +259,20 @@ Result<std::string> CodeGenerationVisitor::visit(const BinaryExpressionNode& nod
 		} else {
 			// Map operator: left & right becomes ArgonLang::Runtime::map
 			return Ok("ArgonLang::Runtime::map(" + left.value() + ", " + right.value() + ")" +
-			          (isStatementContext ? ";" : ""));
+			          (is_statement_context ? ";" : ""));
 		}
 	} else if (node.op.value == "^") {
 		// Reduce operator: left ^ right becomes ArgonLang::Runtime::reduce
 		return Ok("ArgonLang::Runtime::reduce(" + left.value() + ", " + right.value() + ")" +
-		          (isStatementContext ? ";" : ""));
+		          (is_statement_context ? ";" : ""));
 	} else if (node.op.value == "^^") {
 		// Accumulate range: left ^^ right becomes ArgonLang::Runtime::accumulate
 		return Ok("ArgonLang::Runtime::accumulate(" + left.value() + ", " + right.value() + ")" +
-		          (isStatementContext ? ";" : ""));
+		          (is_statement_context ? ";" : ""));
 	} else if (node.op.value == "to") {
 		// Range operator: handled by ToExpressionNode, but if it appears here as binary op
 		return Ok("std::ranges::iota_view(" + left.value() + ", " + right.value() + ")" +
-		          (isStatementContext ? ";" : ""));
+		          (is_statement_context ? ";" : ""));
 	} else {
 		// Regular binary operators
 		return Ok(left.value() + " " + node.op.value + " " + right.value());
@@ -315,7 +294,7 @@ Result<std::string> CodeGenerationVisitor::visit(const UnaryExpressionNode& node
 		return Ok("std::move(" + operand.value() + ")");
 	} else if (node.op.value == "await") {
 		// Await operator: await future becomes ArgonLang::Runtime::await(future)
-		return Ok("ArgonLang::Runtime::await(std::move(" + operand.value() + "))" + (isStatementContext ? ";" : ""));
+		return Ok("ArgonLang::Runtime::await(std::move(" + operand.value() + "))" + (is_statement_context ? ";" : ""));
 	} else if (node.op.value == "&") {
 		// Const reference (immutable reference)
 		return Ok("&" + operand.value());
@@ -368,7 +347,7 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionCallExpressionNod
 	}
 	code += ")";
 
-	if (this->isStatementContext)
+	if (this->is_statement_context)
 		code += ";";
 
 	return code;
@@ -468,10 +447,10 @@ Result<std::string> CodeGenerationVisitor::visit(const AssignmentExpressionNode&
 		return Err<std::string>(right.error());
 	}
 
-	std::string code = left.value() + node.op.value + right.value();
+	std::string code = left.value() + " " + node.op.value + " " + right.value();
 
 	// Add semicolon when used as a statement
-	if (this->isStatementContext)
+	if (this->is_statement_context)
 		code += ";";
 
 	return Ok(code);
@@ -622,7 +601,7 @@ Result<std::string> CodeGenerationVisitor::visit(const MatchBranch& node) {
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const MatchExpressionNode& node) {
-	ScopedStatementContext scoped(this->isStatementContext, false);
+	ScopedStatementContext scoped(this->is_statement_context, false);
 	auto value = visit(*node.value);
 	if (!value.has_value()) {
 		return Err<std::string>(value.error());
@@ -663,8 +642,8 @@ Result<std::string> CodeGenerationVisitor::visit(const TernaryExpressionNode& no
 
 Result<std::string> CodeGenerationVisitor::visit(const ParallelExpressionNode& node) {
 	// Temporarily disable statement context to avoid extra semicolons
-	bool originalContext = this->isStatementContext;
-	ScopedStatementContext scoped(this->isStatementContext, false);
+	bool originalContext = this->is_statement_context;
+	ScopedStatementContext scoped(this->is_statement_context, false);
 	auto expr = visit(*node.statementNode);
 	if (!expr.has_value()) {
 		return Err<std::string>(expr.error());
@@ -678,6 +657,15 @@ Result<std::string> CodeGenerationVisitor::visit(const ParallelExpressionNode& n
 		// For expressions, wrap in lambda that returns the expression value
 		return {"ArgonLang::Runtime::par([&]() { return " + expr.value() + "; })" + (originalContext ? ";" : "")};
 	}
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const TryExpressionNode& node) {
+	auto expr = visit(*node.expression);
+	if (!expr.has_value()) {
+		return Err<std::string>(expr.error());
+	}
+
+	return Ok(expr.value());
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const StructField& node) {
@@ -772,7 +760,7 @@ Result<std::string> CodeGenerationVisitor::visit(const VariableDeclarationNode& 
 			    ErrorType::InvalidStatement, "Compound destructuring declaration must have a value", node.position));
 		}
 
-		ScopedStatementContext scoped(this->isStatementContext, false);
+		ScopedStatementContext scoped(this->is_statement_context, false);
 		Result<std::string> value = visit(*node.value);
 		if (!value.has_value()) {
 			return Err<std::string>(value.error());
@@ -800,7 +788,7 @@ Result<std::string> CodeGenerationVisitor::visit(const VariableDeclarationNode& 
 			                                           "Destructuring declaration must have a value", node.position));
 		}
 
-		ScopedStatementContext scoped(this->isStatementContext, false);
+		ScopedStatementContext scoped(this->is_statement_context, false);
 		Result<std::string> value = visit(*node.value);
 		if (!value.has_value()) {
 			return Err<std::string>(value.error());
@@ -834,7 +822,7 @@ Result<std::string> CodeGenerationVisitor::visit(const VariableDeclarationNode& 
 	code += node.name;
 
 	if (node.value) {
-		ScopedStatementContext scoped(this->isStatementContext, false);
+		ScopedStatementContext scoped(this->is_statement_context, false);
 		Result<std::string> value = visit(*node.value);
 		if (!value.has_value()) {
 			return Err<std::string>(value.error());
@@ -848,7 +836,7 @@ Result<std::string> CodeGenerationVisitor::visit(const VariableDeclarationNode& 
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const FunctionDeclarationNode& node) {
-	ScopedStatementContext scoped(this->isStatementContext, true);
+	ScopedStatementContext scoped(this->is_statement_context, true);
 
 	auto nameResult = visit(*node.name);
 	if (!nameResult.has_value()) {
@@ -948,7 +936,7 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionDefinitionNode& n
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ReturnStatementNode& node) {
-	ScopedStatementContext scoped(this->isStatementContext, false);
+	ScopedStatementContext scoped(this->is_statement_context, false);
 	Result<std::string> returnValue = visit(*node.returnExpression);
 	if (!returnValue.has_value()) {
 		return Err<std::string>(returnValue.error());
@@ -977,7 +965,7 @@ Result<std::string> CodeGenerationVisitor::visit(const ImplStatementNode& node) 
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ConstructorStatementNode& node) {
-	ScopedStatementContext scoped(this->isStatementContext, true);
+	ScopedStatementContext scoped(this->is_statement_context, true);
 
 	std::string code = "ClassName("; // <-- replace with actual class name if available
 
@@ -1047,7 +1035,27 @@ Result<std::string> CodeGenerationVisitor::visit(const ClassDeclarationNode& nod
 		code += templateResult.value();
 	}
 
-	code += "class " + node.className + "{";
+	code += "class " + node.className;
+	
+	// Generate inheritance if base classes are present
+	if (!node.baseClasses.empty()) {
+		code += " : ";
+		for (size_t i = 0; i < node.baseClasses.size(); ++i) {
+			// In ArgonLang, all inheritance is public by default
+			code += "public ";
+			auto baseResult = visit(*node.baseClasses[i]);
+			if (!baseResult.has_value()) {
+				return Err<std::string>(baseResult.error());
+			}
+			code += baseResult.value();
+			
+			if (i < node.baseClasses.size() - 1) {
+				code += ", ";
+			}
+		}
+	}
+	
+	code += "{";
 	for (const auto& member : node.body) {
 		std::string vis;
 		switch (member.visibility) {
@@ -1087,7 +1095,7 @@ Result<std::string> CodeGenerationVisitor::visit(const UnionDeclarationNode& nod
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const IfStatementNode& node) {
-	ScopedStatementContext scoped(this->isStatementContext, true);
+	ScopedStatementContext scoped(this->is_statement_context, true);
 
 	std::string code = "if(";
 
@@ -1120,7 +1128,7 @@ Result<std::string> CodeGenerationVisitor::visit(const IfStatementNode& node) {
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ForStatementNode& node) {
-	ScopedStatementContext scoped(this->isStatementContext, true);
+	ScopedStatementContext scoped(this->is_statement_context, true);
 
 	Result<std::string> iterator = visit(*node.iterator);
 	if (!iterator.has_value()) {
@@ -1236,7 +1244,7 @@ Result<std::string> CodeGenerationVisitor::visit(const ForStatementNode& node) {
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const WhileStatementNode& node) {
-	ScopedStatementContext scoped(this->isStatementContext, true);
+	ScopedStatementContext scoped(this->is_statement_context, true);
 
 	std::string code;
 
@@ -1298,7 +1306,7 @@ Result<std::string> CodeGenerationVisitor::visit(const TypeAliasNode& node) {
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const BlockNode& node) {
-	ScopedStatementContext scoped(this->isStatementContext, true);
+	ScopedStatementContext scoped(this->is_statement_context, true);
 
 	std::string code = "{";
 
@@ -1522,16 +1530,13 @@ Result<std::string> CodeGenerationVisitor::visit(const ModuleDeclarationNode& no
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const ImportStatementNode& node) {
-	std::string code = "// Import " + node.moduleName;
-	if (!node.importedItems.empty()) {
-		code += " -> ";
-		for (const auto& item : node.importedItems) {
-			code += item + ", ";
-		}
-		code.pop_back(), code.pop_back();
+	Result<std::string> name_result = visit(*node.moduleName);
+	if (!name_result.has_value()) {
+		return Err<std::string>(name_result.error());
 	}
-	code += "\n";
-	code += "using namespace " + node.moduleName + ";\n";
+
+	std::string code = "using namespace " + name_result.value() + ";\n";
+
 	return Ok(code);
 }
 

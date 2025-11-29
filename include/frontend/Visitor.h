@@ -48,6 +48,7 @@ namespace ArgonLang {
 		virtual T visit(const RangePatternNode &node) = 0;
 		virtual T visit(const TernaryExpressionNode &node) = 0;
 		virtual T visit(const ParallelExpressionNode &node) = 0;
+		virtual T visit(const TryExpressionNode &node) = 0;
 		virtual T visit(const StructField &node) = 0;
 		virtual T visit(const StructExpressionNode &node) = 0;
 		virtual T visit(const RangeExpressionNode &node) = 0;

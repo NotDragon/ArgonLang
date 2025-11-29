@@ -287,6 +287,13 @@ void ArgonLang::ParallelExpressionNode::to_dot(std::ostream& os, int& nodeId) co
 	os << "  node" << currentId << " -> node" << currentId + 1 << ";\n";
 }
 
+void ArgonLang::TryExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"TryExpression\"];\n";
+	expression->to_dot(os, nodeId);
+	os << "  node" << currentId << " -> node" << currentId + 1 << ";\n";
+}
+
 void ArgonLang::StructExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"StructExpressionNode\"];\n";
