@@ -14,6 +14,7 @@
 - [Memory Ownership](#memory-ownership)
 - [Concurrent Programming](#concurrent-programming)
 - [Type Safety & Constraints](#type-safety--constraints)
+- [Semantic Analyzer](#semantic-analyzer)
 - [Error Management](#error-management)
 - [Module Architecture](#module-architecture)
 - [Metaprogramming](#metaprogramming)
@@ -27,7 +28,7 @@ ArgonLang is built on several revolutionary concepts that distinguish it from tr
 Types are defined by the set of possible values they can contain, enabling precise compile-time safety without runtime overhead.
 
 ### Ownership Without Complexity
-Memory management uses intuitive ownership semantics with reference-extended lifetimes—values stay allocated as long as any reference to them exists, all tracked at compile-time.
+Memory management uses intuitive ownership semantics with reference-extended lifetimes—smart pointer values stay allocated as long as any reference to them exists, all tracked at compile-time. Regular variables must not have references that outlive them (compile-time error).
 
 ### Pattern-First Programming
 Pattern matching isn't just a feature—it's the primary way to work with data and control flow.
@@ -76,6 +77,40 @@ ArgonLang's type inference is sophisticated enough to handle complex scenarios:
 def numbers = [1, 2, 3, 4, 5];           // Inferred: i32[5]
 def mixed = vec<f64>();                  // Explicit generic type
 def lazy_evens = 0 to 100 | x -> x % 2 == 0;  // Inferred: range<i32>
+```
+
+### Type Checking Operators
+
+ArgonLang provides operators for runtime type checking:
+
+```argonlang
+// Type checking with 'is' keyword
+def value: i32 | str = 42;
+
+if (value is i32) {
+    print("Value is an integer: " + value);
+} else if (value is str) {
+    print("Value is a string: " + value);
+}
+
+// Returns true/false
+def isInteger = value is i32;  // true
+
+// Type checking with error types
+func divide(a: i32, b: i32) !i32 {
+    if (b == 0) {
+        throw Err::DivisionByZero;
+    }
+    return a / b;
+}
+
+def result = try divide(10, 5);
+if (result is i32) {
+    print(result);  // Safe to use as i32
+}
+
+// Type information
+def typeName = typeof(value);  // Returns type as string: "i32" or "str"
 ```
 
 ## Function Paradigms
@@ -265,19 +300,9 @@ def analysis = sensor_data
     |> calculate_statistics;
 ```
 
-### Map-Pipe and Aggregate Operations
+### Aggregate Operations
 
 ```argonlang
-// Map-pipe operator ||>: Map then pipe
-def account_balances = [
-    [100, 200, 50],
-    [300, 150],  
-    [75, 25, 125, 200]
-];
-
-def total_wealth = account_balances ||> sum |> max;
-// Equivalent to: account_balances & sum |> max
-
 // Aggregate operator />: Create tuples from multiple operations  
 def statistics = dataset /> mean /> median /> std_dev;
 // Creates tuple: (mean_val, median_val, std_dev_val)
@@ -466,8 +491,8 @@ def result = numbers
     |> map(x -> x * 2)
     |> sum();
 
-// Map-pipe operator ||>
-def processed = matrix ||> sum |> max;  // Map sum over matrix, then find max
+// Map then pipe using map operator
+def processed = matrix & sum |> max;  // Map sum over matrix, then find max
 ```
 
 ### Partial Application
@@ -568,6 +593,9 @@ print(student.getGrade());
 ### Advanced Class Features
 
 ```argonlang
+// Shorthand for simple data structures
+class Point(pub const x: i32, pub const y: i32);
+
 // Constructor with automatic field mapping
 class Point(x: i32, y: i32) {
     const x: i32;  // Automatically mapped from constructor
@@ -598,7 +626,7 @@ class Data pub {
     value: i32 = 0;
     func increment() -> value++;
 }
-```Ok
+```
 
 ### Inheritance and Interfaces
 
@@ -653,17 +681,18 @@ def drawable = struct Drawable {
 
 ### Automatic Lifetime Management
 
-ArgonLang uses a sophisticated lifetime system that provides memory safety without manual annotations:
+ArgonLang uses a sophisticated lifetime system that provides memory safety without manual annotations, but **only for smart pointers** (`~`).
 
-**Core Principle**: Variables become unavailable at scope end, but their memory is only deallocated when all references to them go out of scope.
+**Core Principle**: For smart pointers (`~`), variables become unavailable at scope end, but their memory is only deallocated when all references to them go out of scope. For regular variables, if a reference outlives the variable, it's a **compile-time error**.
 
 ```argonlang
+// Automatic Lifetime Management works with smart pointers (~)
 func example() {
-    def data = "important";
+    def data: ~str = "important";
     def reference: &str;
     
     {
-        def inner = "temporary";
+        def inner: ~str = "temporary";
         reference = &inner;
     }  // 'inner' unavailable after this scope
        // BUT memory NOT deallocated - 'reference' still holds it
@@ -674,53 +703,75 @@ func example() {
 ```
 
 **Key Rules:**
-1. Variables become **unavailable** (can't access name) at scope end
-2. Memory is **deallocated** only when all references to it die
-3. Compiler tracks this at **compile-time** - no runtime overhead
-4. Prevents dangling references without lifetime annotations
-5. This applies to **all non-pointer variables** (stack-allocated values)
+1. **ALM only applies to smart pointers (`~`)** - not regular variables
+2. For smart pointers: Variables become **unavailable** (can't access name) at scope end
+3. For smart pointers: Memory is **deallocated** only when all references to it die
+4. For regular variables: If a reference outlives the variable, it's a **compile-time error**
+5. Compiler tracks this at **compile-time** - no runtime overhead
+6. Prevents dangling references without lifetime annotations
 
 **Examples:**
 
 ```argonlang
-// Single reference extends lifetime
+// Smart pointer - ALM works
 func get_reference() {
     def outer_ref: &i32;
     {
-        def value = 42;
+        def value: ~i32 = 42;  // Smart pointer
         outer_ref = &value;
-        // 'value' name becomes unavailable at scope end
     }  // 'value' unavailable, but memory kept alive for outer_ref
     
     print(outer_ref);  // SAFE - value's memory still exists
     
 }  // outer_ref dies, NOW value's memory is deallocated
 
-// Multiple references
+// Regular variable - compile-time error if reference outlives variable
+func invalid_reference() {
+    def outer_ref: &i32;
+    {
+        def value: i32 = 42;  // Regular variable (not smart pointer)
+        outer_ref = &value;
+    }  // ERROR: 'value' goes out of scope, but 'outer_ref' still references it
+       // This is a compile-time error - regular variables don't use ALM
+    
+    // print(outer_ref);  // Would be unsafe - compile error prevents this
+}
+
+// Multiple references to smart pointer
 func multi_ref() {
-    def data = vec<i32>();
+    def data: ~vec<i32> = vec<i32>();
     def ref1 = &data;
     def ref2 = &data;
     // data's memory stays allocated until BOTH ref1 and ref2 die
 }
 
-// Returning references
+// Returning references from smart pointers
 func get_first(x: &str, y: &str) &str {
     return x.length > y.length ? x : y;
 }
 
 func safe_usage() {
-    def s1 = "long string";
+    def s1: ~str = "long string";
     def result: &str;
     {
-        def s2 = "short";
+        def s2: ~str = "short";  // Smart pointer
         result = get_first(&s1, &s2);
-        // s2 becomes unavailable (can't use name 's2')
-    }  // BUT s2's memory NOT deallocated - 'result' still references it
+    }  // s2 unavailable, but memory kept alive for result
     
     print(result);  // SAFE - s2's memory still alive
     
 }  // 'result' dies, NOW s2's memory is deallocated
+
+// Regular variable returning reference - compile-time error
+func invalid_return() {
+    def result: &i32;
+    {
+        def value: i32 = 42;  // Regular variable
+        result = &value;
+    }  // ERROR: 'value' goes out of scope, but 'result' still references it
+    
+    // return result;  // Compile-time error prevents this
+}
 ```
 
 ### Pointer Types
@@ -761,15 +812,15 @@ func example() {
     def data: ~i32 = 42;
     def ref1 = &data;     // Immutable reference
     def ref2 = &data;     // Multiple immutable refs OK
-    
-    // def mutRef = &&data;  // Error: cannot have mutable ref with immutable refs
+    def mutRef = &&data;  // Mutable reference - this is fine!
+    // Having both immutable and mutable references is allowed
 }
 
-// Reference-extended lifetimes prevent use-after-free
+// Reference-extended lifetimes prevent use-after-free (smart pointers only)
 func safe_references() {
     def outer: &vec<i32>;
     {
-        def inner = vec<i32>();
+        def inner: ~vec<i32> = vec<i32>();  // Smart pointer
         inner.push(1);
         inner.push(2);
         outer = &inner;
@@ -780,9 +831,24 @@ func safe_references() {
     
 }  // 'outer' dies, inner's memory NOW deallocated
 
-// Mutability tracking
+// Mutability tracking with 'mut' keyword
+// The 'mut' keyword declares that if a variable is mutated, 
+// it should raise an error if references to that variable exist
+func mutability_example() {
+    def mut counter: i32 = 0;  // Declared as 'mut'
+    def ref1 = &counter;        // Immutable reference
+    def mutRef = &&counter;     // Mutable reference - both are fine
+    
+    // counter = 10;  // ERROR: cannot mutate 'mut' variable while references exist
+    // counter++;     // ERROR: cannot mutate 'mut' variable while references exist
+    
+    // Once all references go out of scope, mutation is allowed
+    // (ref1 and mutRef would need to be out of scope first)
+}
+
+// Mutability tracking in classes
 class Container {
-    mut data: vec<i32>;  // Mutable field
+    mut data: vec<i32>;  // Mutable field - mutation checked when references exist
     
     func add(value: i32) mut {  // Method that mutates
         data.push(value);
@@ -872,14 +938,18 @@ def floatContainer = Container<f64>(3.14);
 ### Custom Constraints
 
 ```argonlang
-// Define constraints
-constraint Positive<T: Number> = T > 0;
-constraint Even<T: Number> = T % 2 == 0;
+// Simple constraints
 constraint NonZero<T: Number> = T != 0;
+constraint Even<T: Integer> = T % 2 == 0;
+constraint Positive<T: Number> = T > 0;
 
-// Complex constraints
-constraint ValidTriangle<A: Number, B: Number, C: Number> = 
-    A + B > C && B + C > A && A + C > B;
+// Complex constraints with multiple parameters
+constraint ValidTriangle<A: Number, B: Number, C: Number> =
+    A + B == 5 && B < C && A != B && A != C && B != C;
+
+// Advanced constraint features
+constraint InRange<T: Number, min: T, max: T> = T >= min && T <= max;
+constraint ArraySize<T: Array, size: i32> = T.length == size;
 
 // Usage in functions
 func safeDivide<T: Number & NonZero>(dividend: T, divisor: T) T {
@@ -889,6 +959,23 @@ func safeDivide<T: Number & NonZero>(dividend: T, divisor: T) T {
 func processPositive<T: Number & Positive>(value: T) T {
     return value * 2;  // Safe: value is guaranteed positive
 }
+
+// Usage with concrete types
+func processPercent(value: i32 & InRange<i32, 0, 100>) {
+    // value is guaranteed to be between 0 and 100
+}
+
+func processFixedArray(arr: i32[] & ArraySize<i32[], 10>) {
+    // arr is guaranteed to have exactly 10 elements
+    // Safe to access arr[9] without bounds checking
+}
+
+// Applying constraints to struct types
+def problem: struct {
+    A: Number & Positive,
+    B: Number & Positive,
+    C: Number & Positive
+} & ValidTriangle;
 ```
 
 ### Built-in Concepts
@@ -899,18 +986,69 @@ func calculate<T: Number>(a: T, b: T) T -> a + b;
 
 // Type concept (any type)
 func store<T: Type>(value: T) T -> value;
-
-// Custom concepts
-constraint Comparable<T> = requires(T a, T b) {
-    a < b;
-    a > b;
-    a == b;
-};
 ```
+
+## Semantic Analyzer
+
+The ArgonLang Semantic Analyzer (SA) acts as a high-fidelity pre-compilation engine that orchestrates flow-sensitive type refinement and symbolic execution to bridge high-level functional safety with zero-cost systems efficiency.
+
+### Constraint Propagation and Type Refinement
+
+By tracking value constraints through logical guards, loops, and interval arithmetic, the SA performs continuous constraint propagation to prove the unreachability of error states. This allows it to automatically unwrap result types (`!T`) into raw value types (`T`) whenever an execution path is mathematically verified as safe.
+
+```argonlang
+func divide(a: i32, b: i32) !i32 {
+    if (b == 0) {
+        throw Err::DivisionByZero;
+    }
+    return a / b;
+}
+
+func safe_divide() {
+    def result = divide(10, 5);  // SA proves b != 0, automatically unwraps !i32 to i32
+    // result is i32, not !i32 - no need for explicit unwrapping
+    print(result);  // Safe to use directly
+}
+
+func conditional_divide(b: i32) {
+    if (b != 0) {
+        def result = divide(10, b);  // SA proves b != 0 in this branch, unwraps to i32
+        print(result);  // Safe: constraint proven
+    }
+    // Outside this branch, b might be 0, so divide(10, b) would remain !i32
+}
+```
+
+### Static Automatic Lifetime Management (ALM)
+
+The SA implements the language's Static ALM by conducting global escape analysis on smart pointers (`~`), identifying the exact terminal point of a variable's utility—even across complex parallel join points—and lowering these abstractions into raw pointers (`*`) with compiler-inserted deallocation calls.
+
+```argonlang
+func example() {
+    def data: ~vec<i32> = [1, 2, 3];
+    def ref = &data;
+    // SA analyzes: data escapes to ref, lifetime extended
+    // SA lowers to: *vec<i32> with deallocation at ref's death
+}  // SA inserts deallocation call here
+```
+
+### Optimizations
+
+Through optimizations such as functional transparency for pure blocks and exhaustive pattern-match verification, the SA ensures that the final IR (Intermediate Representation) is both memory-safe and logically sound, effectively removing the need for runtime boilerplate or garbage collection.
+
+**Key Features:**
+- **Flow-sensitive type refinement**: Types are refined based on control flow
+- **Symbolic execution**: Mathematical verification of constraints
+- **Interval arithmetic**: Tracking value ranges through program execution
+- **Escape analysis**: Determining exact lifetime termination points
+- **Pattern-match exhaustiveness**: Verifying all cases are handled
+- **Pure function detection**: Identifying side-effect-free functions for optimization
 
 ## Concurrency and Parallelism
 
 ### Parallel Execution
+
+Parallel execution in ArgonLang is governed by the principle of **Structured Concurrency**, where the parent scope remains the authoritative owner of data life cycles and synchronization. The `par` keyword initiates tasks that are lexically scoped, ensuring the parent execution blocks at the closing brace until all child tasks join.
 
 ```argonlang
 // Parallel expression
@@ -926,6 +1064,58 @@ func processData() {
         par task2();
         par task3();
     }  // Scope waits for all parallel tasks to complete
+}
+```
+
+#### Parallel Execution Rules
+
+To maintain C++ performance without runtime overhead, parallel tasks follow strict ownership and mutability rules:
+
+**Ownership Restrictions:**
+- Parallel tasks are **strictly forbidden** from moving ownership (`~`) of any pointer or mutating smart pointers (`~`)
+- These operations are reserved exclusively for the main scope to preserve predictable deallocation points found via **Compile-Time Static Lifetime Analysis**
+
+**Aliasing XOR Mutability Rule:**
+- A task may take a mutable reference (`&&`) only if **no other parallel task** holds any reference to that specific memory
+- Multiple tasks may simultaneously hold immutable references (`&`) provided **no writers exist**
+- Mutation of regular variables (`def`) or data views is permitted within `par` blocks under this rule
+
+**Shared State for Parallel Mutation:**
+- Any shared state requiring non-exclusive parallel mutation must utilize the runtime-managed `ref<T>` type
+- Must be paired with atomic primitives or mutexes
+- Ensures that all potential data races are either:
+  - Resolved through hardware synchronization, or
+  - Prevented entirely by the compiler's dependency graph at build time
+
+```argonlang
+// Example: Immutable references - multiple tasks OK
+func processData() {
+    def data: ~vec<i32> = [1, 2, 3, 4, 5];
+    {
+        par processChunk(&data, 0, 2);      // Immutable reference
+        par processChunk(&data, 2, 4);      // Immutable reference - OK
+        par processChunk(&data, 4, 5);      // Immutable reference - OK
+    }  // All tasks complete before continuing
+}
+
+// Example: Mutable reference - exclusive access required
+func updateData() {
+    def mut data: ~vec<i32> = [1, 2, 3];
+    {
+        // par modifyData(&&data);  // ERROR: Cannot have mutable ref in parallel
+        // par readData(&data);     // ERROR: Cannot have any refs if mutating
+    }
+    // Mutation allowed here - no parallel tasks exist
+    data.push(4);
+}
+
+// Example: Shared state with ref<T> and synchronization
+func parallelMutation() {
+    def shared: ref<i32> = ref(0);
+    {
+        par increment(shared);  // Uses atomic operations internally
+        par increment(shared);  // Safe: ref<T> handles synchronization
+    }
 }
 ```
 
@@ -1007,7 +1197,7 @@ whenAny([future1, future2]) {
 
 ```argonlang
 // Function that can throw
-func divide(a: i32, b: i32) i32 {
+func divide(a: i32, b: i32) i32! {
     if (b == 0) {
         throw Error::DivisionByZero;
     }
@@ -1263,7 +1453,7 @@ print(v1);          // Calls v1._get()
 
 // Function-like macros
 @func repeat(action: Function, count: Number) {
-    0 to count ||> action;
+    0 to count & action;
 }
 
 @repeat((i) -> print(i), 5);
@@ -1539,7 +1729,7 @@ func main() {
 
 3. **Validate inputs with constraints**
    ```argonlang
-   func processAge<T: Number & InRange<T, 0, 150>>(age: T) {
+   func processAge(age: i32 & InRange<i32, 0, 150>) {
        // age is guaranteed to be valid
    }
    ```
@@ -1571,8 +1761,9 @@ The remaining sections would cover:
 
 ### Memory Ownership  
 - Owned pointers (~), references (&, &&), and raw pointers (*)
-- Reference-extended lifetimes: values stay allocated while references exist
-- Automatic lifetime management without annotations
+- Reference-extended lifetimes: smart pointer values stay allocated while references exist
+- Automatic lifetime management for smart pointers (~) without annotations
+- Regular variables: compile-time error if reference outlives variable
 - Custom allocators (heap, stack buffer, arena)
 - Borrowing rules and compile-time safety
 

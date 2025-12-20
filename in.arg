@@ -1,18 +1,4 @@
-enum Option {
-    Some{ value: i32 },
-    None
-}
-
-func test(opt: Option) str {
-    return opt => {
-        Option::Some{ value } && value > 0 -> "positive some",
-        Option::Some{ value } && value < 0 -> "negative some",
-        Option::Some{ value } && value == 0 -> "zero some",
-        Option::None -> "none",
-        _ -> "unknown"
-    };
-}
-
+func process(value: str & NonEmpty) str { return value; }
 
 func main() {
     

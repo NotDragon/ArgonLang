@@ -1,15 +1,187 @@
 #ifndef ARGON_RUNTIME_H
 #define ARGON_RUNTIME_H
 
+#include <cstdint>
 #include <future>
 #include <vector>
 #include <memory>
 #include <functional>
 #include <thread>
 #include <chrono>
+#include <ostream>
+#include <istream>
+#include <string>
+#include <cmath>
+#include <stdfloat>
 
+// ===== ARGONLANG TYPE SYSTEM =====
 namespace ArgonLang {
 namespace Runtime {
+    // Standard integer types (8, 16, 32, 64 bits)
+    using i8 = int8_t;
+    using i16 = int16_t;
+    using i32 = int32_t;
+    using i64 = int64_t;
+
+    // Unsigned integer types
+    using u8 = uint8_t;
+    using u16 = uint16_t;
+    using u32 = uint32_t;
+    using u64 = uint64_t;
+
+    // Standard floating-point types
+    using f16 = std::float16_t;
+    using f32 = std::float32_t;
+    using f64 = std::float64_t;
+    using f128 = std::float128_t;
+
+    // Custom 128-bit integer class (using two 64-bit values for compatibility)
+    class i128 {
+    private:
+        i64 high;  // High 64 bits (signed)
+        u64 low;   // Low 64 bits (unsigned)
+
+    public:
+        // Constructors
+        constexpr i128() : high(0), low(0) {}
+        constexpr i128(i64 h, u64 l) : high(h), low(l) {}
+        constexpr i128(i64 v) : high(v < 0 ? -1 : 0), low(static_cast<u64>(v)) {}
+        constexpr i128(i32 v) : high(v < 0 ? -1 : 0), low(static_cast<u64>(static_cast<i64>(v))) {}
+        i128(const std::string& str);
+
+        // Conversion operators
+        explicit operator int64_t() const;
+        explicit operator int32_t() const { return static_cast<int32_t>(static_cast<int64_t>(*this)); }
+        explicit operator double() const;
+
+        // Arithmetic operators
+        i128 operator+(const i128& other) const;
+        i128 operator-(const i128& other) const;
+        i128 operator*(const i128& other) const;
+        i128 operator/(const i128& other) const;
+        i128 operator%(const i128& other) const;
+        i128 operator-() const;
+        
+        // Compound assignment
+        i128& operator+=(const i128& other);
+        i128& operator-=(const i128& other);
+        i128& operator*=(const i128& other);
+        i128& operator/=(const i128& other);
+        i128& operator%=(const i128& other);
+        
+        // Increment/Decrement
+        i128& operator++();
+        i128 operator++(int);
+        i128& operator--();
+        i128 operator--(int);
+        
+        // Bitwise operators
+        i128 operator&(const i128& other) const;
+        i128 operator|(const i128& other) const;
+        i128 operator^(const i128& other) const;
+        i128 operator~() const;
+        i128 operator<<(int shift) const;
+        i128 operator>>(int shift) const;
+        
+        i128& operator&=(const i128& other);
+        i128& operator|=(const i128& other);
+        i128& operator^=(const i128& other);
+        i128& operator<<=(int shift);
+        i128& operator>>=(int shift);
+        
+        // Comparison operators
+        bool operator==(const i128& other) const;
+        bool operator!=(const i128& other) const;
+        bool operator<(const i128& other) const;
+        bool operator>(const i128& other) const;
+        bool operator<=(const i128& other) const;
+        bool operator>=(const i128& other) const;
+        
+        // Stream operators
+        friend std::ostream& operator<<(std::ostream& os, const i128& val);
+        friend std::istream& operator>>(std::istream& is, i128& val);
+        
+        // String conversion
+        std::string to_string() const;
+        
+        // Helper methods
+        bool is_negative() const { return high < 0; }
+        bool is_zero() const { return high == 0 && low == 0; }
+    };
+
+    // Custom unsigned 128-bit integer class (using two 64-bit values for compatibility)
+    class u128 {
+        friend class i128;  // Allow i128 to access private members for conversions
+        
+    private:
+        u64 high;  // High 64 bits
+        u64 low;   // Low 64 bits
+
+    public:
+        // Constructors
+        constexpr u128() : high(0), low(0) {}
+        constexpr u128(u64 h, u64 l) : high(h), low(l) {}
+        constexpr u128(u64 v) : high(0), low(v) {}
+        constexpr u128(u32 v) : high(0), low(static_cast<u64>(v)) {}
+        u128(const std::string& str);
+
+        // Conversion operators
+        explicit operator uint64_t() const;
+        explicit operator uint32_t() const { return static_cast<uint32_t>(static_cast<uint64_t>(*this)); }
+        explicit operator double() const;
+
+        // Arithmetic operators
+        u128 operator+(const u128& other) const;
+        u128 operator-(const u128& other) const;
+        u128 operator*(const u128& other) const;
+        u128 operator/(const u128& other) const;
+        u128 operator%(const u128& other) const;
+        
+        // Compound assignment
+        u128& operator+=(const u128& other);
+        u128& operator-=(const u128& other);
+        u128& operator*=(const u128& other);
+        u128& operator/=(const u128& other);
+        u128& operator%=(const u128& other);
+        
+        // Increment/Decrement
+        u128& operator++();
+        u128 operator++(int);
+        u128& operator--();
+        u128 operator--(int);
+        
+        // Bitwise operators
+        u128 operator&(const u128& other) const;
+        u128 operator|(const u128& other) const;
+        u128 operator^(const u128& other) const;
+        u128 operator~() const;
+        u128 operator<<(int shift) const;
+        u128 operator>>(int shift) const;
+        
+        u128& operator&=(const u128& other);
+        u128& operator|=(const u128& other);
+        u128& operator^=(const u128& other);
+        u128& operator<<=(int shift);
+        u128& operator>>=(int shift);
+        
+        // Comparison operators
+        bool operator==(const u128& other) const;
+        bool operator!=(const u128& other) const;
+        bool operator<(const u128& other) const;
+        bool operator>(const u128& other) const;
+        bool operator<=(const u128& other) const;
+        bool operator>=(const u128& other) const;
+        
+        // Stream operators
+        friend std::ostream& operator<<(std::ostream& os, const u128& val);
+        friend std::istream& operator>>(std::istream& is, u128& val);
+        
+        // String conversion
+        std::string to_string() const;
+        
+        // Helper methods
+        bool is_zero() const { return high == 0 && low == 0; }
+    };
 
     // Forward declarations
     class ScopeManager;

@@ -19,6 +19,12 @@ namespace ArgonLang
         INT32,
         INT64,
         INT128,
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        UINT128,
+        FLOAT16,
         FLOAT32,
         FLOAT64,
         FLOAT128

@@ -20,6 +20,7 @@ const std::unordered_map<std::string, Token::Type> keywords = {
     {"u32", Token::PrimitiveType},
     {"u64", Token::PrimitiveType},
     {"u128", Token::PrimitiveType},
+    {"f16", Token::PrimitiveType},
     {"f32", Token::PrimitiveType},
     {"f64", Token::PrimitiveType},
     {"f128", Token::PrimitiveType},

@@ -1419,22 +1419,20 @@ Result<std::string> CodeGenerationVisitor::visit(const BlockNode& node) {
 
 Result<std::string> CodeGenerationVisitor::visit(const IdentifierTypeNode& node) {
 	std::string code;
-	if (node.typeName == "i8")
-		code += "int8_t";
-	else if (node.typeName == "i16")
-		code += "int16_t";
-	else if (node.typeName == "i32")
-		code += "int32_t";
-	else if (node.typeName == "i64")
-		code += "int64_t";
-	else if (node.typeName == "i128")
-		code += "__int128";
-	else if (node.typeName == "f32")
-		code += "float";
-	else if (node.typeName == "f64")
-		code += "double";
-	else if (node.typeName == "f128")
-		code += "long double";
+	// Use ArgonLang custom type names directly
+	if (node.typeName == "i8" || node.typeName == "i16" || node.typeName == "i32" || 
+	    node.typeName == "i64" || node.typeName == "i128" ||
+	    node.typeName == "u8" || node.typeName == "u16" || node.typeName == "u32" || 
+	    node.typeName == "u64" || node.typeName == "u128" ||
+	    node.typeName == "f16" || node.typeName == "f32" || 
+	    node.typeName == "f64" || node.typeName == "f128")
+		code += "ArgonLang::Runtime::" + node.typeName;
+	else if (node.typeName == "bool")
+		code += "bool";
+	else if (node.typeName == "str")
+		code += "std::string";
+	else if (node.typeName == "chr")
+		code += "char";
 	else
 		code += node.typeName;
 

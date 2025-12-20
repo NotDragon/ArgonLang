@@ -104,7 +104,7 @@ TEST_F(GenericsTest, GenerateGenericFunctionConcreteConstraint) {
     std::string input = "func<T: i32> processInt(x: T) T { return x; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, int32_t>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, ArgonLang::Runtime::i32>") != std::string::npos);
     EXPECT_TRUE(code.find("T processInt(T x)") != std::string::npos);
 }
 
@@ -212,7 +212,7 @@ TEST_F(GenericsTest, GenerateGenericConstraintMultipleParameters) {
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("// Constraint Range") != std::string::npos);
-    EXPECT_TRUE(code.find("template<typename T, typename Min, typename Max> requires Number<T> && std::same_as<Min, int32_t> && std::same_as<Max, int32_t>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T, typename Min, typename Max> requires Number<T> && std::same_as<Min, ArgonLang::Runtime::i32> && std::same_as<Max, ArgonLang::Runtime::i32>") != std::string::npos);
     EXPECT_TRUE(code.find("concept Range = T >= Min && T <= Max;") != std::string::npos);
 }
 

@@ -128,7 +128,7 @@ TEST_F(LiteralsTest, GenerateFloat32) {
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("3.14") != std::string::npos);
-    EXPECT_TRUE(code.find("float") != std::string::npos);
+    EXPECT_TRUE(code.find("ArgonLang::Runtime::f32") != std::string::npos);
 }
 
 TEST_F(LiteralsTest, GenerateFloat64) {
@@ -136,7 +136,7 @@ TEST_F(LiteralsTest, GenerateFloat64) {
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("3.141592653589793") != std::string::npos);
-    EXPECT_TRUE(code.find("double") != std::string::npos);
+    EXPECT_TRUE(code.find("ArgonLang::Runtime::f64") != std::string::npos);
 }
 
 // String Literal Tests
@@ -430,7 +430,7 @@ TEST_F(LiteralsTest, TypeInferenceFloat) {
     std::string input = "func main() void { def y = 3.14; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("auto y = 3.14") != std::string::npos || code.find("double") != std::string::npos);
+    EXPECT_TRUE(code.find("auto y = 3.14") != std::string::npos || code.find("ArgonLang::Runtime::f64") != std::string::npos);
 }
 
 TEST_F(LiteralsTest, TypeInferenceString) {

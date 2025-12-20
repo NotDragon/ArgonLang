@@ -1,5 +1,6 @@
 build
 .vscode
+.cursor
 in.c
 syntax.txt
 cmake-build-debug

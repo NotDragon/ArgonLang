@@ -119,21 +119,21 @@ TEST_F(GenericFunctionCallsTest, GenerateGenericFunctionCallSingleType) {
     std::string input = "func main() i32 { def result = identity<i32>(42); return 0; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("identity<int32_t>(42)") != std::string::npos);
+    EXPECT_TRUE(code.find("identity<ArgonLang::Runtime::i32>(42)") != std::string::npos);
 }
 
 TEST_F(GenericFunctionCallsTest, GenerateGenericFunctionCallMultipleTypes) {
     std::string input = "func main() i32 { def result = combine<i32, str>(42, \"hello\"); return 0; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("combine<int32_t, str>(42, \"hello\")") != std::string::npos);
+    EXPECT_TRUE(code.find("combine<ArgonLang::Runtime::i32, str>(42, \"hello\")") != std::string::npos);
 }
 
 TEST_F(GenericFunctionCallsTest, GenerateGenericFunctionCallFloatType) {
     std::string input = "func main() i32 { def result = process<f32>(3.14); return 0; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("process<float>(3.14)") != std::string::npos);
+    EXPECT_TRUE(code.find("process<ArgonLang::Runtime::f32>(3.14)") != std::string::npos);
 }
 
 TEST_F(GenericFunctionCallsTest, GenerateRegularFunctionCall) {
@@ -156,9 +156,9 @@ TEST_F(GenericFunctionCallsTest, GenerateMixedFunctionCalls) {
     )";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("identity<int32_t>(42)") != std::string::npos);
+    EXPECT_TRUE(code.find("identity<ArgonLang::Runtime::i32>(42)") != std::string::npos);
     EXPECT_TRUE(code.find("add(5, 10)") != std::string::npos);
-    EXPECT_TRUE(code.find("combine<str, int32_t>(\"hello\", 123)") != std::string::npos);
+    EXPECT_TRUE(code.find("combine<str, ArgonLang::Runtime::i32>(\"hello\", 123)") != std::string::npos);
 }
 
 // Complex Generic Type Arguments
@@ -175,7 +175,7 @@ TEST_F(GenericFunctionCallsTest, GenerateNestedGenericCalls) {
     std::string input = "func main() i32 { def result = outer<i32>(inner<str>(\"test\")); return 0; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("outer<int32_t>(inner<str>(\"test\"))") != std::string::npos);
+    EXPECT_TRUE(code.find("outer<ArgonLang::Runtime::i32>(inner<str>(\"test\"))") != std::string::npos);
 }
 
 // Error Handling Tests

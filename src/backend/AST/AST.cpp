@@ -12,6 +12,18 @@ std::string ArgonLang::primitive_type_to_string(PrimitiveType type) {
 		return "i64";
 	case INT128:
 		return "i128";
+	case UINT8:
+		return "u8";
+	case UINT16:
+		return "u16";
+	case UINT32:
+		return "u32";
+	case UINT64:
+		return "u64";
+	case UINT128:
+		return "u128";
+	case FLOAT16:
+		return "f16";
 	case FLOAT32:
 		return "f32";
 	case FLOAT64:
@@ -33,11 +45,23 @@ ArgonLang::PrimitiveType ArgonLang::determine_integer_type(const std::string& va
 		return PrimitiveType::INT64;
 	if (value.ends_with("i128"))
 		return PrimitiveType::INT128;
+	if (value.ends_with("u8"))
+		return PrimitiveType::UINT8;
+	if (value.ends_with("u16"))
+		return PrimitiveType::UINT16;
+	if (value.ends_with("u32"))
+		return PrimitiveType::UINT32;
+	if (value.ends_with("u64"))
+		return PrimitiveType::UINT64;
+	if (value.ends_with("u128"))
+		return PrimitiveType::UINT128;
 
 	return PrimitiveType::INT32;
 }
 
 ArgonLang::PrimitiveType ArgonLang::determine_float_type(const std::string& value) {
+	if (value.ends_with("f16"))
+		return PrimitiveType::FLOAT16;
 	if (value.ends_with("f32"))
 		return PrimitiveType::FLOAT32;
 	if (value.ends_with("f64"))
@@ -45,7 +69,7 @@ ArgonLang::PrimitiveType ArgonLang::determine_float_type(const std::string& valu
 	if (value.ends_with("f128"))
 		return PrimitiveType::FLOAT128;
 
-	return PrimitiveType::FLOAT32;
+	return PrimitiveType::FLOAT64;
 }
 
 std::string ArgonLang::ast_node_type_to_string(ASTNodeType type) {

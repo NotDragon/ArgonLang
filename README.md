@@ -98,7 +98,6 @@ This is an actively developed language. Below is a comprehensive checklist of pl
 - [x] Map operator (`&`)
 - [x] Reduce operator (`?`)
 - [x] Pipe operator (`|>`)
-- [x] Map-pipe operator (`||>`)
 - [x] Assignment variants (`+=`, `-=`, `*=`, `/=`, `%=`, `|=`, `&=`, `?=`, `|>=`)
 
 #### Type Checking & Analysis
