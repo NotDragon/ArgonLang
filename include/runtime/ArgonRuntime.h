@@ -171,10 +171,6 @@ namespace Runtime {
     template<typename Container, typename Transform>
     Container& map_pipe(Container& container, Transform&& transform);
     
-    // Accumulate utility: container ^^ reducer (with container type as initial value)
-    template<typename Container, typename Reducer>
-    std::decay_t<Container> accumulate(Container&& container, Reducer&& reducer);
-    
     // Pattern matching utilities to reduce code bloat
     // (Implementations moved to ArgonRuntime.cpp)
     
@@ -248,8 +244,6 @@ namespace Runtime {
     extern template int reduce(std::vector<int>&& container, std::function<int(int, int)>&& reducer);
     extern template int reduce(const std::vector<int>& container, std::function<int(int, int)>&& reducer);
     extern template std::vector<int>& map_pipe(std::vector<int>& container, std::function<int(int)>&& transform);
-    extern template std::vector<int> accumulate(std::vector<int>&& container, std::function<std::vector<int>(std::vector<int>, int)>&& reducer);
-    extern template std::vector<int> accumulate(const std::vector<int>& container, std::function<std::vector<int>(std::vector<int>, int)>&& reducer);
 
     // Functional operators for std::vector<float>
     extern template std::vector<float> filter(std::vector<float>&& container, std::function<bool(float)>&& predicate);

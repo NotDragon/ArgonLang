@@ -12,45 +12,13 @@ void ArgonLang::CharLiteralNode::to_dot(std::ostream& os, int& nodeId) const {
 }
 
 void ArgonLang::IntegralLiteralNode::to_dot(std::ostream& os, int& nodeId) const {
-	os << "  node" << nodeId++ << " [label=\"IntegralLiteral: ";
-	switch (type) {
-	case PrimitiveType::INT8:
-		os << static_cast<int>(value.i8);
-		break;
-	case PrimitiveType::INT16:
-		os << value.i16;
-		break;
-	case PrimitiveType::INT32:
-		os << value.i32;
-		break;
-	case PrimitiveType::INT64:
-		os << value.i64;
-		break;
-	case PrimitiveType::INT128:
-		os << static_cast<int64_t>(value.i128);
-		break;
-	default:
-		throw std::runtime_error("Invalid type for IntegralLiteralNode");
-	}
-	os << " (" << primitive_type_to_string(type) << ")\"];\n";
+	os << "  node" << nodeId++ << " [label=\"IntegralLiteral: " << value 
+	   << " (" << primitive_type_to_string(type) << ")\"];\n";
 }
 
 void ArgonLang::FloatLiteralNode::to_dot(std::ostream& os, int& nodeId) const {
-	os << "  node" << nodeId++ << " [label=\"FloatLiteral: ";
-	switch (type) {
-	case PrimitiveType::FLOAT32:
-		os << value.f32;
-		break;
-	case PrimitiveType::FLOAT64:
-		os << value.f64;
-		break;
-	case PrimitiveType::FLOAT128:
-		os << value.f128;
-		break;
-	default:
-		throw std::runtime_error("Invalid type for FloatLiteralNode");
-	}
-	os << " (" << primitive_type_to_string(type) << ")\"];\n";
+	os << "  node" << nodeId++ << " [label=\"FloatLiteral: " << value 
+	   << " (" << primitive_type_to_string(type) << ")\"];\n";
 }
 
 void ArgonLang::IdentifierNode::to_dot(std::ostream& os, int& nodeId) const {
@@ -61,6 +29,16 @@ void ArgonLang::IdentifierNode::to_dot(std::ostream& os, int& nodeId) const {
 void ArgonLang::UnaryExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"UnaryExpressionNode(" << op.value << ")\"];\n";
+	if (operand) {
+		int leftId = nodeId;
+		operand->to_dot(os, nodeId);
+		os << "  node" << currentId << " -> node" << leftId << ";\n";
+	}
+}
+
+void ArgonLang::UnaryPostExpressionNode::to_dot(std::ostream& os, int& nodeId) const {
+	int currentId = nodeId++;
+	os << "  node" << currentId << " [label=\"UnaryPostExpressionNode(" << op.value << ")\"];\n";
 	if (operand) {
 		int leftId = nodeId;
 		operand->to_dot(os, nodeId);
@@ -392,10 +370,15 @@ void ArgonLang::UnionDeclarationNode::to_dot(std::ostream& os, int& nodeId) cons
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Union: " << unionName << "\"];\n";
 
-	for (const auto& type : types) {
-		int typeId = nodeId;
-		type->to_dot(os, nodeId);
-		os << "  node" << currentId << " -> node" << typeId << " [label=\"type\"];\n";
+	for (const auto& field : fields) {
+		int fieldId = nodeId++;
+		os << "  node" << fieldId << " [label=\"Field: " << field.name << "\"];\n";
+		os << "  node" << currentId << " -> node" << fieldId << " [label=\"field\"];\n";
+		if (field.type) {
+			int typeId = nodeId;
+			field.type->to_dot(os, nodeId);
+			os << "  node" << fieldId << " -> node" << typeId << " [label=\"type\"];\n";
+		}
 	}
 }
 
@@ -647,10 +630,33 @@ void ArgonLang::EnumDeclarationNode::to_dot(std::ostream& os, int& nodeId) const
 	int currentId = nodeId++;
 	os << "  node" << currentId << " [label=\"Enum: " << enumName << " (isUnion: " << isUnion << ")\"];\n";
 
+	if (constraintType) {
+		int constraintId = nodeId;
+		constraintType->to_dot(os, nodeId);
+		os << "  node" << currentId << " -> node" << constraintId << " [label=\"constraint\"];\n";
+	}
+
 	for (const auto& variant : variants) {
 		int variantId = nodeId++;
 		os << "  node" << variantId << " [label=\"Variant: " << variant.name << "\"];\n";
 		os << "  node" << currentId << " -> node" << variantId << " [label=\"variant\"];\n";
+
+		if (variant.explicitValue) {
+			int valueId = nodeId;
+			variant.explicitValue->to_dot(os, nodeId);
+			os << "  node" << variantId << " -> node" << valueId << " [label=\"value\"];\n";
+		}
+
+		for (const auto& field : variant.fields) {
+			int fieldId = nodeId++;
+			os << "  node" << fieldId << " [label=\"Field: " << field.name << "\"];\n";
+			os << "  node" << variantId << " -> node" << fieldId << " [label=\"field\"];\n";
+			if (field.type) {
+				int typeId = nodeId;
+				field.type->to_dot(os, nodeId);
+				os << "  node" << fieldId << " -> node" << typeId << " [label=\"type\"];\n";
+			}
+		}
 	}
 }
 

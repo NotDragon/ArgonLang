@@ -1,0 +1,4 @@
+Add support for f128 and i128
+Add unsigned ints
+Deciding what type it should use
+Add trailing type ei 10i64 (i64 type)

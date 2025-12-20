@@ -37,7 +37,7 @@ protected:
 
 // Ternary Operator Tests
 TEST_F(ExpressionsTest, GenerateBasicTernary) {
-    std::string input = "func main() i32 { def x: i32 = 5 > 3 ? 1 : 0; return x; }";
+    std::string input = "func main() i32 { def x: i32 = 5 > 3 ?? 1 : 0; return x; }";
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("5 > 3 ? 1 : 0") != std::string::npos);
@@ -45,7 +45,7 @@ TEST_F(ExpressionsTest, GenerateBasicTernary) {
 }
 
 TEST_F(ExpressionsTest, GenerateNestedTernary) {
-    std::string input = "func main() i32 { def x: i32 = 5 > 3 ? (2 > 1 ? 10 : 5) : 0; return x; }";
+    std::string input = "func main() i32 { def x: i32 = 5 > 3 ?? (2 > 1 ?? 10 : 5) : 0; return x; }";
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("?") != std::string::npos);
@@ -56,7 +56,7 @@ TEST_F(ExpressionsTest, GenerateTernaryWithFunctionCalls) {
     std::string input = R"(
         func isEven(x: i32) bool { return x % 2 == 0; }
         func main() i32 {
-            def result: str = isEven(4) ? "even" : "odd";
+            def result: str = isEven(4) ?? "even" : "odd";
             return 0;
         }
     )";
@@ -106,9 +106,9 @@ TEST_F(ExpressionsTest, GenerateCompoundAssignmentBitwise) {
     std::string input = R"(
         func main() i32 {
             def x: i32 = 15;
-            x &= 7;
-            x |= 8;
-            x ^= 3;
+            x *&= 7;
+            x *|= 8;
+            x *^= 3;
             return x;
         }
     )";
@@ -162,8 +162,8 @@ TEST_F(ExpressionsTest, GenerateLambdaCapture) {
 TEST_F(ExpressionsTest, GenerateMemberAccess) {
     std::string input = R"(
         class Point {
-            pub def x: i32;
-            pub def y: i32;
+            pub x: i32;
+            pub y: i32;
         }
         func main() i32 {
             def p: Point;
@@ -179,10 +179,10 @@ TEST_F(ExpressionsTest, GenerateMemberAccess) {
 TEST_F(ExpressionsTest, GenerateChainedMemberAccess) {
     std::string input = R"(
         class Address {
-            pub def city: str;
+            pub city: str;
         }
         class Person {
-            pub def address: Address;
+            pub address: Address;
         }
         func main() str {
             def person: Person;
@@ -197,7 +197,7 @@ TEST_F(ExpressionsTest, GenerateChainedMemberAccess) {
 TEST_F(ExpressionsTest, GenerateMethodCall) {
     std::string input = R"(
         class Counter {
-            pub def value: i32;
+            pub value: i32;
             pub func increment() void {
                 value = value + 1;
             }
@@ -336,7 +336,7 @@ TEST_F(ExpressionsTest, GenerateMixedExpressionWithAllOperators) {
             
             z = x + y * 2 - 3;
             z += 5;
-            z = z > 10 ? z * 2 : z / 2;
+            z = z > 10 ?? z * 2 : z / 2;
             
             return z;
         }
@@ -351,45 +351,45 @@ TEST_F(ExpressionsTest, GenerateMixedExpressionWithAllOperators) {
 
 // Bitwise Operations Tests
 TEST_F(ExpressionsTest, GenerateBitwiseAnd) {
-    std::string input = "func main() i32 { return 15 & 7; }";
+    std::string input = "func main() i32 { return 15 *& 7; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("15 & 7") != std::string::npos);
+    EXPECT_TRUE(code.find("15&7") != std::string::npos);
 }
 
 TEST_F(ExpressionsTest, GenerateBitwiseOr) {
-    std::string input = "func main() i32 { return 8 | 4; }";
+    std::string input = "func main() i32 { return 8 *| 4; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("8 | 4") != std::string::npos);
+    EXPECT_TRUE(code.find("8|4") != std::string::npos);
 }
 
 TEST_F(ExpressionsTest, GenerateBitwiseXor) {
-    std::string input = "func main() i32 { return 12 ^ 5; }";
+    std::string input = "func main() i32 { return 12 *^ 5; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("12 ^ 5") != std::string::npos);
+    EXPECT_TRUE(code.find("12^5") != std::string::npos);
 }
 
 TEST_F(ExpressionsTest, GenerateBitwiseNot) {
-    std::string input = "func main() i32 { return ~15; }";
+    std::string input = "func main() i32 { return *~15; }";
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("~15") != std::string::npos);
 }
 
 TEST_F(ExpressionsTest, GenerateBitShiftLeft) {
-    std::string input = "func main() i32 { return 1 << 4; }";
+    std::string input = "func main() i32 { return 1 *< 4; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("1 << 4") != std::string::npos);
+    EXPECT_TRUE(code.find("1<<4") != std::string::npos);
 }
 
 TEST_F(ExpressionsTest, GenerateBitShiftRight) {
-    std::string input = "func main() i32 { return 16 >> 2; }";
+    std::string input = "func main() i32 { return 16 *> 2; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("16 >> 2") != std::string::npos);
+    EXPECT_TRUE(code.find("16>>2") != std::string::npos);
 }
 
 // Parallel Expression Tests
@@ -408,7 +408,7 @@ TEST_F(ExpressionsTest, GenerateParallelExpression) {
 
 // Error Cases
 TEST_F(ExpressionsTest, ParseErrorInvalidTernary) {
-    std::string input = "func main() i32 { def x = 5 > 3 ? 1; return x; }";
+    std::string input = "func main() i32 { def x = 5 > 3 ?? 1; return x; }";
     auto result = parseCode(input);
     
     EXPECT_FALSE(result.has_value());
@@ -422,7 +422,7 @@ TEST_F(ExpressionsTest, ParseErrorInvalidLambdaSyntax) {
 }
 
 TEST_F(ExpressionsTest, ParseErrorInvalidMemberAccess) {
-    std::string input = "func main() i32 { def x = 5.; return x; }";
+    std::string input = "func main() i32 { def x = obj.; return x; }";
     auto result = parseCode(input);
     
     EXPECT_FALSE(result.has_value());

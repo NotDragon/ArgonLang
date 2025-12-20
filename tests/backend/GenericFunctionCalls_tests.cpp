@@ -133,7 +133,7 @@ TEST_F(GenericFunctionCallsTest, GenerateGenericFunctionCallFloatType) {
     std::string input = "func main() i32 { def result = process<f32>(3.14); return 0; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("process<float>(3.140000)") != std::string::npos);
+    EXPECT_TRUE(code.find("process<float>(3.14)") != std::string::npos);
 }
 
 TEST_F(GenericFunctionCallsTest, GenerateRegularFunctionCall) {
@@ -227,6 +227,6 @@ TEST_F(GenericFunctionCallsTest, TypeInferenceMultipleArguments) {
     std::string code = generateCode(input);
     
     // Should generate C++ code that relies on template argument deduction
-    EXPECT_TRUE(code.find("combine(10, 3.140000)") != std::string::npos);
+    EXPECT_TRUE(code.find("combine(10, 3.14)") != std::string::npos);
     EXPECT_TRUE(code.find("template<typename T, typename U> requires Number<T> && Number<U>") != std::string::npos);
 }

@@ -15,44 +15,12 @@ ArgonLang::StringLiteralNode::StringLiteralNode(Token::Position position, std::s
 ArgonLang::CharLiteralNode::CharLiteralNode(Token::Position position, char val)
     : value(val), ExpressionNode(position) {}
 
-ArgonLang::IntegralLiteralNode::IntegralLiteralNode(Token::Position position, __int128 val, PrimitiveType type)
-    : type(type), ExpressionNode(position) {
-	switch (type) {
-	case PrimitiveType::INT8:
-		value.i8 = static_cast<int8_t>(val);
-		break;
-	case PrimitiveType::INT16:
-		value.i16 = static_cast<int16_t>(val);
-		break;
-	case PrimitiveType::INT32:
-		value.i32 = static_cast<int32_t>(val);
-		break;
-	case PrimitiveType::INT64:
-		value.i64 = static_cast<int64_t>(val);
-		break;
-	case PrimitiveType::INT128:
-		value.i128 = static_cast<__int128>(val);
-		break;
-	default:
-		throw std::runtime_error("Invalid type for IntegralLiteralNode");
-	}
+ArgonLang::IntegralLiteralNode::IntegralLiteralNode(Token::Position position, std::string val, PrimitiveType type)
+    : type(type), value(std::move(val)), ExpressionNode(position) {
 }
 
-ArgonLang::FloatLiteralNode::FloatLiteralNode(Token::Position position, long double val, PrimitiveType type)
-    : type(type), ExpressionNode(position) {
-	switch (type) {
-	case PrimitiveType::FLOAT32:
-		value.f32 = static_cast<float>(val);
-		break;
-	case PrimitiveType::FLOAT64:
-		value.f64 = static_cast<double>(val);
-		break;
-	case PrimitiveType::FLOAT128:
-		value.f128 = static_cast<long double>(val);
-		break;
-	default:
-		throw std::runtime_error("Invalid type for FloatLiteralNode");
-	}
+ArgonLang::FloatLiteralNode::FloatLiteralNode(Token::Position position, std::string val, PrimitiveType type)
+    : type(type), value(std::move(val)), ExpressionNode(position) {
 }
 ArgonLang::BooleanLiteralNode::BooleanLiteralNode(Token::Position position, bool val)
     : value(val), ExpressionNode(position) {}
@@ -62,6 +30,10 @@ ArgonLang::BinaryExpressionNode::BinaryExpressionNode(Token::Position position, 
                                                       Token operatorSymbol, std::unique_ptr<ExpressionNode> rhs)
     : left(std::move(lhs)), right(std::move(rhs)), op(std::move(operatorSymbol)), ExpressionNode(position) {}
 ArgonLang::UnaryExpressionNode::UnaryExpressionNode(Token::Position position, Token operatorSymbol,
+                                                    std::unique_ptr<ExpressionNode> operandNode)
+    : op(std::move(operatorSymbol)), operand(std::move(operandNode)), ExpressionNode(position) {}
+
+ArgonLang::UnaryPostExpressionNode::UnaryPostExpressionNode(Token::Position position, Token operatorSymbol,
                                                     std::unique_ptr<ExpressionNode> operandNode)
     : op(std::move(operatorSymbol)), operand(std::move(operandNode)), ExpressionNode(position) {}
 
@@ -171,8 +143,8 @@ ArgonLang::ForStatementNode::ForStatementNode(Token::Position position, std::str
       body(std::move(body)), StatementNode(position) {}
 
 ArgonLang::UnionDeclarationNode::UnionDeclarationNode(Token::Position position, std::string unionName,
-                                                      std::vector<std::unique_ptr<TypeNode>> types)
-    : unionName(std::move(unionName)), types(std::move(types)), StatementNode(position) {}
+                                                      std::vector<UnionField> fields)
+    : unionName(std::move(unionName)), fields(std::move(fields)), StatementNode(position) {}
 
 ArgonLang::IdentifierTypeNode::IdentifierTypeNode(Token::Position position, std::string typeName)
     : typeName(std::move(typeName)), TypeNode(position) {}
@@ -204,8 +176,8 @@ ArgonLang::WhileStatementNode::WhileStatementNode(Token::Position position, bool
     : condition(std::move(condition)), body(std::move(body)), elseBranch(std::move(elseBranch)), isDoWhile(isDoWhile),
       StatementNode(position) {}
 
-ArgonLang::StructExpressionNode::StructExpressionNode(Token::Position position, std::vector<StructField> fields)
-    : fields(std::move(fields)), ExpressionNode(position) {}
+ArgonLang::StructExpressionNode::StructExpressionNode(Token::Position position, std::vector<StructField> fields, std::string type)
+    : fields(std::move(fields)), type(std::move(type)), ExpressionNode(position) {}
 
 ArgonLang::StructField::StructField(Token::Position position, std::string name, std::unique_ptr<TypeNode> type,
                                     std::unique_ptr<ExpressionNode> value)
@@ -241,10 +213,10 @@ ArgonLang::ConstructorStatementNode::ConstructorArgument::ConstructorArgument(To
     : name(std::move(name)), initializes(std::move(initializes)), type(std::move(type)), value(std::move(value)),
       position(position) {}
 
-ArgonLang::ConstructorStatementNode::ConstructorStatementNode(
+ArgonLang::ConstructorStatementNode::ConstructorStatementNode(std::string name,
     Token::Position position, std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args,
     std::unique_ptr<ASTNode> body)
-    : args(std::move(args)), body(std::move(body)), StatementNode(position) {}
+    : args(std::move(args)), body(std::move(body)), StatementNode(position), name(std::move(name)) {}
 
 ArgonLang::ClassDeclarationNode::ClassMember::ClassMember(Token::Position position,
                                                           std::unique_ptr<StatementNode> declaration,
@@ -278,8 +250,10 @@ ArgonLang::ContinueStatementNode::ContinueStatementNode(Token::Position position
 
 // New AST node constructors
 ArgonLang::EnumDeclarationNode::EnumDeclarationNode(Token::Position position, std::string enumName,
-                                                    std::vector<EnumVariant> variants, bool isUnion)
-    : enumName(std::move(enumName)), variants(std::move(variants)), isUnion(isUnion), StatementNode(position) {}
+                                                    std::vector<EnumVariant> variants,
+                                                    std::unique_ptr<TypeNode> constraintType, bool isUnion)
+    : enumName(std::move(enumName)), variants(std::move(variants)),
+      constraintType(std::move(constraintType)), isUnion(isUnion), StatementNode(position) {}
 
 ArgonLang::GenericParameter::GenericParameter(Token::Position position, std::string name,
                                               std::unique_ptr<TypeNode> constraint)

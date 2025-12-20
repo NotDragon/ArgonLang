@@ -86,7 +86,7 @@ TEST(ParserTests, ParseFunctionNoParameters) {
 
 // Class Declaration Tests
 TEST(ParserTests, ParseBasicClass) {
-	std::string input = "class Point { pub def x: i32; pub def y: i32; }";
+	std::string input = "class Point { pub x: i32; pub y: i32; }";
 	auto tokenizeResult = ArgonLang::tokenize(input);
 	ASSERT_FALSE(tokenizeResult.has_error());
 	
@@ -101,7 +101,7 @@ TEST(ParserTests, ParseBasicClass) {
 }
 
 TEST(ParserTests, ParseClassWithMethod) {
-	std::string input = "class Counter { pub def value: i32; pub func inc() void { value = value + 1; } }";
+	std::string input = "class Counter { pub value: i32; pub func inc() void { value = value + 1; } }";
 	auto tokenizeResult = ArgonLang::tokenize(input);
 	ASSERT_FALSE(tokenizeResult.has_error());
 	
@@ -127,7 +127,7 @@ TEST(ParserTests, ParseBasicEnum) {
 
 // Union Declaration Tests
 TEST(ParserTests, ParseBasicUnion) {
-	std::string input = "union Number = i32 | f64;";
+	std::string input = "union Number { int_val: i32, float_val: f64 }";
 	auto tokenizeResult = ArgonLang::tokenize(input);
 	ASSERT_FALSE(tokenizeResult.has_error());
 	

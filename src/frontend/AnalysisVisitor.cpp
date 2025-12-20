@@ -41,6 +41,8 @@ Result<bool> AnalysisVisitor::visit(const ExpressionNode& node) {
 		return visit(dynamic_cast<const BinaryExpressionNode&>(node));
 	case ASTNodeType::UnaryExpression:
 		return visit(dynamic_cast<const UnaryExpressionNode&>(node));
+	case ASTNodeType::UnaryPostExpression:
+		return visit(dynamic_cast<const UnaryPostExpressionNode&>(node));
 	case ASTNodeType::FunctionCallExpression:
 		return visit(dynamic_cast<const FunctionCallExpressionNode&>(node));
 	case ASTNodeType::MemberAccessExpression:
@@ -182,6 +184,11 @@ Result<bool> AnalysisVisitor::visit(const BinaryExpressionNode& node) {
 
 Result<bool> AnalysisVisitor::visit(const UnaryExpressionNode& node) {
 	std::cout << "UnaryExpressionNode\n";
+	return {};
+}
+
+Result<bool> AnalysisVisitor::visit(const UnaryPostExpressionNode& node) {
+	std::cout << "UnaryPostExpressionNode\n";
 	return {};
 }
 

@@ -35,6 +35,7 @@ namespace ArgonLang {
 
 		Result<std::string> visit(const BinaryExpressionNode &node) override;
 		Result<std::string> visit(const UnaryExpressionNode &node) override;
+		Result<std::string> visit(const UnaryPostExpressionNode &node) override;
 
 		Result<std::string> visit(const FunctionCallExpressionNode &node) override;
 		Result<std::string> visit(const MemberAccessExpressionNode &node) override;

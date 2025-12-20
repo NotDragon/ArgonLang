@@ -6,17 +6,17 @@ using namespace ArgonLang;
 // Literal Node Tests
 TEST(ASTTests, CreateIntegralLiteralNode) {
 	Token::Position pos(1, 1);
-	IntegralLiteralNode node(pos, 42, PrimitiveType::INT32);
+	IntegralLiteralNode node(pos, "42", PrimitiveType::INT32);
 	EXPECT_EQ(node.type, PrimitiveType::INT32);
-	EXPECT_EQ(node.value.i32, 42);
+	EXPECT_EQ(node.value, "42");
 	EXPECT_EQ(node.get_node_type(), ASTNodeType::IntegralLiteral);
 }
 
 TEST(ASTTests, CreateFloatLiteralNode) {
 	Token::Position pos(1, 1);
-	FloatLiteralNode node(pos, 3.14, PrimitiveType::FLOAT32);
+	FloatLiteralNode node(pos, "3.14", PrimitiveType::FLOAT32);
 	EXPECT_EQ(node.type, PrimitiveType::FLOAT32);
-	EXPECT_FLOAT_EQ(node.value.f32, 3.14f);
+	EXPECT_EQ(node.value, "3.14");
 	EXPECT_EQ(node.get_node_type(), ASTNodeType::FloatLiteral);
 }
 
@@ -37,8 +37,8 @@ TEST(ASTTests, CreateBooleanLiteralNode) {
 // Expression Node Tests
 TEST(ASTTests, CreateBinaryExpressionNode) {
 	Token::Position pos(1, 1);
-	auto left = std::make_unique<IntegralLiteralNode>(pos, 42, PrimitiveType::INT32);
-	auto right = std::make_unique<IntegralLiteralNode>(pos, 24, PrimitiveType::INT32);
+	auto left = std::make_unique<IntegralLiteralNode>(pos, "42", PrimitiveType::INT32);
+	auto right = std::make_unique<IntegralLiteralNode>(pos, "24", PrimitiveType::INT32);
 	Token op(Token::Plus, "+", 1, 1);
 
 	BinaryExpressionNode node(pos, std::move(left), op, std::move(right));
@@ -50,7 +50,7 @@ TEST(ASTTests, CreateBinaryExpressionNode) {
 
 TEST(ASTTests, CreateUnaryExpressionNode) {
 	Token::Position pos(1, 1);
-	auto operand = std::make_unique<IntegralLiteralNode>(pos, 42, PrimitiveType::INT32);
+	auto operand = std::make_unique<IntegralLiteralNode>(pos, "42", PrimitiveType::INT32);
 	Token op(Token::Minus, "-", 1, 1);
 
 	UnaryExpressionNode node(pos, op, std::move(operand));
@@ -70,8 +70,8 @@ TEST(ASTTests, CreateFunctionCallNode) {
 	Token::Position pos(1, 1);
 	auto callee = std::make_unique<IdentifierNode>(pos, "add");
 	std::vector<std::unique_ptr<ExpressionNode>> args;
-	args.push_back(std::make_unique<IntegralLiteralNode>(pos, 5, PrimitiveType::INT32));
-	args.push_back(std::make_unique<IntegralLiteralNode>(pos, 3, PrimitiveType::INT32));
+	args.push_back(std::make_unique<IntegralLiteralNode>(pos, "5", PrimitiveType::INT32));
+	args.push_back(std::make_unique<IntegralLiteralNode>(pos, "3", PrimitiveType::INT32));
 
 	FunctionCallExpressionNode node(pos, std::move(callee), std::move(args));
 	EXPECT_EQ(node.arguments.size(), 2);
@@ -114,7 +114,7 @@ TEST(ASTTests, CreateFunctionTypeNode) {
 TEST(ASTTests, CreateVariableDeclarationNode) {
 	Token::Position pos(1, 1);
 	auto type = std::make_unique<IdentifierTypeNode>(pos, "i32");
-	auto initializer = std::make_unique<IntegralLiteralNode>(pos, 42, PrimitiveType::INT32);
+	auto initializer = std::make_unique<IntegralLiteralNode>(pos, "42", PrimitiveType::INT32);
 
 	VariableDeclarationNode node(pos, false, std::move(type), std::move(initializer), "x");
 	EXPECT_EQ(node.name, "x");
@@ -125,7 +125,7 @@ TEST(ASTTests, CreateVariableDeclarationNode) {
 
 TEST(ASTTests, CreateReturnStatementNode) {
 	Token::Position pos(1, 1);
-	auto value = std::make_unique<IntegralLiteralNode>(pos, 42, PrimitiveType::INT32);
+	auto value = std::make_unique<IntegralLiteralNode>(pos, "42", PrimitiveType::INT32);
 
 	ReturnStatementNode node(pos, std::move(value), false);
 	EXPECT_NE(node.returnExpression, nullptr);
@@ -135,8 +135,8 @@ TEST(ASTTests, CreateReturnStatementNode) {
 TEST(ASTTests, CreateBlockNode) {
 	Token::Position pos(1, 1);
 	std::vector<std::unique_ptr<ASTNode>> statements;
-	statements.push_back(std::make_unique<IntegralLiteralNode>(pos, 42, PrimitiveType::INT32));
-	statements.push_back(std::make_unique<IntegralLiteralNode>(pos, 24, PrimitiveType::INT32));
+	statements.push_back(std::make_unique<IntegralLiteralNode>(pos, "42", PrimitiveType::INT32));
+	statements.push_back(std::make_unique<IntegralLiteralNode>(pos, "24", PrimitiveType::INT32));
 
 	BlockNode node(pos, std::move(statements));
 	EXPECT_EQ(node.body.size(), 2);
@@ -195,20 +195,20 @@ TEST(ASTTests, CreateNodeWithEmptyStrings) {
 
 TEST(ASTTests, CreateNodeWithLargeNumbers) {
 	Token::Position pos(1, 1);
-	IntegralLiteralNode node(pos, 2147483647, PrimitiveType::INT32);
-	EXPECT_EQ(node.value.i32, 2147483647);
+	IntegralLiteralNode node(pos, "2147483647", PrimitiveType::INT32);
+	EXPECT_EQ(node.value, "2147483647");
 }
 
 TEST(ASTTests, CreateComplexNestedExpression) {
 	Token::Position pos(1, 1);
 	
 	// Create: (5 + 3) * 2
-	auto left = std::make_unique<IntegralLiteralNode>(pos, 5, PrimitiveType::INT32);
-	auto right = std::make_unique<IntegralLiteralNode>(pos, 3, PrimitiveType::INT32);
+	auto left = std::make_unique<IntegralLiteralNode>(pos, "5", PrimitiveType::INT32);
+	auto right = std::make_unique<IntegralLiteralNode>(pos, "3", PrimitiveType::INT32);
 	Token plusOp(Token::Plus, "+", 1, 1);
 	auto addExpr = std::make_unique<BinaryExpressionNode>(pos, std::move(left), plusOp, std::move(right));
 	
-	auto two = std::make_unique<IntegralLiteralNode>(pos, 2, PrimitiveType::INT32);
+	auto two = std::make_unique<IntegralLiteralNode>(pos, "2", PrimitiveType::INT32);
 	Token multOp(Token::Multiply, "*", 1, 1);
 	BinaryExpressionNode mulExpr(pos, std::move(addExpr), multOp, std::move(two));
 	

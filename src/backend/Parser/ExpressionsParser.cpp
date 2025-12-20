@@ -11,10 +11,10 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_primary() {
 
 	if (token.type == Token::IntegralLiteral) {
 		return Ok(std::make_unique<IntegralLiteralNode>(
-		    token.position, std::stoi(token.value), determine_integer_type(token.value))); // stoi needs to be changed
+		    token.position, token.value, determine_integer_type(token.value)));
 	} else if (token.type == Token::FloatLiteral) {
-		return Ok(std::make_unique<FloatLiteralNode>(token.position, std::stod(token.value),
-		                                             determine_float_type(token.value))); // stod needs to be changed
+		return Ok(std::make_unique<FloatLiteralNode>(token.position, token.value,
+		                                             determine_float_type(token.value)));
 	} else if (token.type == Token::StringLiteral) {
 		return Ok(std::make_unique<StringLiteralNode>(token.position, token.value));
 	} else if (token.type == Token::CharLiteral) {
@@ -23,7 +23,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_primary() {
 		return Ok(std::make_unique<BooleanLiteralNode>(token.position, token.value == "true"));
 	} else if (token.type == Token::Identifier) {
 		current--;
-		if (is_single_parameter_lambda()) {
+		if (is_single_parameter_lambda() && !this->is_match) {
 			return parse_lambda_expression();
 		}
 		current++;
@@ -276,20 +276,74 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_shift_expression() {
 	return left;
 }
 
+Result<std::unique_ptr<ASTNode>> Parser::parse_ternary_expression() {
+	Result<std::unique_ptr<ASTNode>> condition = parse_match_expression();
+	if (!condition.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(condition.error());
+	}
+
+	if (peek().type == Token::DoubleQuestionMark) {
+		Result<Token> question_mark = advance();
+		if (!question_mark.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(question_mark.error());
+		}
+
+		// Parse true branch
+		Result<std::unique_ptr<ASTNode>> trueBranch = parse_ternary_expression();
+		if (!trueBranch.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(trueBranch.error());
+		}
+
+		// Expect colon
+		Result<Token> colon = expect(Token::Colon, "Expected ':' after ternary true branch");
+		if (!colon.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(colon.error());
+		}
+
+		// Parse false branch (right-associative, so parse another ternary for nesting)
+		Result<std::unique_ptr<ASTNode>> falseBranch = parse_ternary_expression();
+		if (!falseBranch.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(falseBranch.error());
+		}
+
+		Token::Position pos = condition.value()->position;
+		return Ok(std::make_unique<TernaryExpressionNode>(
+		    pos, dynamic_unique_cast<ExpressionNode>(std::move(condition.value())),
+		    dynamic_unique_cast<ExpressionNode>(std::move(trueBranch.value())),
+		    dynamic_unique_cast<ExpressionNode>(std::move(falseBranch.value()))));
+	}
+
+	return condition;
+}
+
 Result<std::unique_ptr<ASTNode>> Parser::parse_assignment_expression() {
-	Result<std::unique_ptr<ASTNode>> left = parse_match_expression();
+	Result<std::unique_ptr<ASTNode>> left = parse_ternary_expression();
 	if (!left.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(left.error());
 	}
 
-	while (peek().type == Token::Assign) {
+	while (peek().type == Token::Assign ||
+	peek().type == Token::PlusAssign ||
+	peek().type == Token::MinusAssign ||
+	peek().type == Token::ReduceAssign ||
+	peek().type == Token::BitwiseOrAssign ||
+	peek().type == Token::BitwiseOrAssign ||
+	peek().type == Token::BitwiseXorAssign ||
+	peek().type == Token::DivideAssign ||
+	peek().type == Token::MultiplyAssign ||
+	peek().type == Token::FilterAssign ||
+	peek().type == Token::MapAssign ||
+	peek().type == Token::ModuloAssign ||
+	peek().type == Token::PipeAssign ||
+	peek().type == Token::LeftShiftAssign ||
+	peek().type == Token::RightShiftAssign) {
 		Result<Token> assign = advance();
 		if (!assign.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(assign.error());
 		}
 
 		Token::Position pos = peek().position;
-		Result<std::unique_ptr<ASTNode>> right = parse_match_expression();
+		Result<std::unique_ptr<ASTNode>> right = parse_ternary_expression();
 		if (!right.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(right.error());
 		}
@@ -504,7 +558,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_reduce_expression() {
 		return Err<std::unique_ptr<ASTNode>>(left.error());
 	}
 
-	while (peek().type == Token::ReduceRange || peek().type == Token::AccumulateRange) {
+	while (peek().type == Token::ReduceRange) {
 		Result<Token> op_error = advance();
 		if (!op_error.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(op_error.error());
@@ -544,7 +598,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_range_expression() {
 		if (peek().type == Token::LeftBracket) {
 			element = parse_nested_array_literal();
 		} else {
-			element = parse_function_call_expression();
+			element = parse_expression();
 		}
 
 		if (!element.has_value()) {
@@ -851,7 +905,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_reference_expression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parse_increment_expression() {
-	Result<std::unique_ptr<ASTNode>> left = parse_ownership_expression();
+	Result<std::unique_ptr<ASTNode>> left = parse_post_increment_expression();
 	if (!left.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(left.error());
 	}
@@ -863,9 +917,32 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_increment_expression() {
 		}
 		Token op = op_error.value();
 		Token::Position left_pos = left.value()->position;
-		left = Ok(std::make_unique<UnaryExpressionNode>(left_pos, op,
+		left = Ok(std::make_unique<UnaryPostExpressionNode>(left_pos, op,
 		                                                dynamic_unique_cast<ExpressionNode>(std::move(left.value()))));
 	}
+	return left;
+}
+
+Result<std::unique_ptr<ASTNode>> Parser::parse_post_increment_expression() {
+	if(peek().type != Token::Increment && peek().type != Token::Decrement){
+		return parse_ownership_expression();
+	}
+
+	Result<std::unique_ptr<ASTNode>> left;
+	while(peek().type == Token::Increment || peek().type == Token::Decrement) {
+		Result<Token> op_error = advance();
+		if (!op_error.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(op_error.error());
+		}
+		Token op = op_error.value();
+
+		left = parse_ownership_expression();
+		Token::Position left_pos = left.value()->position;
+		left = Ok(std::make_unique<UnaryExpressionNode>(left_pos, op,
+		                                                dynamic_unique_cast<ExpressionNode>(std::move(left.value()))));
+
+	}
+	
 	return left;
 }
 
@@ -977,13 +1054,16 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_logical_not_expression() {
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parse_bitwise_not_expression() {
-	Result<std::unique_ptr<ASTNode>> left = parse_logical_not_expression();
-	if (!left.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(left.error());
-	}
+	if (peek().type != Token::BitwiseNot) return parse_logical_not_expression();
+	Result<std::unique_ptr<ASTNode>> left;
 
 	while (peek().type == Token::BitwiseNot) {
 		Result<Token> op_error = advance();
+		left = parse_logical_not_expression();
+		if (!left.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(left.error());
+		}
+
 		if (!op_error.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(op_error.error());
 		}
@@ -1031,6 +1111,15 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_struct_expression() {
 	Result<Token> token = advance();
 	if (!token.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(token.error());
+	}
+	std::string type = "";
+
+	if (peek().type == Token::Identifier) {
+		Result<std::unique_ptr<ASTNode>> type_expr = parse_primary();
+		if (!type_expr.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(type_expr.error());
+		}
+		type = dynamic_cast<const IdentifierNode&>(*type_expr.value()).identifier;
 	}
 
 	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after struct");
@@ -1100,7 +1189,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_struct_expression() {
 
 	advance();
 
-	return Ok(std::make_unique<StructExpressionNode>(leftBrace.value().position, std::move(fields)));
+	return Ok(std::make_unique<StructExpressionNode>(leftBrace.value().position, std::move(fields), std::move(type)));
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parse_match_expression() {
@@ -1133,12 +1222,15 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_match_expression() {
 		// Parse optional guard condition (&&)
 		std::unique_ptr<ExpressionNode> condition = nullptr;
 		if (peek().type == Token::LogicalAnd) {
+			this->is_match = true;
 			advance(); // consume &&
 			Result<std::unique_ptr<ASTNode>> guardExpr = parse_expression();
 			if (!guardExpr.has_value()) {
 				return Err<std::unique_ptr<ASTNode>>(guardExpr.error());
 			}
 			condition = dynamic_unique_cast<ExpressionNode>(std::move(guardExpr.value()));
+
+			this->is_match = false;
 		}
 
 		Result<Token> arrow = expect(Token::Arrow, "Expected '->' after pattern");
@@ -1281,12 +1373,17 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_lambda_expression() {
 		return Err<std::unique_ptr<ASTNode>>(arrow.error());
 	}
 
-	Result<std::unique_ptr<ASTNode>> body = parse_expression();
+	Result<std::unique_ptr<ASTNode>> body = parse_statement();
 	if (!body.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(body.error());
 	}
 
 	auto bodyPosition = body.value()->position;
+
+	if (body.value()->get_node_group() == ASTNodeGroup::Statement)
+		return Ok(std::make_unique<LambdaExpressionNode>(
+		start_pos, std::move(args),std::move(body.value())));
+
 	return Ok(std::make_unique<LambdaExpressionNode>(
 	    start_pos, std::move(args),
 	    std::make_unique<ReturnStatementNode>(bodyPosition,
@@ -1298,36 +1395,39 @@ Result<std::unique_ptr<PatternNode>> Parser::parse_pattern() {
 	Token::Position pos = peek().position;
 
 	switch (peek().type) {
-	case Token::Identifier:
-		// Could be identifier pattern, constructor pattern, or type pattern
-		if (peek(1).type == Token::LeftParen) {
-			// Constructor pattern: Point(x, y)
-			return parse_constructor_pattern();
-		} else if (peek(1).type == Token::DoubleColon) {
-			// Enum constructor: Shape::Circle(r)
-			return parse_constructor_pattern();
-		} else if (peek().value == "_") {
-			// Wildcard pattern
-			return parse_wildcard_pattern();
-		} else {
+		case Token::Identifier:
+			// Could be identifier pattern, constructor pattern, or type pattern
+			if (peek(1).type == Token::LeftParen) {
+				// Constructor pattern: Point(x, y)
+				return parse_constructor_pattern();
+			}
+			if (peek(1).type == Token::DoubleColon) {
+				// Enum constructor: Shape::Circle(r)
+				return parse_constructor_pattern();
+			}
+			if (peek().value == "_") {
+				// Wildcard pattern
+				return parse_wildcard_pattern();
+			}
+
 			// Identifier pattern or type pattern
 			return parse_identifier_pattern();
-		}
-	case Token::IntegralLiteral:
-	case Token::FloatLiteral:
-	case Token::StringLiteral:
-	case Token::BooleanLiteral:
-	case Token::CharLiteral:
-		return parse_literal_pattern();
-	case Token::LeftBracket:
-		return parse_array_pattern();
-	case Token::LeftBrace:
-		return parse_struct_pattern();
-	case Token::PrimitiveType:
-		return parse_type_pattern();
-	default:
-		// Try to parse as range pattern or fallback to literal
-		return parse_literal_pattern();
+		case Token::Minus:
+		case Token::IntegralLiteral:
+		case Token::FloatLiteral:
+		case Token::StringLiteral:
+		case Token::BooleanLiteral:
+		case Token::CharLiteral:
+			return parse_literal_pattern();
+		case Token::LeftBracket:
+			return parse_array_pattern();
+		case Token::LeftBrace:
+			return parse_struct_pattern();
+		case Token::PrimitiveType:
+			return parse_type_pattern();
+		default:
+			// fallback
+			return parse_literal_pattern();
 	}
 }
 
@@ -1346,7 +1446,7 @@ Result<std::unique_ptr<PatternNode>> Parser::parse_wildcard_pattern() {
 }
 
 Result<std::unique_ptr<PatternNode>> Parser::parse_literal_pattern() {
-	Result<std::unique_ptr<ASTNode>> literal = parse_primary();
+	Result<std::unique_ptr<ASTNode>> literal = parse_expression();
 	if (!literal.has_value()) {
 		return Err<std::unique_ptr<PatternNode>>(literal.error());
 	}
@@ -1434,7 +1534,7 @@ Result<std::unique_ptr<PatternNode>> Parser::parse_struct_pattern() {
 		}
 
 		std::unique_ptr<PatternNode> pattern;
-		if (peek().type == Token::Colon) {
+		if (peek().type == Token::Assign) {
 			advance(); // consume :
 			Result<std::unique_ptr<PatternNode>> fieldPattern = parse_pattern();
 			if (!fieldPattern.has_value()) {
@@ -1475,7 +1575,7 @@ Result<std::unique_ptr<PatternNode>> Parser::parse_constructor_pattern() {
 	std::string constructorName = name.value().value;
 
 	// Handle enum constructors: Shape::Circle
-	if (peek().type == Token::DoubleColon) {
+	while (peek().type == Token::DoubleColon) {
 		advance(); // consume ::
 		Result<Token> enumName = expect(Token::Identifier, "Expected enum variant name");
 		if (!enumName.has_value()) {
@@ -1486,17 +1586,17 @@ Result<std::unique_ptr<PatternNode>> Parser::parse_constructor_pattern() {
 
 	std::vector<std::unique_ptr<PatternNode>> arguments;
 
-	if (peek().type == Token::LeftParen) {
+	if (peek().type == Token::LeftBrace) {
 		advance(); // consume (
 
-		while (peek().type != Token::RightParen) {
+		while (peek().type != Token::RightBrace) {
 			Result<std::unique_ptr<PatternNode>> arg = parse_pattern();
 			if (!arg.has_value()) {
 				return Err<std::unique_ptr<PatternNode>>(arg.error());
 			}
 			arguments.push_back(std::move(arg.value()));
 
-			if (peek().type == Token::RightParen)
+			if (peek().type == Token::RightBrace)
 				break;
 
 			Result<Token> comma = expect(Token::Comma, "Expected ',' or ')'");
@@ -1505,9 +1605,9 @@ Result<std::unique_ptr<PatternNode>> Parser::parse_constructor_pattern() {
 			}
 		}
 
-		Result<Token> rightParen = expect(Token::RightParen, "Expected ')'");
-		if (!rightParen.has_value()) {
-			return Err<std::unique_ptr<PatternNode>>(rightParen.error());
+		Result<Token> right_brace = expect(Token::RightBrace, "Expected ')'");
+		if (!right_brace.has_value()) {
+			return Err<std::unique_ptr<PatternNode>>(right_brace.error());
 		}
 	}
 

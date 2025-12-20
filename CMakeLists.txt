@@ -27,7 +27,7 @@ target_include_directories(ArgonLangLib PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 # Create the main executable
 add_executable(ArgonLang src/main.cpp)
-target_link_libraries(ArgonLang PRIVATE ArgonLangLib)
+target_link_libraries(ArgonLang PRIVATE ArgonLangLib quadmath)
 
 # Add unit tests
 enable_testing()

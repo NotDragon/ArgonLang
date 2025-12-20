@@ -69,7 +69,7 @@ ArgonLang::Result<std::unique_ptr<ArgonLang::TypeNode>> ArgonLang::Parser::parse
 	}
 
 	Token::Position pos = peek().position;
-	Result<std::unique_ptr<TypeNode>> base = parse_identifier_type();
+	Result<std::unique_ptr<TypeNode>> base = parse_prefixed_type();
 	if (!base.has_value()) {
 		return Err<std::unique_ptr<TypeNode>>(base.error());
 	}

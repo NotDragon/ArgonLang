@@ -110,7 +110,7 @@ TEST_F(GenericsTest, GenerateGenericFunctionConcreteConstraint) {
 
 // Generic Class Declaration Tests
 TEST_F(GenericsTest, ParseGenericClassSingleParameter) {
-    std::string input = "class Vec<T: Type> { pub def data: T; }";
+    std::string input = "class Vec<T: Type> { pub data: T; }";
     auto result = parseCode(input);
     
     ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
@@ -126,7 +126,7 @@ TEST_F(GenericsTest, ParseGenericClassSingleParameter) {
 }
 
 TEST_F(GenericsTest, ParseGenericClassMultipleParameters) {
-    std::string input = "class Map<K: Type, V: Type> { pub def key: K; pub def value: V; }";
+    std::string input = "class Map<K: Type, V: Type> { pub key: K; pub value: V; }";
     auto result = parseCode(input);
     
     ASSERT_TRUE(result.has_value()) << "Parsing failed: " << result.error().message;
@@ -144,7 +144,7 @@ TEST_F(GenericsTest, ParseGenericClassMultipleParameters) {
 
 // Generic Class Code Generation Tests
 TEST_F(GenericsTest, GenerateGenericClassSingleConstraint) {
-    std::string input = "class Container<T: Type> { pub def value: T; }";
+    std::string input = "class Container<T: Type> { pub value: T; }";
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("template<typename T> requires Type<T>") != std::string::npos);
@@ -153,7 +153,7 @@ TEST_F(GenericsTest, GenerateGenericClassSingleConstraint) {
 }
 
 TEST_F(GenericsTest, GenerateGenericClassMultipleConstraints) {
-    std::string input = "class Pair<T: Number, U: Type> { pub def first: T; pub def second: U; }";
+    std::string input = "class Pair<T: Number, U: Type> { pub first: T; pub second: U; }";
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("template<typename T, typename U> requires Number<T> && Type<U>") != std::string::npos);

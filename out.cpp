@@ -1,25 +1,5 @@
 #include <cstdint>
-#include <algorithm>
-#include <numeric>
-#include <ranges>
-#include <memory>
-#include <functional>
-#include <utility>
-#include <iterator>
-#include <variant>
-#include <vector>
-#include <iostream>
-#include <future>
-#include <thread>
-#include <chrono>
-#include <type_traits>
 #include "runtime/ArgonRuntime.h"
 
-// Built-in concepts
-template<typename T>
-concept Number = std::is_arithmetic_v<T>;
-
-template<typename T>
-concept Type = true; // Any type
-
-int32_t main(){ARGON_SCOPE_BEGIN();int32_t x = 0;while(x < 10){ARGON_SCOPE_BEGIN();x=x + 1;}return x;}
+enum class Option { Some, None };
+str test(Option opt){ARGON_SCOPE_BEGIN();return ([&]() { auto __match_val = opt;if(ArgonLang::Runtime::match_value(__match_val, Option::Some(value)) && (value > 0)) {return "positive some";} else if(ArgonLang::Runtime::match_value(__match_val, Option::Some(value)) && (value < 0)) {return "negative some";} else if(ArgonLang::Runtime::match_value(__match_val, Option::Some(value)) && (value == 0)) {return "zero some";} else if(ArgonLang::Runtime::match_value(__match_val, Option::None())) {return "none";} else if(ArgonLang::Runtime::match_wildcard(__match_val)) {return "unknown";}})();}int main(){ARGON_SCOPE_BEGIN();}

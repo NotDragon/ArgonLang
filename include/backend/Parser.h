@@ -32,6 +32,8 @@ namespace ArgonLang {
     	const std::vector<Token>& tokens;
     	size_t current = 0;
 		int main_counter = 0;
+		std::string current_class_name;
+		bool is_match = false;
 
 	public:
 		explicit Parser(const std::vector<Token>& tokens);
@@ -64,6 +66,7 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parse_relational_expression();
 		Result<std::unique_ptr<ASTNode>> parse_bitwise_expression();
 		Result<std::unique_ptr<ASTNode>> parse_shift_expression();
+		Result<std::unique_ptr<ASTNode>> parse_ternary_expression();
 		Result<std::unique_ptr<ASTNode>> parse_assignment_expression();
 		Result<std::unique_ptr<ASTNode>> parse_pipe_expression();
 		Result<std::unique_ptr<ASTNode>> parse_parallel_expression();
@@ -86,6 +89,7 @@ namespace ArgonLang {
 		Result<std::unique_ptr<ASTNode>> parse_ownership_expression();
 		Result<std::unique_ptr<ASTNode>> parse_reference_expression();
 		Result<std::unique_ptr<ASTNode>> parse_increment_expression();
+		Result<std::unique_ptr<ASTNode>> parse_post_increment_expression();
 		Result<std::unique_ptr<ASTNode>> parse_await_expression();
 		Result<std::unique_ptr<ASTNode>> parse_iterator_expression();
 		Result<std::unique_ptr<ASTNode>> parse_unary_minus_expression();

@@ -153,7 +153,7 @@ TEST_F(IntersectionTypesTest, GenerateIntersectionTypeInVariableDeclaration) {
 }
 
 TEST_F(IntersectionTypesTest, GenerateIntersectionTypeInClassMember) {
-    std::string input = "class Data { pub def value: i32 & Positive; }";
+    std::string input = "class Data { pub value: i32 & Positive; }";
     std::string code = generateCode(input);
     
     // Class member should have base type
@@ -235,7 +235,7 @@ TEST_F(IntersectionTypesTest, GenerateComprehensiveIntersectionTypes) {
         constraint Even<T: Number> = T % 2 == 0;
         
         class Container<T: Type> {
-            pub def value: T & Positive;
+            pub value: T & Positive;
         }
         
         func<T: Number> safeDivide(a: T & Positive, b: T & NonZero) T {

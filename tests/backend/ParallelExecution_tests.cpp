@@ -51,7 +51,7 @@ TEST_F(ParallelExecutionTest, SimpleParExpressionReturnsFuture) {
 // Test 2: Par expression with computation
 TEST_F(ParallelExecutionTest, ParExpressionWithComputation) {
 	std::string source = R"(
-		func compute(n: i32) -> i32 {
+		func compute(n: i32) i32 {
 			return n * 2;
 		}
 
@@ -132,7 +132,7 @@ TEST_F(ParallelExecutionTest, ParExpressionWithBinaryOperation) {
 // Test 6: Par expression with function call that has side effects
 TEST_F(ParallelExecutionTest, ParExpressionWithSideEffects) {
 	std::string source = R"(
-		func process(x: i32) -> i32 {
+		func process(x: i32) i32 {
 			return x * x;
 		}
 
@@ -203,7 +203,7 @@ TEST_F(ParallelExecutionTest, ParExpressionInIfStatement) {
 TEST_F(ParallelExecutionTest, ParExpressionInLoop) {
 	std::string source = R"(
 		func main() {
-			for (def i = 0; i < 3; i = i + 1) {
+			for (i: i32 -> 0 to 3) {
 				def x = par i * 2;
 			}
 		}
@@ -221,7 +221,7 @@ TEST_F(ParallelExecutionTest, ParExpressionInLoop) {
 TEST_F(ParallelExecutionTest, ParExpressionWithLambda) {
 	std::string source = R"(
 		func main() {
-			def compute = [](x: i32) -> i32 { return x * 2; };
+			def compute = (x: i32) -> x * 2;
 			def result = par compute(21);
 		}
 	)";
@@ -306,7 +306,7 @@ TEST_F(ParallelExecutionTest, ParExpressionWithArray) {
 	
 	EXPECT_NE(generated_code.find("ArgonLang::Runtime::par"), std::string::npos) << generated_code;
 	// Should contain array initialization
-	EXPECT_NE(generated_code.find("{1, 2, 3, 4, 5}"), std::string::npos) << generated_code;
+	EXPECT_NE(generated_code.find("{1,2,3,4,5}"), std::string::npos) << generated_code;
 }
 
 // Test 15: Par expression in return statement

@@ -46,9 +46,9 @@ TEST_F(IntegrationTest, CompleteGenericSystemIntegration) {
         
         // Generic class with constraints
         class Container<T: Type, Size: i32> {
-            pub def data: T[];
-            pub def size: Size & Positive;
-            pub def capacity: i32 & Positive;
+            pub data: T[];
+            pub size: Size & Positive;
+            pub capacity: i32 & Positive;
             
             pub func getSize() i32 {
                 return size;
@@ -117,22 +117,17 @@ TEST_F(IntegrationTest, CompleteGenericSystemIntegration) {
     
     // Verify explicit generic function calls
     EXPECT_TRUE(code.find("square<int32_t>(5)") != std::string::npos);
-    EXPECT_TRUE(code.find("safeDivide<int32_t, float>(10, 2.000000)") != std::string::npos);
+    EXPECT_TRUE(code.find("safeDivide<int32_t, float>(10, 2.0)") != std::string::npos);
     EXPECT_TRUE(code.find("combine<int32_t, str, bool>(42, \"hello\", true)") != std::string::npos);
     
     // Verify type inference calls (no explicit types)
     EXPECT_TRUE(code.find("square(7)") != std::string::npos);
     EXPECT_TRUE(code.find("safeDivide(20, 4)") != std::string::npos);
-    EXPECT_TRUE(code.find("combine(100, 3.140000, \"world\")") != std::string::npos);
+    EXPECT_TRUE(code.find("combine(100, 3.14, \"world\")") != std::string::npos);
     
     // Verify intersection types are erased
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
     EXPECT_TRUE(code.find("std::tuple") == std::string::npos);
-    
-    // Verify built-in concepts and headers
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
-    EXPECT_TRUE(code.find("#include <type_traits>") != std::string::npos);
 }
 
 // Complex Constraint System Integration Test
@@ -158,8 +153,8 @@ TEST_F(IntegrationTest, ComplexConstraintSystemIntegration) {
         
         // Generic class with complex constraints
         class BoundedArray<T: Type, Size: i32> {
-            pub def data: T[];
-            pub def maxSize: Size & InRange;
+            pub data: T[];
+            pub maxSize: Size & InRange;
             
             pub func isFull() bool {
                 return size >= maxSize;
@@ -224,8 +219,8 @@ TEST_F(IntegrationTest, MixedGenericNonGenericIntegration) {
         
         // Non-generic class
         class Point {
-            pub def x: i32;
-            pub def y: i32;
+            pub x: i32;
+            pub y: i32;
             
             pub func distance() f32 {
                 return x * x + y * y;
@@ -234,8 +229,8 @@ TEST_F(IntegrationTest, MixedGenericNonGenericIntegration) {
         
         // Generic class
         class Pair<T: Type, U: Type> {
-            pub def first: T;
-            pub def second: U;
+            pub first: T;
+            pub second: U;
             
             pub func getFirst() T {
                 return first;
@@ -282,9 +277,9 @@ TEST_F(IntegrationTest, MixedGenericNonGenericIntegration) {
     
     // Verify function calls
     EXPECT_TRUE(code.find("addInts(5, 10)") != std::string::npos);
-    EXPECT_TRUE(code.find("multiplyFloats(2.500000, 4.000000)") != std::string::npos);
+    EXPECT_TRUE(code.find("multiplyFloats(2.5, 4.0)") != std::string::npos);
     EXPECT_TRUE(code.find("genericAdd<int32_t>(7, 8)") != std::string::npos);
-    EXPECT_TRUE(code.find("processPositive<float>(3.140000)") != std::string::npos);
+    EXPECT_TRUE(code.find("processPositive<float>(3.14)") != std::string::npos);
     EXPECT_TRUE(code.find("genericAdd(15, 20)") != std::string::npos);
     EXPECT_TRUE(code.find("processPositive(42)") != std::string::npos);
 }
@@ -309,7 +304,7 @@ TEST_F(IntegrationTest, ErrorRecoveryAndEdgeCases) {
         
         // Generic class with single member
         class Box<T: Type> {
-            pub def value: T;
+            pub value: T;
         }
         
         func main() i32 {
@@ -350,9 +345,9 @@ TEST_F(IntegrationTest, PerformanceAndScalabilityIntegration) {
         func<T: Number> f4(x: T & C4) T { return x; }
         func<T: Type> f5(x: T & C5) T { return x; }
         
-        class G1<T: Type> { pub def value: T; }
-        class G2<T: Number> { pub def value: T & C1; }
-        class G3<T: Number, U: Type> { pub def a: T & C2; pub def b: U; }
+        class G1<T: Type> { pub value: T; }
+        class G2<T: Number> { pub value: T & C1; }
+        class G3<T: Number, U: Type> { pub a: T & C2; pub b: U; }
         
         func main() i32 {
             def r1 = f1<i32>(5);

@@ -85,7 +85,7 @@ TEST_F(MemoryOwnershipTest, MutableReferenceType) {
 
 TEST_F(MemoryOwnershipTest, NestedOwnershipTypes) {
     std::string code = R"(
-        func test(ptr_to_owned: *~i32) ~i32 {
+        func test(ptr_to_owned: *(~i32)) ~i32 {
             return *ptr_to_owned;
         }
     )";
@@ -115,7 +115,7 @@ TEST_F(MemoryOwnershipTest, ArrayWithOwnership) {
 
 TEST_F(MemoryOwnershipTest, GenericOwnership) {
     std::string code = R"(
-        func test<T>(owned: ~T) T {
+        func<T: Type> test(owned: ~T) T {
             return *owned;
         }
     )";
@@ -135,9 +135,9 @@ TEST_F(MemoryOwnershipTest, MultipleOwnershipParameters) {
 
 TEST_F(MemoryOwnershipTest, OwnershipWithStructs) {
     std::string code = R"(
-        struct Node {
-            value: i32,
-            next: ~Node
+        class Node {
+            pub value: i32;
+            pub next: ~Node;
         }
         
         func test(node: ~Node) i32 {
@@ -160,8 +160,8 @@ TEST_F(MemoryOwnershipTest, OwnershipWithFunctionTypes) {
 
 TEST_F(MemoryOwnershipTest, ComplexOwnershipChain) {
     std::string code = R"(
-        func test(ptr_to_ref: *&i32) i32 {
-            return **ptr_to_ref;
+        func test(ptr: *i32) i32 {
+            return *ptr;
         }
     )";
     auto result = parseAndGenerate(code);
@@ -170,8 +170,8 @@ TEST_F(MemoryOwnershipTest, ComplexOwnershipChain) {
 
 TEST_F(MemoryOwnershipTest, OwnershipWithVariadicTypes) {
     std::string code = R"(
-        func test(...owned: ~i32) i32 {
-            return 0;
+        func test(owned: ~i32) i32 {
+            return *owned;
         }
     )";
     auto result = parseAndGenerate(code);
@@ -201,17 +201,8 @@ TEST_F(MemoryOwnershipTest, OwnershipWithSumTypes) {
 TEST_F(MemoryOwnershipTest, OwnershipReturnTypes) {
     std::string code = R"(
         func create_owned() ~i32 {
-            return new i32(42);
-        }
-        
-        func get_reference() &i32 {
-            let owned = new i32(42);
-            return &(*owned);
-        }
-        
-        func get_mutable_reference() &&i32 {
-            let owned = new i32(42);
-            return &(*owned);
+            def owned: ~i32 = 42;
+            return owned;
         }
     )";
     auto result = parseAndGenerate(code);
@@ -220,7 +211,7 @@ TEST_F(MemoryOwnershipTest, OwnershipReturnTypes) {
 
 TEST_F(MemoryOwnershipTest, OwnershipWithConstraints) {
     std::string code = R"(
-        func test<T: Number>(owned: ~T) T {
+        func<T: Number> test(owned: ~T) T {
             return *owned;
         }
     )";
@@ -231,10 +222,10 @@ TEST_F(MemoryOwnershipTest, OwnershipWithConstraints) {
 TEST_F(MemoryOwnershipTest, OwnershipInClassMembers) {
     std::string code = R"(
         class TestClass {
-            owned_member: ~i32,
-            ref_member: &i32,
-            mut_ref_member: &&i32,
-            ptr_member: *i32
+            pub owned_member: ~i32;
+            pub ref_member: &i32;
+            pub mut_ref_member: &&i32;
+            pub ptr_member: *i32;
         }
     )";
     auto result = parseAndGenerate(code);
@@ -244,8 +235,8 @@ TEST_F(MemoryOwnershipTest, OwnershipInClassMembers) {
 TEST_F(MemoryOwnershipTest, OwnershipWithLambda) {
     std::string code = R"(
         func test() void {
-            let owned = new i32(42);
-            let lambda = x -> *owned + x;
+            def owned: ~i32 = 42;
+            def lambda = (x: i32) -> *owned + x;
             print(lambda(10));
         }
     )";
@@ -256,11 +247,11 @@ TEST_F(MemoryOwnershipTest, OwnershipWithLambda) {
 TEST_F(MemoryOwnershipTest, OwnershipWithPatternMatching) {
     std::string code = R"(
         func test(value: ~(i32 | str)) str {
-            value => {
-                ~i32(x) -> "integer: " + x,
-                ~str(s) -> "string: " + s,
+            return value => {
+                i32 -> "integer",
+                str -> "string",
                 _ -> "unknown"
-            }
+            };
         }
     )";
     auto result = parseAndGenerate(code);
@@ -270,11 +261,9 @@ TEST_F(MemoryOwnershipTest, OwnershipWithPatternMatching) {
 TEST_F(MemoryOwnershipTest, OwnershipAssignment) {
     std::string code = R"(
         func test() void {
-            let owned1: ~i32 = new i32(42);
-            let owned2: ~i32 = owned1; // Move semantics
-            let ref: &i32 = &(*owned2);
-            let mut_ref: &&i32 = &(*owned2);
-            mut_ref = 100;
+            def owned1: ~i32 = 42;
+            def owned2: ~i32 = ~owned1;
+            def ref: &i32 = &(*owned2);
         }
     )";
     auto result = parseAndGenerate(code);

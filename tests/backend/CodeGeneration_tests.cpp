@@ -54,7 +54,7 @@ TEST_F(CodeGenerationTest, GenerateVariableDeclaration) {
 }
 
 TEST_F(CodeGenerationTest, GenerateClass) {
-    std::string input = "class Point { pub def x: i32; pub def y: i32; }";
+    std::string input = "class Point { pub x: i32; pub y: i32; }";
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("class Point{") != std::string::npos);
@@ -64,7 +64,7 @@ TEST_F(CodeGenerationTest, GenerateClass) {
 }
 
 // Generic Code Generation Tests
-TEST_F(CodeGenerationTest, GenerateGenericFunction) {
+TEST_F(CodeGenerationTest, GenerateGenericFunction) {  
     std::string input = "func<T: Type> identity(x: T) T { return x; }";
     std::string code = generateCode(input);
     
@@ -74,7 +74,7 @@ TEST_F(CodeGenerationTest, GenerateGenericFunction) {
 }
 
 TEST_F(CodeGenerationTest, GenerateGenericClass) {
-    std::string input = "class Container<T: Type> { pub def value: T; }";
+    std::string input = "class Container<T: Type> { pub value: T; }";
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("template<typename T> requires Type<T>") != std::string::npos);
@@ -224,8 +224,8 @@ TEST_F(CodeGenerationTest, GenerateComplexGenericClass) {
     std::string input = R"(
         constraint Positive<T: Number> = T > 0;
         class Container<T: Type, U: Number> {
-            pub def data: T;
-            pub def count: U & Positive;
+            pub data: T;
+            pub count: U & Positive;
             
             pub func getData() T {
                 return data;
@@ -245,16 +245,6 @@ TEST_F(CodeGenerationTest, GenerateComplexGenericClass) {
     EXPECT_TRUE(code.find("public:T getData()") != std::string::npos);
 }
 
-TEST_F(CodeGenerationTest, GenerateBuiltInConcepts) {
-    std::string input = "func<T: Number> test(x: T) T { return x; }";
-    std::string code = generateCode(input);
-    
-    // Should generate built-in concepts
-    EXPECT_TRUE(code.find("// Built-in concepts") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
-}
-
 // Error Handling Tests
 TEST_F(CodeGenerationTest, HandleParseError) {
     std::string input = "func invalid syntax here";
@@ -270,8 +260,8 @@ TEST_F(CodeGenerationTest, GenerateComprehensiveProgram) {
         constraint NonZero<T: Number> = T != 0;
         
         class Vec<T: Type> {
-            pub def data: T[];
-            pub def size: i32;
+            pub data: T[];
+            pub size: i32;
             
             pub func getSize() i32 {
                 return size;
@@ -300,9 +290,4 @@ TEST_F(CodeGenerationTest, GenerateComprehensiveProgram) {
     EXPECT_TRUE(code.find("safeDivide<int32_t>(10, 2)") != std::string::npos);
     EXPECT_TRUE(code.find("safeDivide(20, 4)") != std::string::npos);
     EXPECT_TRUE(code.find("int32_t main()") != std::string::npos);
-    
-    // Should include all necessary headers and concepts
-    EXPECT_TRUE(code.find("#include <type_traits>") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
 }

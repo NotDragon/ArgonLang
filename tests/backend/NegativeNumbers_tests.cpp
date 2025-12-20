@@ -116,7 +116,7 @@ TEST_F(NegativeNumbersTest, NegativeNumberInArray) {
 // Test 6: Negative number as function argument
 TEST_F(NegativeNumbersTest, NegativeNumberAsFunctionArgument) {
 	std::string source = R"(
-		func add(a: i32, b: i32) -> i32 {
+		func add(a: i32, b: i32) i32 {
 			return a + b;
 		}
 
@@ -135,7 +135,7 @@ TEST_F(NegativeNumbersTest, NegativeNumberAsFunctionArgument) {
 // Test 7: Negative number in return statement
 TEST_F(NegativeNumbersTest, NegativeNumberInReturnStatement) {
 	std::string source = R"(
-		func get_negative() -> i32 {
+		func get_negative() i32 {
 			return -42;
 		}
 
@@ -206,7 +206,7 @@ TEST_F(NegativeNumbersTest, NegativeZero) {
 TEST_F(NegativeNumbersTest, NegativeNumberInTernary) {
 	std::string source = R"(
 		func main() {
-			def result = true ? -5 : -10;
+			def result: i32 = true ?? -5 : -10;
 		}
 	)";
 	std::string generated_code;
@@ -222,7 +222,7 @@ TEST_F(NegativeNumbersTest, NegativeNumberInTernary) {
 TEST_F(NegativeNumbersTest, NegativeNumberInLoop) {
 	std::string source = R"(
 		func main() {
-			for (def i = -5; i < 5; i = i + 1) {
+			for (i: i32 -> -5 to 5) {
 				def x = i;
 			}
 		}
@@ -325,7 +325,7 @@ TEST_F(NegativeNumbersTest, NegativeNumberInMatch) {
 	std::string source = R"(
 		func main() {
 			def x = -5;
-			def result = match x {
+			def result = x => {
 				-5 -> 1,
 				-10 -> 2,
 				_ -> 0

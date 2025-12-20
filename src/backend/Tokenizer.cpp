@@ -181,17 +181,59 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 		if (std::isdigit(c)) {
 			size_t start = i;
 			bool isDecimal = false;
-			while (i < length && (std::isdigit(input[i]) || input[i] == '.' || input[i] == '`')) {
-				if (input[i] == '.') {
-					if (isDecimal) {
-						return TokenizeResult(
-						    ErrorFormatter::formatTokenizerError("Invalid numeric literal: multiple decimal points",
-						                                         currentLine, currentColumn),
-						    {currentLine, currentColumn});
-					}
-					isDecimal = true;
+			bool isHex = false;
+			bool isBinary = false;
+			bool isOctal = false;
+			
+			// Check for hex (0x), binary (0b), octal (0o) prefixes
+			if (c == '0' && i + 1 < length) {
+				if (input[i + 1] == 'x' || input[i + 1] == 'X') {
+					isHex = true;
+					i += 2; // Skip '0x'
+				} else if (input[i + 1] == 'b' || input[i + 1] == 'B') {
+					isBinary = true;
+					i += 2; // Skip '0b'
+				} else if (input[i + 1] == 'o' || input[i + 1] == 'O') {
+					isOctal = true;
+					i += 2; // Skip '0o'
 				}
-				i++;
+			}
+			
+			// Parse the number based on its format
+			if (isHex) {
+				while (i < length && (std::isxdigit(input[i]) || input[i] == '`')) {
+					i++;
+				}
+			} else if (isBinary) {
+				while (i < length && (input[i] == '0' || input[i] == '1' || input[i] == '`')) {
+					i++;
+				}
+			} else if (isOctal) {
+				while (i < length && (input[i] >= '0' && input[i] <= '7' || input[i] == '`')) {
+					i++;
+				}
+			} else {
+				// Decimal or float
+				while (i < length && (std::isdigit(input[i]) || input[i] == '.' || input[i] == '`' || input[i] == 'e' || input[i] == 'E')) {
+					if (input[i] == '.') {
+						if (isDecimal) {
+							return TokenizeResult(
+							    ErrorFormatter::formatTokenizerError("Invalid numeric literal: multiple decimal points",
+							                                         currentLine, currentColumn),
+							                      {currentLine, currentColumn});
+						}
+						isDecimal = true;
+					} else if (input[i] == 'e' || input[i] == 'E') {
+						// Scientific notation
+						isDecimal = true;
+						i++;
+						if (i < length && (input[i] == '+' || input[i] == '-')) {
+							i++; // Skip sign
+						}
+						continue;
+					}
+					i++;
+				}
 			}
 
 			std::string numLiteral = input.substr(start, i - start);
@@ -207,7 +249,7 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 			continue;
 		} else if (std::isalpha(c) || c == '_') {
 			size_t start = i;
-			while (i < length && (std::isalnum(input[i]) || input[i] == '_' || input[i] == '-')) {
+			while (i < length && (std::isalnum(input[i]) || input[i] == '_')) {
 				i++;
 				currentColumn++;
 			}
@@ -335,12 +377,16 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 			tokens.emplace_back(Token::MapAssign, "&=", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
-		} else if (c == '|' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::FilterAssign, "|=", currentLine, currentColumn);
+		} else if (c == '?' && input[i + 1] == '?') {
+			tokens.emplace_back(Token::DoubleQuestionMark, "??", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
-		} else if (c == '^' && input[i + 1] == '=') {
-			tokens.emplace_back(Token::ReduceAssign, "^=", currentLine, currentColumn);
+		} else if (c == '?' && input[i + 1] == '=') {
+			tokens.emplace_back(Token::ReduceAssign, "?=", currentLine, currentColumn);
+			i += 2;
+			currentColumn += 2;
+		} else if (c == '|' && input[i + 1] == '=') {
+			tokens.emplace_back(Token::FilterAssign, "|=", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
 		} else if (c == '|' && input[i + 1] == '|' && input[i + 2] == '>') {
@@ -365,16 +411,6 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 			currentColumn += 2;
 		} else if (c == '=' && input[i + 1] == '>') {
 			tokens.emplace_back(Token::MatchArrow, "=>", currentLine, currentColumn);
-			i += 2;
-			currentColumn += 2;
-		} else if (c == '^' && input[i + 1] == '^') {
-			if (input[i + 2] == '=') {
-				tokens.emplace_back(Token::AccumulateAssign, "^^=", currentLine, currentColumn);
-				i += 3;
-				currentColumn += 3;
-				continue;
-			}
-			tokens.emplace_back(Token::AccumulateRange, "^^", currentLine, currentColumn);
 			i += 2;
 			currentColumn += 2;
 		} else if (c == '-' && input[i + 1] == '>') {
@@ -458,9 +494,6 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 			case '|':
 				tokens.emplace_back(Token::FilterRange, "|", currentLine, currentColumn);
 				break;
-			case '^':
-				tokens.emplace_back(Token::ReduceRange, "^", currentLine, currentColumn);
-				break;
 			case '~':
 				tokens.emplace_back(Token::Ownership, "~", currentLine, currentColumn);
 				break;
@@ -502,7 +535,7 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 				}
 				break;
 			case '?':
-				tokens.emplace_back(Token::QuestionMark, "?", currentLine, currentColumn);
+				tokens.emplace_back(Token::ReduceRange, "?", currentLine, currentColumn);
 				break;
 			case '#':
 				tokens.emplace_back(Token::Hash, "#", currentLine, currentColumn);
@@ -699,8 +732,6 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		return "Arrow";
 	case Token::MatchArrow:
 		return "MatchArrow";
-	case Token::QuestionMark:
-		return "QuestionMark";
 
 	case Token::Hash:
 		return "Hash";
@@ -727,12 +758,8 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		return "Ownership";
 	case Token::ReduceAssign:
 		return "ReduceAssign";
-	case Token::AccumulateAssign:
-		return "AccumulateAssign";
 	case Token::PipeAssign:
 		return "PipeAssign";
-	case Token::AccumulateRange:
-		return "AccumulateRange";
 	case Token::Pipe:
 		return "Pipe";
 
@@ -753,6 +780,7 @@ std::string ArgonLang::Token::getTypeAsString(Token::Type type) {
 		return "KeywordSuper";
 	case Token::CharLiteral:
 		return "CharLiteral";
+	default: ;
 	}
 
 	return "";

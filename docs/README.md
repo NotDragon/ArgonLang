@@ -27,7 +27,7 @@ ArgonLang is built on several revolutionary concepts that distinguish it from tr
 Types are defined by the set of possible values they can contain, enabling precise compile-time safety without runtime overhead.
 
 ### Ownership Without Complexity
-Memory management uses intuitive ownership semantics with automatic lifetime management.
+Memory management uses intuitive ownership semantics with reference-extended lifetimes—values stay allocated as long as any reference to them exists, all tracked at compile-time.
 
 ### Pattern-First Programming
 Pattern matching isn't just a feature—it's the primary way to work with data and control flow.
@@ -237,11 +237,8 @@ def evens = numbers | x -> x % 2 == 0;
 // Map operator &: Transform each element
 def squares = numbers & x -> x * x;
 
-// Reduce operator ^: Combine elements into single value
-def sum = numbers ^ (acc, current) -> acc + current;
-
-// Accumulate operator ^^: Build running totals
-def running_sums = numbers ^^ (acc, current) -> acc + current;
+// Reduce operator ?: Combine elements into single value
+def sum = numbers ? (acc, current) -> acc + current;
 ```
 
 ### Pipeline Operations
@@ -404,29 +401,33 @@ def assess_score = (score: i32) => str {
 
 ```argonlang
 enum Shape {
-    Circle(radius: f64),
-    Rectangle(width: f64, height: f64),
-    Triangle(a: f64, b: f64, c: f64)
+    Circle{ radius: f64 },
+    Rectangle{ width: f64, height: f64 },
+    Triangle{ a: f64, b: f64, c: f64 }
 }
 
-def calculate_area = (shape: Shape) => f64 {
-    Shape::Circle(r) -> 3.14159 * r * r,
-    Shape::Rectangle(w, h) -> w * h,
-    Shape::Triangle(a, b, c) -> {
-        def s = (a + b + c) / 2.0;
-        return sqrt(s * (s - a) * (s - b) * (s - c));
-    }
-};
+func calculate_area(shape: Shape) f64 {
+    return shape => {
+        Shape::Circle{ radius } -> 3.14159 * radius * radius,
+        Shape::Rectangle{ width, height } -> width * height,
+        Shape::Triangle{ a, b, c } -> {
+            def s = (a + b + c) / 2.0;
+            return sqrt(s * (s - a) * (s - b) * (s - c));
+        }
+    };
+}
 
 // Pattern matching with additional conditions
-def describe_shape = (shape: Shape) => str {
-    Shape::Circle(r) && r > 10.0 -> "large circle",
-    Shape::Circle(r) -> "small circle", 
-    Shape::Rectangle(w, h) && w == h -> "square",
-    Shape::Rectangle(w, h) -> "rectangle",
-    Shape::Triangle(a, b, c) && a == b && b == c -> "equilateral triangle",
-    _ -> "some triangle"
-};
+func describe_shape(shape: Shape) str {
+    return shape => {
+        Shape::Circle{ radius } && radius > 10.0 -> "large circle",
+        Shape::Circle{ radius } -> "small circle", 
+        Shape::Rectangle{ width, height } && width == height -> "square",
+        Shape::Rectangle{ width, height } -> "rectangle",
+        Shape::Triangle{ a, b, c } && a == b && b == c -> "equilateral triangle",
+        _ -> "some triangle"
+    };
+}
 ```
 
 ## Functional Programming
@@ -456,8 +457,8 @@ def evens = numbers | x -> x % 2 == 0;
 // Map operator &
 def doubled = numbers & x -> x * 2;
 
-// Reduce operator ^
-def sum = numbers ^ (acc, current) -> acc + current;
+// Reduce operator ?
+def sum = numbers ? (acc, current) -> acc + current;
 
 // Pipe operator |>
 def result = numbers
@@ -467,9 +468,6 @@ def result = numbers
 
 // Map-pipe operator ||>
 def processed = matrix ||> sum |> max;  // Map sum over matrix, then find max
-
-// Accumulate operator ^^
-def cumulative = numbers ^^ (acc, current) -> acc + current;
 ```
 
 ### Partial Application
@@ -543,8 +541,8 @@ def categorize = (num) => {
 
 ```argonlang
 class Student {
-    def name: str;
-    def grade: i32;
+    name: str;
+    grade: i32;
     
     // Constructor
     pub constructor(name: str, grade: i32) {
@@ -582,8 +580,8 @@ class Point(x: i32, y: i32) {
 
 // Multiple constructors
 class Rectangle {
-    def width: i32;
-    def height: i32;
+    width: i32;
+    height: i32;
     
     // Default constructor
     pub constructor(width: i32, height: i32) { }
@@ -597,10 +595,10 @@ class Rectangle {
 
 // Public classes (all members public by default)
 class Data pub {
-    def value: i32 = 0;
+    value: i32 = 0;
     func increment() -> value++;
 }
-```
+```Ok
 
 ### Inheritance and Interfaces
 
@@ -621,11 +619,11 @@ class Circle(radius: i32) impl Drawable {
 
 // Multiple interfaces
 class Shape {
-    def color: str;
+    color: str;
 }
 
 class ColoredCircle impl Drawable, Shape {
-    def radius: i32;
+    radius: i32;
     
     func draw() void {
         print("Drawing " + color + " circle");
@@ -653,17 +651,89 @@ def drawable = struct Drawable {
 
 ## Memory Management
 
+### Automatic Lifetime Management
+
+ArgonLang uses a sophisticated lifetime system that provides memory safety without manual annotations:
+
+**Core Principle**: Variables become unavailable at scope end, but their memory is only deallocated when all references to them go out of scope.
+
+```argonlang
+func example() {
+    def data = "important";
+    def reference: &str;
+    
+    {
+        def inner = "temporary";
+        reference = &inner;
+    }  // 'inner' unavailable after this scope
+       // BUT memory NOT deallocated - 'reference' still holds it
+    
+    print(reference);  // SAFE - 'inner' memory still alive
+    
+}  // 'reference' dies, NOW 'inner' memory is deallocated
+```
+
+**Key Rules:**
+1. Variables become **unavailable** (can't access name) at scope end
+2. Memory is **deallocated** only when all references to it die
+3. Compiler tracks this at **compile-time** - no runtime overhead
+4. Prevents dangling references without lifetime annotations
+5. This applies to **all non-pointer variables** (stack-allocated values)
+
+**Examples:**
+
+```argonlang
+// Single reference extends lifetime
+func get_reference() {
+    def outer_ref: &i32;
+    {
+        def value = 42;
+        outer_ref = &value;
+        // 'value' name becomes unavailable at scope end
+    }  // 'value' unavailable, but memory kept alive for outer_ref
+    
+    print(outer_ref);  // SAFE - value's memory still exists
+    
+}  // outer_ref dies, NOW value's memory is deallocated
+
+// Multiple references
+func multi_ref() {
+    def data = vec<i32>();
+    def ref1 = &data;
+    def ref2 = &data;
+    // data's memory stays allocated until BOTH ref1 and ref2 die
+}
+
+// Returning references
+func get_first(x: &str, y: &str) &str {
+    return x.length > y.length ? x : y;
+}
+
+func safe_usage() {
+    def s1 = "long string";
+    def result: &str;
+    {
+        def s2 = "short";
+        result = get_first(&s1, &s2);
+        // s2 becomes unavailable (can't use name 's2')
+    }  // BUT s2's memory NOT deallocated - 'result' still references it
+    
+    print(result);  // SAFE - s2's memory still alive
+    
+}  // 'result' dies, NOW s2's memory is deallocated
+```
+
 ### Pointer Types
 
 ```argonlang
-// Raw pointers (C-style)
+// Raw pointers (C-style) - manual management
 def ptr: *i32;           // Raw pointer
 def arr: *i32[5];        // Pointer to array
 
-// Owned pointers (automatic cleanup)
+// Owned pointers (RAII - automatic cleanup)
 def owned: ~i32 = 42;    // Owned pointer
 
-// Reference counting
+// Reference counting (runtime)
 def shared: ref<i32> = owned;    // Shared reference
 def weak: weak<i32> = shared;    // Weak reference
 ```
@@ -683,7 +753,7 @@ processMut(&&x);        // Borrow mutably
 takeOwnership(~x);      // Move ownership
 ```
 
-### Memory Safety
+### Memory Safety and Borrow Rules
 
 ```argonlang
 // Ownership rules enforced at compile time
@@ -695,9 +765,24 @@ func example() {
     // def mutRef = &&data;  // Error: cannot have mutable ref with immutable refs
 }
 
+// Reference-extended lifetimes prevent use-after-free
+func safe_references() {
+    def outer: &vec<i32>;
+    {
+        def inner = vec<i32>();
+        inner.push(1);
+        inner.push(2);
+        outer = &inner;
+        // 'inner' name unavailable after this
+    }  // inner's MEMORY kept alive for 'outer'
+    
+    print(outer[0]);  // SAFE - memory still exists
+    
+}  // 'outer' dies, inner's memory NOW deallocated
+
 // Mutability tracking
 class Container {
-    def mut data: vec<i32>;  // Mutable field
+    mut data: vec<i32>;  // Mutable field
     
     func add(value: i32) mut {  // Method that mutates
         data.push(value);
@@ -761,7 +846,7 @@ func processInt<T: i32>(value: T) T {
 ```argonlang
 // Generic class
 class Container<T> {
-    def data: T;
+    data: T;
     
     pub constructor(data: T) { }
     
@@ -772,7 +857,7 @@ class Container<T> {
 
 // Constrained generic class
 class NumericContainer<T: Number> {
-    def value: T;
+    value: T;
     
     pub func add(other: T) T {
         return value + other;
@@ -1054,39 +1139,72 @@ def result = import advanced;  // Prints "Module imported!", result = 42
 ### Unions and Enums
 
 ```argonlang
-// Simple union
-union Number = i32 | f64;
-def value: Number = 42;  // Can be either i32 or f64
-
-// Named union
-union Result {
-    success: i32,
-    error: str
+// Named union with fields
+union Int {
+    bit32: i32,
+    bit64: i64
 }
 
-// Enum
+// Using unions with pattern matching
+func get_rand() i32 | i64 {
+    return 184828;
+}
+
+func main() {
+    def num: Int = get_rand();
+    num => {
+        i32 -> print("Num is 32 bit: ", num),
+        i64 -> print("Num is 64 bit: ", num)
+    }
+}
+
+// Simple enum (with optional explicit values)
 enum Color {
     Red,
     Green,
     Blue
 }
 
-// Tagged union (sum type)
-enum union Shape {
-    Circle(radius: f64),
-    Rectangle(width: f64, height: f64),
-    Triangle(a: f64, b: f64, c: f64)
+// Structured enum with fields
+enum Shape {
+    Circle{ radius: i32 },
+    Rectangle{ width: i32, height: i32 }
 }
 
-// Pattern matching on unions
-def area = (shape: Shape) => f64 {
-    Shape::Circle(r) -> PI * r * r,
-    Shape::Rectangle(w, h) -> w * h,
-    Shape::Triangle(a, b, c) -> {
-        def s = (a + b + c) / 2;
-        return Math::sqrt(s * (s - a) * (s - b) * (s - c));
-    }
-};
+// Pattern matching on enums (note: curly braces for destructuring)
+func area(shape: Shape) f32 {
+    return shape => {
+        Shape::Circle{ radius } -> 3.14 * radius * radius,
+        Shape::Rectangle{ width, height } -> width * height
+    };
+}
+```
+
+**Key Differences:**
+- **Unions**: Pure type descriptors, use field names with types
+- **Enums**: Declared constructors, create actual values (e.g., `Shape::Circle` exists)
+
+### Advanced Enum Features
+
+```argonlang
+// Enum with constraint - all variants must implement a class
+class Student pub {
+    name: str;
+    grade: u32;
+}
+
+enum Students -> Student {
+    George("George", 100),  // Uses constructor
+    Anna{ grade = 200, name = "Anna" }  // Uses field initialization
+}
+
+// Enum with explicit values
+enum Status {
+    Pending = 0,
+    InProgress = 1,
+    Complete = 2,
+    Failed = -1
+}
 ```
 
 ### Type Aliases
@@ -1106,8 +1224,8 @@ using Result<T> = Either<T, E>;
 
 ```argonlang
 class Vector {
-    def x: f64;
-    def y: f64;
+    x: f64;
+    y: f64;
     
     // Arithmetic operators
     func _add(other: Vector) Vector {
@@ -1158,15 +1276,15 @@ print(v1);          // Calls v1._get()
 }
 
 // Code generation
-@func createClass(name: id, fields: vec<struct{name: str, type: str}>) {
-    class name {
-        fields.each(field -> def field.name: field.type;);
+@func createClass(base: id, fields: vec<struct{base: str, type: str}>) {
+    class base {
+        fields.each(field -> field.base: field.type;);
     }
 }
 
 @createClass(User, [
-    struct{name = "id", type = "i64"},
-    struct{name = "name", type = "str"}
+    struct{base = "id", type = "i32"},
+    struct{base = "name", type = "str"}
 ]);
 ```
 
@@ -1453,7 +1571,8 @@ The remaining sections would cover:
 
 ### Memory Ownership  
 - Owned pointers (~), references (&, &&), and raw pointers (*)
-- Automatic lifetime management and scope-based cleanup
+- Reference-extended lifetimes: values stay allocated while references exist
+- Automatic lifetime management without annotations
 - Custom allocators (heap, stack buffer, arena)
 - Borrowing rules and compile-time safety
 

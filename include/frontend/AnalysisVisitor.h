@@ -23,6 +23,7 @@ namespace ArgonLang {
 
 		Result<bool> visit(const BinaryExpressionNode &node) override;
 		Result<bool> visit(const UnaryExpressionNode &node) override;
+		Result<bool> visit(const UnaryPostExpressionNode &node) override;
 
 		Result<bool> visit(const FunctionCallExpressionNode &node) override;
 		Result<bool> visit(const MemberAccessExpressionNode &node) override;

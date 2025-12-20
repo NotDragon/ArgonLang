@@ -10,18 +10,18 @@ namespace ArgonLang {
     class Token {
     public:
         enum Type {
-            Identifier = 0,
+			Identifier = 0,
 
 			KeywordDef,
 			KeywordMut,
 			KeywordTo,
 			KeywordPar,
-            KeywordIf,
-            KeywordElse,
-            KeywordBreak,
-            KeywordContinue,
-            KeywordWhile,
-            KeywordFor,
+	        KeywordIf,
+	        KeywordElse,
+	        KeywordBreak,
+	        KeywordContinue,
+	        KeywordWhile,
+	        KeywordFor,
 			KeywordReturn,
 			KeywordSuper,
 			KeywordFunc,
@@ -47,7 +47,7 @@ namespace ArgonLang {
 			KeywordModule,
 			KeywordImport,
 			KeywordWhere,
-			KeywordConstraint,
+        	KeywordConstraint,
 
             IntegralLiteral,
             FloatLiteral,
@@ -72,7 +72,6 @@ namespace ArgonLang {
 			FilterAssign,
 			MapAssign,
 			ReduceAssign,
-			AccumulateAssign,
 			PipeAssign,
 			MapPipeAssign,
 
@@ -90,7 +89,6 @@ namespace ArgonLang {
 			FilterRange,
 			MapRange,
 			ReduceRange,
-			AccumulateRange,
 			Ownership,
 			Pipe,
 			MapPipe,
@@ -120,7 +118,7 @@ namespace ArgonLang {
             Dot,
             Arrow,
             MatchArrow,
-            QuestionMark,
+        	DoubleQuestionMark,
 
             Hash,
 			DoubleHash,

@@ -11,45 +11,11 @@ void ArgonLang::CharLiteralNode::print() const {
 }
 
 void ArgonLang::IntegralLiteralNode::print() const {
-	std::cout << "IntegralLiteral: ";
-	switch (type) {
-	case PrimitiveType::INT8:
-		std::cout << value.i8;
-		break;
-	case PrimitiveType::INT16:
-		std::cout << value.i16;
-		break;
-	case PrimitiveType::INT32:
-		std::cout << value.i32;
-		break;
-	case PrimitiveType::INT64:
-		std::cout << value.i64;
-		break;
-	case PrimitiveType::INT128:
-		std::cout << static_cast<int64_t>(value.i128);
-		break;
-	default:
-		throw std::runtime_error("Invalid type for IntegralLiteralNode");
-	}
-	std::cout << " (" << primitive_type_to_string(type) << ")\n";
+	std::cout << "IntegralLiteral: " << value << " (" << primitive_type_to_string(type) << ")\n";
 }
 
 void ArgonLang::FloatLiteralNode::print() const {
-	std::cout << "FloatLiteral: ";
-	switch (type) {
-	case PrimitiveType::FLOAT32:
-		std::cout << value.f32;
-		break;
-	case PrimitiveType::FLOAT64:
-		std::cout << value.f64;
-		break;
-	case PrimitiveType::FLOAT128:
-		std::cout << value.f128;
-		break;
-	default:
-		throw std::runtime_error("Invalid type for FloatLiteralNode");
-	}
-	std::cout << " (" << primitive_type_to_string(type) << ")\n";
+	std::cout << "FloatLiteral: " << value << " (" << primitive_type_to_string(type) << ")\n";
 }
 
 void ArgonLang::BooleanLiteralNode::print() const {
@@ -69,6 +35,12 @@ void ArgonLang::BinaryExpressionNode::print() const {
 }
 
 void ArgonLang::UnaryExpressionNode::print() const {
+	std::cout << "UnaryOp(" << op.value << " ";
+	operand->print();
+	std::cout << ")";
+}
+
+void ArgonLang::UnaryPostExpressionNode::print() const {
 	std::cout << "UnaryOp(" << op.value << " ";
 	operand->print();
 	std::cout << ")";
@@ -206,13 +178,12 @@ void ArgonLang::ForStatementNode::print() const {
 }
 
 void ArgonLang::UnionDeclarationNode::print() const {
-	std::cout << "Union: " << unionName << " = ";
-	for (const auto& type : types) {
-		type->print();
-		if (&type != &types.back())
-			std::cout << " | ";
+	std::cout << "Union: " << unionName << " {\n";
+	for (const auto& field : fields) {
+		std::cout << "  " << field.name << ": ";
+		field.type->print();
 	}
-	std::cout << std::endl;
+	std::cout << "}" << std::endl;
 }
 
 void ArgonLang::IdentifierTypeNode::print() const {
@@ -294,9 +265,28 @@ void ArgonLang::MemberAccessExpressionNode::print() const {
 
 // New AST node print implementations
 void ArgonLang::EnumDeclarationNode::print() const {
-	std::cout << "EnumDeclarationNode: " << enumName << " (isUnion: " << isUnion << ")\n";
+	std::cout << "EnumDeclarationNode: " << enumName;
+	if (constraintType) {
+		std::cout << " -> ";
+		constraintType->print();
+	}
+	std::cout << " (isUnion: " << isUnion << ")\n";
 	for (const auto& variant : variants) {
-		std::cout << "  Variant: " << variant.name << "\n";
+		std::cout << "  Variant: " << variant.name;
+		if (variant.explicitValue) {
+			std::cout << " = ";
+			variant.explicitValue->print();
+		}
+		if (!variant.fields.empty()) {
+			std::cout << " { ";
+			for (const auto& field : variant.fields) {
+				std::cout << field.name << ": ";
+				field.type->print();
+				std::cout << ", ";
+			}
+			std::cout << "}";
+		}
+		std::cout << "\n";
 	}
 }
 

@@ -42,6 +42,8 @@ Result<std::string> CodeGenerationVisitor::visit(const ExpressionNode& node) {
 		return visit(dynamic_cast<const BinaryExpressionNode&>(node));
 	case ASTNodeType::UnaryExpression:
 		return visit(dynamic_cast<const UnaryExpressionNode&>(node));
+	case ASTNodeType::UnaryPostExpression:
+		return visit(dynamic_cast<const UnaryPostExpressionNode&>(node));
 	case ASTNodeType::FunctionCallExpression:
 		return visit(dynamic_cast<const FunctionCallExpressionNode&>(node));
 	case ASTNodeType::MemberAccessExpression:
@@ -182,43 +184,45 @@ Result<std::string> CodeGenerationVisitor::visit(const ProgramNode& node) {
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const IntegralLiteralNode& node) {
-	switch (node.type) {
-	case PrimitiveType::INT8:
-		return std::to_string(node.value.i8);
-	case PrimitiveType::INT16:
-		return std::to_string(node.value.i16);
-	case PrimitiveType::INT32:
-		return std::to_string(node.value.i32);
-	case PrimitiveType::INT64:
-		return std::to_string(node.value.i64);
-	case PrimitiveType::INT128:
-		return std::to_string(static_cast<int64_t>(node.value.i128));
-	default:
-		return Err<std::string>(
-		    create_parse_error(ErrorType::InvalidCodeGeneration, "Invalid integer type", node.position));
-	}
+	// Return the original string representation to preserve exact value
+	return Ok(node.value);
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const FloatLiteralNode& node) {
-	switch (node.type) {
-	case PrimitiveType::FLOAT32:
-		return std::to_string(node.value.f32);
-	case PrimitiveType::FLOAT64:
-		return std::to_string(node.value.f64);
-	case PrimitiveType::FLOAT128:
-		return std::to_string(node.value.f128);
-	default:
-		return Err<std::string>(
-		    create_parse_error(ErrorType::InvalidCodeGeneration, "Invalid float type", node.position));
-	}
+	// Return the original string representation to preserve exact precision
+	return Ok(node.value);
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const StringLiteralNode& node) {
-	return Ok("\"" + node.value + "\"");
+	std::string result = "\"";
+	for (const char& character: node.value) {
+		switch (character) {
+			case '\n': result += "\\n"; break;
+			case '\t': result += "\\t"; break;
+			case '\r': result += "\\r"; break;
+			case '\0': result += "\\0"; break;
+			case '\\': result += "\\\\"; break;
+			case '\"': result += "\\\""; break;
+			default: result += character; break;
+		}
+	}
+	return Ok(result + "\"");
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const CharLiteralNode& node) {
-	return Ok(std::to_string(node.value));
+	// Generate character literal with proper escaping
+	std::string result = "'";
+	switch (node.value) {
+		case '\n': result += "\\n"; break;
+		case '\t': result += "\\t"; break;
+		case '\r': result += "\\r"; break;
+		case '\0': result += "\\0"; break;
+		case '\\': result += "\\\\"; break;
+		case '\'': result += "\\'"; break;
+		default: result += node.value; break;
+	}
+	result += "'";
+	return Ok(result);
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const BooleanLiteralNode& node) {
@@ -261,18 +265,29 @@ Result<std::string> CodeGenerationVisitor::visit(const BinaryExpressionNode& nod
 			return Ok("ArgonLang::Runtime::map(" + left.value() + ", " + right.value() + ")" +
 			          (is_statement_context ? ";" : ""));
 		}
-	} else if (node.op.value == "^") {
-		// Reduce operator: left ^ right becomes ArgonLang::Runtime::reduce
+	} else if (node.op.value == "?") {
+		// Reduce operator: left ? right becomes ArgonLang::Runtime::reduce
 		return Ok("ArgonLang::Runtime::reduce(" + left.value() + ", " + right.value() + ")" +
-		          (is_statement_context ? ";" : ""));
-	} else if (node.op.value == "^^") {
-		// Accumulate range: left ^^ right becomes ArgonLang::Runtime::accumulate
-		return Ok("ArgonLang::Runtime::accumulate(" + left.value() + ", " + right.value() + ")" +
 		          (is_statement_context ? ";" : ""));
 	} else if (node.op.value == "to") {
 		// Range operator: handled by ToExpressionNode, but if it appears here as binary op
 		return Ok("std::ranges::iota_view(" + left.value() + ", " + right.value() + ")" +
 		          (is_statement_context ? ";" : ""));
+	} else if (node.op.value == "*<") {
+		// Bitwise shift left
+		return Ok(left.value() + "<<" + right.value());
+	} else if (node.op.value == "*>") {
+		// Bitwise shift right
+		return Ok(left.value() + ">>" + right.value());
+	} else if (node.op.value == "*^") {
+		// Bitwise XOR
+		return Ok(left.value() + "^" + right.value());
+	} else if (node.op.value == "*&") {
+		// Bitwise AND
+		return Ok(left.value() + "&" + right.value());
+	} else if (node.op.value == "*|") {
+		// Bitwise OR
+		return Ok(left.value() + "|" + right.value());
 	} else {
 		// Regular binary operators
 		return Ok(left.value() + " " + node.op.value + " " + right.value());
@@ -301,10 +316,22 @@ Result<std::string> CodeGenerationVisitor::visit(const UnaryExpressionNode& node
 	} else if (node.op.value == "&&") {
 		// Mutable reference (normal reference)
 		return Ok("&" + operand.value());
+	}  else if(node.op.value == "*~") {
+		return Ok("~" + operand.value());
 	} else {
 		// Regular unary operators
 		return Ok(node.op.value + operand.value());
 	}
+}
+
+Result<std::string> CodeGenerationVisitor::visit(const UnaryPostExpressionNode& node) {
+	Result<std::string> operand = visit(*node.operand);
+	if (!operand.has_value()) {
+		return Err<std::string>(operand.error());
+	}
+
+	return Ok(operand.value() + node.op.value);
+
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const FunctionCallExpressionNode& node) {
@@ -447,7 +474,66 @@ Result<std::string> CodeGenerationVisitor::visit(const AssignmentExpressionNode&
 		return Err<std::string>(right.error());
 	}
 
-	std::string code = left.value() + " " + node.op.value + " " + right.value();
+	// Determine the operator string based on token type
+	std::string opStr;
+	switch (node.op.type) {
+	case Token::Assign:
+		opStr = "=";
+		break;
+	case Token::PlusAssign:
+		opStr = "+=";
+		break;
+	case Token::MinusAssign:
+		opStr = "-=";
+		break;
+	case Token::MultiplyAssign:
+		opStr = "*=";
+		break;
+	case Token::DivideAssign:
+		opStr = "/=";
+		break;
+	case Token::ModuloAssign:
+		opStr = "%=";
+		break;
+	case Token::BitwiseAndAssign:
+		// ArgonLang uses *&= but C++ uses &=
+		opStr = "&=";
+		break;
+	case Token::BitwiseOrAssign:
+		// ArgonLang uses *|= but C++ uses |=
+		opStr = "|=";
+		break;
+	case Token::BitwiseXorAssign:
+		// ArgonLang uses *^= but C++ uses ^=
+		opStr = "^=";
+		break;
+	case Token::LeftShiftAssign:
+		// ArgonLang uses *<= but C++ uses <<=
+		opStr = "<<=";
+		break;
+	case Token::RightShiftAssign:
+		// ArgonLang uses *>= but C++ uses >>=
+		opStr = ">>=";
+		break;
+	case Token::FilterAssign:
+		opStr = "|=";
+		break;
+	case Token::MapAssign:
+		opStr = "&=";
+		break;
+	case Token::PipeAssign:
+		opStr = "|>=";
+		break;
+	case Token::MapPipeAssign:
+		opStr = "||>=";
+		break;
+	default:
+		// Fallback to token value if type not explicitly handled
+		opStr = node.op.value;
+		break;
+	}
+
+	std::string code = left.value() + " " + opStr + " " + right.value();
 
 	// Add semicolon when used as a statement
 	if (this->is_statement_context)
@@ -736,6 +822,7 @@ Result<std::string> CodeGenerationVisitor::visit(const StructExpressionNode& nod
 
 Result<std::string> CodeGenerationVisitor::visit(const RangeExpressionNode& node) {
 	std::string code = "vector{";
+	bool is_empty = true;
 
 	for (const auto& i : node.range) {
 		Result<std::string> item = visit(*i);
@@ -743,9 +830,12 @@ Result<std::string> CodeGenerationVisitor::visit(const RangeExpressionNode& node
 			return Err<std::string>(item.error());
 		}
 		code += item.value() + ",";
+		is_empty = false;
 	}
 
-	code.pop_back();
+	if (!is_empty) {
+		code.pop_back();
+	}
 	code += "}";
 	return Ok(code);
 }
@@ -937,6 +1027,8 @@ Result<std::string> CodeGenerationVisitor::visit(const FunctionDefinitionNode& n
 
 Result<std::string> CodeGenerationVisitor::visit(const ReturnStatementNode& node) {
 	ScopedStatementContext scoped(this->is_statement_context, false);
+	if (!node.returnExpression) return Ok("return;");
+
 	Result<std::string> returnValue = visit(*node.returnExpression);
 	if (!returnValue.has_value()) {
 		return Err<std::string>(returnValue.error());
@@ -967,7 +1059,7 @@ Result<std::string> CodeGenerationVisitor::visit(const ImplStatementNode& node) 
 Result<std::string> CodeGenerationVisitor::visit(const ConstructorStatementNode& node) {
 	ScopedStatementContext scoped(this->is_statement_context, true);
 
-	std::string code = "ClassName("; // <-- replace with actual class name if available
+	std::string code = node.name + "(";
 
 	// constructor parameters
 	for (const auto& arg : node.args) {
@@ -1081,14 +1173,14 @@ Result<std::string> CodeGenerationVisitor::visit(const ClassDeclarationNode& nod
 
 Result<std::string> CodeGenerationVisitor::visit(const UnionDeclarationNode& node) {
 	std::string code = "using " + node.unionName + " = std::variant<";
-	for (const auto& t : node.types) {
-		auto tcode = visit(*t);
+	for (const auto& fields : node.fields) {
+		auto tcode = visit(*fields.type);
 		if (!tcode.has_value()) {
 			return Err<std::string>(tcode.error());
 		}
 		code += tcode.value() + ",";
 	}
-	if (!node.types.empty())
+	if (!node.fields.empty())
 		code.pop_back();
 	code += ">;";
 	return Ok(code);
@@ -1454,7 +1546,7 @@ Result<std::string> CodeGenerationVisitor::visit(const EnumDeclarationNode& node
 			} else {
 				code += "std::tuple<";
 				for (const auto& field : variant.fields) {
-					auto fieldResult = visit(*field);
+					auto fieldResult = visit(*field.type);
 					if (!fieldResult.has_value()) {
 						return Err<std::string>(fieldResult.error());
 					}
@@ -1535,7 +1627,17 @@ Result<std::string> CodeGenerationVisitor::visit(const ImportStatementNode& node
 		return Err<std::string>(name_result.error());
 	}
 
-	std::string code = "using namespace " + name_result.value() + ";\n";
+	std::string code;
+	
+	// If there are specific imported items, generate using declarations for each
+	if (!node.importedItems.empty()) {
+		for (const auto& item : node.importedItems) {
+			code += "using " + name_result.value() + "::" + item + ";\n";
+		}
+	} else {
+		// Import all: using namespace
+		code = "using namespace " + name_result.value() + ";\n";
+	}
 
 	return Ok(code);
 }

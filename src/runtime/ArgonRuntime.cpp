@@ -41,12 +41,6 @@ Container& map_pipe(Container& container, Transform&& transform) {
 	return container;
 }
 
-template<typename Container, typename Reducer>
-std::decay_t<Container> accumulate(Container&& container, Reducer&& reducer) {
-	using ContainerType = std::decay_t<Container>;
-	return std::accumulate(container.begin(), container.end(), ContainerType{}, std::forward<Reducer>(reducer));
-}
-
 // Pattern matching utilities
 template<typename T, typename... Cases>
 auto match(T&& value, Cases&&... cases) {
@@ -144,10 +138,6 @@ template std::vector<int> map(const std::vector<int>& container, std::function<i
 template int reduce(std::vector<int>&& container, std::function<int(int, int)>&& reducer);
 template int reduce(const std::vector<int>& container, std::function<int(int, int)>&& reducer);
 template std::vector<int>& map_pipe(std::vector<int>& container, std::function<int(int)>&& transform);
-template std::vector<int> accumulate(std::vector<int>&& container,
-                                     std::function<std::vector<int>(std::vector<int>, int)>&& reducer);
-template std::vector<int> accumulate(const std::vector<int>& container,
-                                     std::function<std::vector<int>(std::vector<int>, int)>&& reducer);
 
 // Functional operators for std::vector<float>
 template std::vector<float> filter(std::vector<float>&& container, std::function<bool(float)>&& predicate);

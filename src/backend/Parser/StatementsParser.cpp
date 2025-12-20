@@ -578,6 +578,12 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_return_statement() {
 		}
 	}
 
+	if (peek().type == Token::Semicolon) {
+		advance();
+		return Ok(std::make_unique<ReturnStatementNode>(
+			token.value().position, nullptr, isSuper));
+	}
+
 	Result<std::unique_ptr<ASTNode>> expr = parse_expression();
 	if (!expr.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(expr.error());
@@ -662,6 +668,18 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_class_declaration() {
 		return Err<std::unique_ptr<ASTNode>>(class_name.error());
 	}
 
+	current_class_name = class_name.value().value;
+
+	// Check for default visibility modifier after class name: class Name pub { ... }
+	MemberVisibility defaultVisibility = MemberVisibility::PRI;
+	if (peek().type == Token::KeywordPub) {
+		Result<Token> pub_keyword = advance();
+		if (!pub_keyword.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(pub_keyword.error());
+		}
+		defaultVisibility = MemberVisibility::PUB;
+	}
+
 	// Parse generic parameters if present: class Name<T, U> { ... }
 	std::vector<std::unique_ptr<GenericParameter>> genericParams;
 	if (peek().type == Token::Less) {
@@ -741,8 +759,9 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_class_declaration() {
 	}
 
 	while (peek().type != Token::RightBrace) {
-		MemberVisibility visibility = MemberVisibility::PRI;
+		MemberVisibility visibility = defaultVisibility;
 
+		// Check for explicit visibility modifier
 		if (peek().type == Token::KeywordPub || peek().type == Token::KeywordPri || peek().type == Token::KeywordPro) {
 			Result<Token> vis_keyword = advance();
 			if (!vis_keyword.has_value()) {
@@ -754,14 +773,84 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_class_declaration() {
 			                                                             : MemberVisibility::PRO;
 		}
 
-		if (peek().type != Token::KeywordDef && peek().type != Token::KeywordFunc &&
-		    peek().type != Token::KeywordConstructor)
+		// Check for const/mut modifiers for bare field declarations
+		bool isConst = false;
+		bool isMut = false;
+		std::string constOrDefValue;
+
+		// Check if we have a const (which maps to KeywordDef with value "const")
+		if (peek().type == Token::KeywordDef && peek().value == "const") {
+			isConst = true;
+			constOrDefValue = peek().value;
+			Result<Token> const_keyword = advance();
+			if (!const_keyword.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(const_keyword.error());
+			}
+		} else if (peek().type == Token::KeywordMut) {
+			isMut = true;
+			Result<Token> mut_keyword = advance();
+			if (!mut_keyword.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(mut_keyword.error());
+			}
+		}
+
+		Token::Position memberPos = peek().position;
+		Result<std::unique_ptr<ASTNode>> member;
+
+		// Check what kind of member we're parsing
+		if (peek().type == Token::KeywordDef) {
+			member = parse_variable_declaration();
+		} else if (peek().type == Token::KeywordFunc) {
+			member = parse_function_declaration();
+		} else if (peek().type == Token::KeywordConstructor) {
+			member = parse_constructor_statement();
+		} else if (peek().type == Token::Identifier) {
+			// Bare field declaration: fieldName: Type; or fieldName: Type = value;
+			Token::Position fieldPos = peek().position;
+			Result<Token> fieldName = advance();
+			if (!fieldName.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(fieldName.error());
+			}
+
+			Result<Token> colon = expect(Token::Colon, "Expected ':' after field name");
+			if (!colon.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(colon.error());
+			}
+
+			Result<std::unique_ptr<TypeNode>> fieldType = parse_type();
+			if (!fieldType.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(fieldType.error());
+			}
+
+			std::unique_ptr<ExpressionNode> fieldValue = nullptr;
+			if (peek().type == Token::Assign) {
+				Result<Token> assign = advance();
+				if (!assign.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(assign.error());
+				}
+
+				Result<std::unique_ptr<ASTNode>> value = parse_expression();
+				if (!value.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(value.error());
+				}
+				fieldValue = dynamic_unique_cast<ExpressionNode>(std::move(value.value()));
+			}
+
+			Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after field declaration");
+			if (!semicolon.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(semicolon.error());
+			}
+
+			// Create a VariableDeclarationNode for the field
+			member = Ok(std::make_unique<VariableDeclarationNode>(
+			    fieldPos, isConst, std::move(fieldType.value()), std::move(fieldValue), fieldName.value().value));
+		} else {
 			return Err<std::unique_ptr<ASTNode>>(create_parse_error(
 			    ErrorType::UnexpectedToken,
-			    "Expected either function declaration, variable declaration or constructor declaration",
+			    "Expected field declaration, function declaration, or constructor declaration",
 			    peek().position));
+		}
 
-		Result<std::unique_ptr<ASTNode>> member = parse_statement();
 		if (!member.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(member.error());
 		}
@@ -884,7 +973,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_constructor_statement() {
 
 	if (peek().type == Token::Semicolon) {
 		return Ok(
-		    std::make_unique<ConstructorStatementNode>(constructor_keyword.value().position, std::move(args), nullptr));
+		    std::make_unique<ConstructorStatementNode>(current_class_name, constructor_keyword.value().position, std::move(args), nullptr));
 	}
 
 	Result<std::unique_ptr<ASTNode>> body = parse_statement();
@@ -892,7 +981,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_constructor_statement() {
 		return Err<std::unique_ptr<ASTNode>>(body.error());
 	}
 
-	return Ok(std::make_unique<ConstructorStatementNode>(constructor_keyword.value().position, std::move(args),
+	return Ok(std::make_unique<ConstructorStatementNode>(current_class_name, constructor_keyword.value().position, std::move(args),
 	                                                     std::move(body.value())));
 }
 
@@ -1012,6 +1101,21 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_enum_declaration() {
 		return Err<std::unique_ptr<ASTNode>>(enum_name.error());
 	}
 
+	// Parse optional constraint: enum Name -> ConstraintType { ... }
+	std::unique_ptr<TypeNode> constraintType = nullptr;
+	if (peek().type == Token::Arrow) {
+		Result<Token> arrow = advance();
+		if (!arrow.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(arrow.error());
+		}
+
+		Result<std::unique_ptr<TypeNode>> constraint = parse_type();
+		if (!constraint.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(constraint.error());
+		}
+		constraintType = std::move(constraint.value());
+	}
+
 	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after enum name");
 	if (!leftBrace.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(leftBrace.error());
@@ -1024,23 +1128,49 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_enum_declaration() {
 			return Err<std::unique_ptr<ASTNode>>(variantName.error());
 		}
 
-		std::vector<std::unique_ptr<TypeNode>> fields;
-		if (peek().type == Token::LeftParen) {
-			Result<Token> leftParen = advance();
-			if (!leftParen.has_value()) {
-				return Err<std::unique_ptr<ASTNode>>(leftParen.error());
+		std::vector<EnumDeclarationNode::EnumField> fields;
+		std::unique_ptr<ExpressionNode> explicitValue = nullptr;
+
+		// Check for explicit value: VariantName = value
+		if (peek().type == Token::Assign) {
+			Result<Token> assign = advance();
+			if (!assign.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(assign.error());
 			}
 
-			while (peek().type != Token::RightParen) {
-				Token::Position pos = peek().position;
-				Result<std::unique_ptr<TypeNode>> field_type = parse_type();
-				if (!field_type.has_value()) {
-					return Err<std::unique_ptr<ASTNode>>(field_type.error());
+			Result<std::unique_ptr<ASTNode>> value = parse_expression();
+			if (!value.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(value.error());
+			}
+			explicitValue = dynamic_unique_cast<ExpressionNode>(std::move(value.value()));
+		}
+		// Check for structured fields with curly braces: VariantName{ field: Type, ... }
+		else if (peek().type == Token::LeftBrace) {
+			Result<Token> leftBraceFields = advance();
+			if (!leftBraceFields.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(leftBraceFields.error());
+			}
+
+			while (peek().type != Token::RightBrace) {
+				Token::Position fieldPos = peek().position;
+				Result<Token> fieldName = expect(Token::Identifier, "Expected field name");
+				if (!fieldName.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(fieldName.error());
 				}
 
-				fields.push_back(std::move(field_type.value()));
+				Result<Token> colon = expect(Token::Colon, "Expected ':' after field name");
+				if (!colon.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(colon.error());
+				}
 
-				if (peek().type == Token::RightParen)
+				Result<std::unique_ptr<TypeNode>> fieldType = parse_type();
+				if (!fieldType.has_value()) {
+					return Err<std::unique_ptr<ASTNode>>(fieldType.error());
+				}
+
+				fields.emplace_back(fieldPos, fieldName.value().value, std::move(fieldType.value()));
+
+				if (peek().type == Token::RightBrace)
 					break;
 				Result<Token> comma = expect(Token::Comma, "Expected ',' between enum fields");
 				if (!comma.has_value()) {
@@ -1048,13 +1178,14 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_enum_declaration() {
 				}
 			}
 
-			Result<Token> rightParen = expect(Token::RightParen, "Expected ')' after enum fields");
-			if (!rightParen.has_value()) {
-				return Err<std::unique_ptr<ASTNode>>(rightParen.error());
+			Result<Token> rightBraceFields = expect(Token::RightBrace, "Expected '}' after enum fields");
+			if (!rightBraceFields.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(rightBraceFields.error());
 			}
 		}
 
-		variants.emplace_back(variantName.value().position, variantName.value().value, std::move(fields));
+		variants.emplace_back(variantName.value().position, variantName.value().value,
+		                      std::move(fields), std::move(explicitValue));
 
 		if (peek().type == Token::RightBrace)
 			break;
@@ -1070,7 +1201,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_enum_declaration() {
 	}
 
 	return Ok(std::make_unique<EnumDeclarationNode>(enum_keyword.value().position, enum_name.value().value,
-	                                                std::move(variants), is_union));
+	                                                std::move(variants), std::move(constraintType), is_union));
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parse_union_declaration() {
@@ -1084,43 +1215,48 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_union_declaration() {
 		return Err<std::unique_ptr<ASTNode>>(union_name.error());
 	}
 
-	Result<Token> equals = expect(Token::Assign, "Expected '=' after union name");
-	if (!equals.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(equals.error());
+	Result<Token> leftBrace = expect(Token::LeftBrace, "Expected '{' after union name");
+	if (!leftBrace.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(leftBrace.error());
 	}
 
-	std::vector<std::unique_ptr<TypeNode>> types;
+	std::vector<UnionDeclarationNode::UnionField> fields;
 
-	// Parse first type
-	Token::Position firstTypePos = peek().position;
-	Result<std::unique_ptr<TypeNode>> firstType = parse_type();
-	if (!firstType.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(firstType.error());
-	}
-	types.push_back(std::move(firstType.value()));
-
-	// Parse additional types separated by |
-	while (peek().type == Token::BitwiseOr) {
-		Result<Token> pipe = advance();
-		if (!pipe.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(pipe.error());
+	// Parse fields: fieldName: Type, ...
+	while (peek().type != Token::RightBrace) {
+		Token::Position fieldPos = peek().position;
+		Result<Token> fieldName = expect(Token::Identifier, "Expected field name");
+		if (!fieldName.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(fieldName.error());
 		}
 
-		Token::Position type_pos = peek().position;
-		Result<std::unique_ptr<TypeNode>> type = parse_type();
-		if (!type.has_value()) {
-			return Err<std::unique_ptr<ASTNode>>(type.error());
+		Result<Token> colon = expect(Token::Colon, "Expected ':' after field name");
+		if (!colon.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(colon.error());
 		}
-		types.push_back(std::move(type.value()));
+
+		Result<std::unique_ptr<TypeNode>> fieldType = parse_type();
+		if (!fieldType.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(fieldType.error());
+		}
+
+		fields.emplace_back(fieldPos, fieldName.value().value, std::move(fieldType.value()));
+
+		if (peek().type == Token::RightBrace)
+			break;
+		Result<Token> comma = expect(Token::Comma, "Expected ',' between union fields");
+		if (!comma.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(comma.error());
+		}
 	}
 
-	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after union declaration");
-	if (!semicolon.has_value()) {
-		return Err<std::unique_ptr<ASTNode>>(semicolon.error());
+	Result<Token> rightBrace = expect(Token::RightBrace, "Expected '}' after union declaration");
+	if (!rightBrace.has_value()) {
+		return Err<std::unique_ptr<ASTNode>>(rightBrace.error());
 	}
 
 	return Ok(std::make_unique<UnionDeclarationNode>(union_keyword.value().position, union_name.value().value,
-	                                                 std::move(types)));
+	                                                 std::move(fields)));
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parse_constraint_declaration() {
@@ -1236,6 +1372,36 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_module_declaration() {
 		return Err<std::unique_ptr<ASTNode>>(module_name.error());
 	}
 
+	std::vector<std::string> exports;
+	if (peek().type == Token::LeftBrace) {
+		Result<Token> left_brace = advance();
+		if (!left_brace.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(left_brace.error());
+		}
+
+		while (peek().type != Token::RightBrace) {
+			Result<Token> export_name = expect(Token::Identifier, "Expected exported symbol name");
+			if (!export_name.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(export_name.error());
+			}
+			exports.push_back(export_name.value().value);
+
+			if (peek().type == Token::RightBrace) {
+				break;
+			}
+
+			Result<Token> comma = expect(Token::Comma, "Expected ',' between exported symbols");
+			if (!comma.has_value()) {
+				return Err<std::unique_ptr<ASTNode>>(comma.error());
+			}
+		}
+
+		Result<Token> right_brace = expect(Token::RightBrace, "Expected '}' after export list");
+		if (!right_brace.has_value()) {
+			return Err<std::unique_ptr<ASTNode>>(right_brace.error());
+		}
+	}
+
 	Result<Token> semicolon = expect(Token::Semicolon, "Expected ';' after module declaration");
 	if (!semicolon.has_value()) {
 		return Err<std::unique_ptr<ASTNode>>(semicolon.error());
@@ -1244,7 +1410,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_module_declaration() {
 	// For now, we'll create a simple module declaration without body
 	// In a full implementation, we'd parse the module body
 	return Ok(std::make_unique<ModuleDeclarationNode>(module_keyword.value().position, module_name.value().value,
-	                                                  std::vector<std::unique_ptr<StatementNode>>()));
+	                                                  std::vector<std::unique_ptr<StatementNode>>(), std::move(exports)));
 }
 
 Result<std::unique_ptr<ASTNode>> Parser::parse_import_statement() {

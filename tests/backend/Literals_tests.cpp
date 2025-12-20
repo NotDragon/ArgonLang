@@ -120,7 +120,7 @@ TEST_F(LiteralsTest, GenerateZeroFloat) {
     std::string input = "func main() f64 { return 0.0; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("0.0") != std::string::npos || code.find("0.000000") != std::string::npos);
+    EXPECT_TRUE(code.find("0.0") != std::string::npos);
 }
 
 TEST_F(LiteralsTest, GenerateFloat32) {
@@ -135,7 +135,7 @@ TEST_F(LiteralsTest, GenerateFloat64) {
     std::string input = "func main() f64 { return 3.141592653589793; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("3.141592") != std::string::npos);
+    EXPECT_TRUE(code.find("3.141592653589793") != std::string::npos);
     EXPECT_TRUE(code.find("double") != std::string::npos);
 }
 
@@ -274,7 +274,7 @@ TEST_F(LiteralsTest, GenerateIntegerArrayLiteral) {
     std::string input = "func main() void { def arr: vec<i32> = [1, 2, 3, 4, 5]; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("{1, 2, 3, 4, 5}") != std::string::npos || code.find("[1, 2, 3, 4, 5]") != std::string::npos);
+    EXPECT_TRUE(code.find("{1,2,3,4,5}") != std::string::npos || code.find("[1,2,3,4,5]") != std::string::npos);
 }
 
 TEST_F(LiteralsTest, GenerateFloatArrayLiteral) {

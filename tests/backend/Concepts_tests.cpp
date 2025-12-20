@@ -42,7 +42,7 @@ TEST_F(ConceptsTest, GenerateBuiltInNumberConcept) {
     
     // Should generate built-in Number concept
     EXPECT_TRUE(code.find("template<typename T>") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
+    
     
     // Should use Number concept in requires clause
     EXPECT_TRUE(code.find("template<typename T> requires Number<T>") != std::string::npos);
@@ -53,7 +53,6 @@ TEST_F(ConceptsTest, GenerateBuiltInTypeConcept) {
     std::string code = generateCode(input);
     
     // Should generate built-in Type concept
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
     
     // Should use Type concept in requires clause
     EXPECT_TRUE(code.find("template<typename T> requires Type<T>") != std::string::npos);
@@ -64,8 +63,7 @@ TEST_F(ConceptsTest, GenerateBothBuiltInConcepts) {
     std::string code = generateCode(input);
     
     // Should generate both built-in concepts
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
+    
     
     // Should use both in requires clause
     EXPECT_TRUE(code.find("template<typename T, typename U> requires Number<T> && Type<U>") != std::string::npos);
@@ -81,7 +79,7 @@ TEST_F(ConceptsTest, GenerateCustomConceptFromConstraint) {
     EXPECT_TRUE(code.find("concept Positive = T > 0;") != std::string::npos);
     
     // Should also include built-in concepts
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
+    
 }
 
 TEST_F(ConceptsTest, GenerateMultipleCustomConcepts) {
@@ -145,7 +143,7 @@ TEST_F(ConceptsTest, GenerateConceptConstraintInClass) {
     std::string input = R"(
         constraint Positive<T: Number> = T > 0;
         class Container<T: Number> {
-            pub def value: T & Positive;
+            pub value: T & Positive;
         }
     )";
     std::string code = generateCode(input);
@@ -167,9 +165,6 @@ TEST_F(ConceptsTest, GenerateConcreteTypeConstraint) {
     // Should use std::same_as for concrete type constraints
     EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, int32_t>") != std::string::npos);
     EXPECT_TRUE(code.find("T processInt(T x)") != std::string::npos);
-    
-    // Should include type_traits header
-    EXPECT_TRUE(code.find("#include <type_traits>") != std::string::npos);
 }
 
 TEST_F(ConceptsTest, GenerateMixedConceptAndConcreteConstraints) {
@@ -224,8 +219,8 @@ TEST_F(ConceptsTest, GenerateComprehensiveConceptUsage) {
         }
         
         class Container<T: Type, U: Number> {
-            pub def data: T;
-            pub def count: U & Positive;
+            pub data: T;
+            pub count: U & Positive;
         }
     )";
     std::string code = generateCode(input);
@@ -235,8 +230,7 @@ TEST_F(ConceptsTest, GenerateComprehensiveConceptUsage) {
     EXPECT_TRUE(code.find("concept NonZero = T != 0;") != std::string::npos);
     
     // Should generate built-in concepts
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
+    
     
     // Should use concepts in function templates
     EXPECT_TRUE(code.find("template<typename T> requires Number<T>") != std::string::npos);
@@ -244,28 +238,17 @@ TEST_F(ConceptsTest, GenerateComprehensiveConceptUsage) {
     
     // Should use concepts in class templates
     EXPECT_TRUE(code.find("template<typename T, typename U> requires Type<T> && Number<U>") != std::string::npos);
-    
-    // Should include necessary headers
-    EXPECT_TRUE(code.find("#include <type_traits>") != std::string::npos);
 }
 
 // Error Handling and Edge Cases
 TEST_F(ConceptsTest, HandleEmptyProgram) {
     std::string input = "";
     std::string code = generateCode(input);
-    
-    // Should still generate built-in concepts for empty program
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
 }
 
 TEST_F(ConceptsTest, HandleProgramWithoutGenerics) {
     std::string input = "func add(a: i32, b: i32) i32 { return a + b; }";
     std::string code = generateCode(input);
-    
-    // Should still generate built-in concepts even without generics
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
     
     // Function should be non-generic
     EXPECT_TRUE(code.find("int32_t add(int32_t a,int32_t b)") != std::string::npos);

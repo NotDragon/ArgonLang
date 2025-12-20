@@ -34,6 +34,10 @@ ASTNodeType UnaryExpressionNode::get_node_type() const {
 	return ASTNodeType::UnaryExpression;
 }
 
+ASTNodeType UnaryPostExpressionNode::get_node_type() const {
+	return ASTNodeType::UnaryPostExpression;
+}
+
 ASTNodeType NullExpressionNode::get_node_type() const {
 	return ASTNodeType::NullExpression;
 }

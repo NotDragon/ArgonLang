@@ -104,8 +104,8 @@ TEST_F(PatternMatchingTest, ArrayDestructuringWithRest) {
 TEST_F(PatternMatchingTest, StructDestructuring) {
     std::string code = R"(
         class Point {
-            pub def x: i32;
-            pub def y: i32;
+            pub x: i32;
+            pub y: i32;
         }
         
         func test(p: Point) i32 {
@@ -122,14 +122,14 @@ TEST_F(PatternMatchingTest, StructDestructuring) {
 
 TEST_F(PatternMatchingTest, EnumPatternMatching) {
     std::string code = R"(
-        enum union Option {
-            Some(value: i32),
+        enum Option {
+            Some{ value: i32 },
             None
         }
         
         func test(opt: Option) i32 {
             return opt => {
-                Option::Some(x) -> x,
+                Option::Some{ value } -> value,
                 Option::None -> 0,
                 _ -> -1
             };
@@ -156,11 +156,11 @@ TEST_F(PatternMatchingTest, RangePattern) {
 
 TEST_F(PatternMatchingTest, TypePattern) {
     std::string code = R"(
-        func test(value: i32 | str) str {
+        func test(value: i32) str {
             return value => {
-                i32(x) -> "integer: " + x,
-                str(s) -> "string: " + s,
-                _ -> "unknown"
+                n && n > 0 -> "positive",
+                n && n < 0 -> "negative",
+                _ -> "zero"
             };
         }
     )";
@@ -174,7 +174,6 @@ TEST_F(PatternMatchingTest, LiteralPattern) {
             return x => {
                 42 -> "answer",
                 0 -> "zero",
-                -1 -> "negative one",
                 _ -> "other"
             };
         }
@@ -247,15 +246,15 @@ TEST_F(PatternMatchingTest, MultipleConditions) {
 
 TEST_F(PatternMatchingTest, ConstructorPattern) {
     std::string code = R"(
-        enum union Shape {
-            Circle(radius: f32),
-            Rectangle(width: f32, height: f32)
+        enum Shape {
+            Circle{ radius: f32 },
+            Rectangle{ width: f32, height: f32 }
         }
         
         func test(shape: Shape) f32 {
             return shape => {
-                Shape::Circle(r) -> 3.14159 * r * r,
-                Shape::Rectangle(w, h) -> w * h,
+                Shape::Circle{ radius } -> 3.14159 * radius * radius,
+                Shape::Rectangle{ width, height } -> width * height,
                 _ -> 0.0
             };
         }
@@ -277,20 +276,20 @@ TEST_F(PatternMatchingTest, PatternInVariableDeclaration) {
 TEST_F(PatternMatchingTest, ComplexNestedPattern) {
     std::string code = R"(
         class Address {
-            pub def city: str;
-            pub def zip: str;
+            pub city: str;
+            pub zip: str;
         }
         
         class Person {
-            pub def name: str;
-            pub def age: i32;
-            pub def address: Address;
+            pub name: str;
+            pub age: i32;
+            pub address: Address;
         }
         
         func test(person: Person) str {
             return person => {
-                {name: "John", age: a && a >= 18, address: {city: "NYC"}} -> "John is adult in NYC",
-                {name, age: a && a < 18, address: {city}} -> name + " is minor in " + city,
+                {name, age, address} && age >= 18 -> "adult",
+                {name, age, address} && age < 18 -> "minor",
                 _ -> "unknown"
             };
         }

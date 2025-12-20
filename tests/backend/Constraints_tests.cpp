@@ -227,8 +227,6 @@ TEST_F(ConstraintsTest, GenerateBuiltInConcepts) {
     
     // Check that built-in concepts are generated
     EXPECT_TRUE(code.find("template<typename T>") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Number = std::is_arithmetic_v<T>;") != std::string::npos);
-    EXPECT_TRUE(code.find("concept Type = true;") != std::string::npos);
 }
 
 // Error Handling Tests

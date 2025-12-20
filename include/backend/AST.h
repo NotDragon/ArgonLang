@@ -39,6 +39,7 @@ namespace ArgonLang
 		Identifier,
 		BinaryExpression,
 		UnaryExpression,
+		UnaryPostExpression,
 		NullExpression,
 		FunctionCallExpression,
 		ToExpression,
@@ -176,15 +177,9 @@ namespace ArgonLang
     class IntegralLiteralNode : public ExpressionNode {
     public:
         PrimitiveType type;
-        union {
-            int8_t i8;
-            int16_t i16;
-            int32_t i32;
-            int64_t i64;
-            __int128 i128;
-        } value;
+        std::string value;
 
-        explicit IntegralLiteralNode(Token::Position position, __int128 val, PrimitiveType type);
+        explicit IntegralLiteralNode(Token::Position position, std::string val, PrimitiveType type);
 
 		ASTNodeType get_node_type() const override;
     #ifdef DEBUG
@@ -196,13 +191,9 @@ namespace ArgonLang
     class FloatLiteralNode : public ExpressionNode {
     public:
         PrimitiveType type;
-        union {
-            float f32;
-            double f64;
-            long double f128;
-        } value;
+        std::string value;
 
-        explicit FloatLiteralNode(Token::Position position, long double val, PrimitiveType type);
+        explicit FloatLiteralNode(Token::Position position, std::string val, PrimitiveType type);
 
 		ASTNodeType get_node_type() const override;
     #ifdef DEBUG
@@ -265,6 +256,20 @@ namespace ArgonLang
         void to_dot(std::ostream& os, int& nodeId) const override;
     #endif
     };
+
+	class UnaryPostExpressionNode : public ExpressionNode {
+	public:
+		Token op;
+		std::unique_ptr<ExpressionNode> operand;
+
+		explicit UnaryPostExpressionNode(Token::Position position, Token operatorSymbol, std::unique_ptr<ExpressionNode> operandNode);
+
+		ASTNodeType get_node_type() const override;
+#ifdef DEBUG
+		void print() const override;
+		void to_dot(std::ostream& os, int& nodeId) const override;
+#endif
+	};
 
     class NullExpressionNode : public ExpressionNode {
     public:
@@ -635,8 +640,8 @@ namespace ArgonLang
     class StructExpressionNode : public ExpressionNode {
     public:
         std::vector<StructField> fields;
-
-        explicit StructExpressionNode(Token::Position position, std::vector<StructField> fields);
+		std::string type;
+        explicit StructExpressionNode(Token::Position position, std::vector<StructField> fields, std::string type);
 
 		ASTNodeType get_node_type() const override;
     #ifdef DEBUG
@@ -790,12 +795,21 @@ namespace ArgonLang
     #endif
     };
 
-        class UnionDeclarationNode : public StatementNode {
+    class UnionDeclarationNode : public StatementNode {
     public:
-        std::string unionName;
-        std::vector<std::unique_ptr<TypeNode>> types;
+        struct UnionField {
+            std::string name;
+            std::unique_ptr<TypeNode> type;
+            Token::Position position;
 
-        explicit UnionDeclarationNode(Token::Position position, std::string unionName, std::vector<std::unique_ptr<TypeNode>> types);
+            UnionField(Token::Position pos, std::string name, std::unique_ptr<TypeNode> type)
+                : position(pos), name(std::move(name)), type(std::move(type)) {}
+        };
+
+        std::string unionName;
+        std::vector<UnionField> fields;
+
+        explicit UnionDeclarationNode(Token::Position position, std::string unionName, std::vector<UnionField> fields);
 
         ASTNodeType get_node_type() const override;
     #ifdef DEBUG
@@ -806,20 +820,34 @@ namespace ArgonLang
 
 	class EnumDeclarationNode : public StatementNode {
 	public:
-		struct EnumVariant {
+		struct EnumField {
 			std::string name;
-			std::vector<std::unique_ptr<TypeNode>> fields;
+			std::unique_ptr<TypeNode> type;
 			Token::Position position;
 
-			EnumVariant(Token::Position pos, std::string name, std::vector<std::unique_ptr<TypeNode>> fields)
-				: position(pos), name(std::move(name)), fields(std::move(fields)) {}
+			EnumField(Token::Position pos, std::string name, std::unique_ptr<TypeNode> type)
+				: position(pos), name(std::move(name)), type(std::move(type)) {}
+		};
+
+		struct EnumVariant {
+			std::string name;
+			std::vector<EnumField> fields;  // Named fields for structured enums
+			std::unique_ptr<ExpressionNode> explicitValue;  // For simple enums with explicit values
+			Token::Position position;
+
+			EnumVariant(Token::Position pos, std::string name, std::vector<EnumField> fields,
+				std::unique_ptr<ExpressionNode> explicitValue = nullptr)
+				: position(pos), name(std::move(name)), fields(std::move(fields)),
+				  explicitValue(std::move(explicitValue)) {}
 		};
 
 		std::string enumName;
 		std::vector<EnumVariant> variants;
+		std::unique_ptr<TypeNode> constraintType;  // For "enum Name -> ConstraintType { ... }"
 		bool isUnion; // true for "enum union", false for plain "enum"
 
-		explicit EnumDeclarationNode(Token::Position position, std::string enumName, std::vector<EnumVariant> variants, bool isUnion = false);
+		explicit EnumDeclarationNode(Token::Position position, std::string enumName, std::vector<EnumVariant> variants,
+			std::unique_ptr<TypeNode> constraintType = nullptr, bool isUnion = false);
 
 		ASTNodeType get_node_type() const override;
 	#ifdef DEBUG
@@ -912,10 +940,11 @@ namespace ArgonLang
 #endif
 		};
 
+		std::string name;
 		std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args;
 		std::unique_ptr<ASTNode> body;
 
-		explicit ConstructorStatementNode(Token::Position position, std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args, std::unique_ptr<ASTNode> body);
+		explicit ConstructorStatementNode(std::string  name, Token::Position position, std::vector<std::unique_ptr<ConstructorStatementNode::ConstructorArgument>> args, std::unique_ptr<ASTNode> body);
 
 		ASTNodeType get_node_type() const override;
 #ifdef DEBUG

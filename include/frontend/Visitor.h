@@ -24,6 +24,7 @@ namespace ArgonLang {
 
 		virtual T visit(const BinaryExpressionNode &node) = 0;
 		virtual T visit(const UnaryExpressionNode &node) = 0;
+		virtual T visit(const UnaryPostExpressionNode &node) = 0;
 
 		virtual T visit(const FunctionCallExpressionNode &node) = 0;
 		virtual T visit(const MemberAccessExpressionNode &node) = 0;
