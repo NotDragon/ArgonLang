@@ -1,5 +1,5 @@
 func process(value: str & NonEmpty) str { return value; }
 
 func main() {
-    
+    def i = (1 + 2) * 10i64;
 }

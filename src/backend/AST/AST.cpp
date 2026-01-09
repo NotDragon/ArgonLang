@@ -56,7 +56,39 @@ ArgonLang::PrimitiveType ArgonLang::determine_integer_type(const std::string& va
 	if (value.ends_with("u128"))
 		return PrimitiveType::UINT128;
 
-	return PrimitiveType::INT32;
+	// No suffix: determine smallest possible type
+	// Parse the numeric value
+	std::string numStr = value;
+	bool isNegative = false;
+	if (!numStr.empty() && numStr[0] == '-') {
+		isNegative = true;
+		numStr = numStr.substr(1);
+	}
+
+	// Try to parse as int64_t first to handle large values
+	try {
+		int64_t num = std::stoll(numStr);
+		if (isNegative) {
+			num = -num;
+		}
+
+		// Determine smallest signed type that can hold the value
+		if (num >= -128 && num <= 127) {
+			return PrimitiveType::INT8;
+		} else if (num >= -32768 && num <= 32767) {
+			return PrimitiveType::INT16;
+		} else if (num >= -2147483648LL && num <= 2147483647LL) {
+			return PrimitiveType::INT32;
+		} else {
+			return PrimitiveType::INT64;
+		}
+	} catch (const std::out_of_range&) {
+		// Value is too large to fit in int64_t, must be i128
+		return PrimitiveType::INT128;
+	} catch (const std::invalid_argument&) {
+		// Invalid number format, default to i32
+		return PrimitiveType::INT32;
+	}
 }
 
 ArgonLang::PrimitiveType ArgonLang::determine_float_type(const std::string& value) {
@@ -70,6 +102,31 @@ ArgonLang::PrimitiveType ArgonLang::determine_float_type(const std::string& valu
 		return PrimitiveType::FLOAT128;
 
 	return PrimitiveType::FLOAT64;
+}
+
+std::string ArgonLang::strip_integer_suffix(const std::string& value) {
+	if (value.ends_with("i128") || value.ends_with("u128")) {
+		return value.substr(0, value.length() - 4);
+	}
+	if (value.ends_with("i64") || value.ends_with("u64") || 
+	    value.ends_with("i32") || value.ends_with("u32") ||
+	    value.ends_with("i16") || value.ends_with("u16")) {
+		return value.substr(0, value.length() - 3);
+	}
+	if (value.ends_with("i8") || value.ends_with("u8")) {
+		return value.substr(0, value.length() - 2);
+	}
+	return value;
+}
+
+std::string ArgonLang::strip_float_suffix(const std::string& value) {
+	if (value.ends_with("f128")) {
+		return value.substr(0, value.length() - 4);
+	}
+	if (value.ends_with("f64") || value.ends_with("f32") || value.ends_with("f16")) {
+		return value.substr(0, value.length() - 3);
+	}
+	return value;
 }
 
 std::string ArgonLang::ast_node_type_to_string(ASTNodeType type) {

@@ -98,7 +98,7 @@ TEST_F(IntersectionTypesTest, GenerateSimpleIntersectionTypeErasure) {
     std::string code = generateCode(input);
     
     // Intersection type should be erased to base type (i32 ArgonLang::Runtime::i32)
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 process(ArgonLang::Runtime::i32 value)") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 process(I32 value)") != std::string::npos);
     // Should not contain tuple or std::tuple
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
     EXPECT_TRUE(code.find("std::tuple") == std::string::npos);
@@ -109,7 +109,7 @@ TEST_F(IntersectionTypesTest, GenerateMultipleIntersectionTypeErasure) {
     std::string code = generateCode(input);
     
     // Should erase to base type
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 process(ArgonLang::Runtime::i32 value)") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 process(I32 value)") != std::string::npos);
     // Should not contain tuple
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
 }
@@ -119,7 +119,7 @@ TEST_F(IntersectionTypesTest, GenerateIntersectionTypeInReturnType) {
     std::string code = generateCode(input);
     
     // Return type should be erased to base type
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 create()") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 create()") != std::string::npos);
     // Should not contain tuple
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
 }
@@ -129,7 +129,7 @@ TEST_F(IntersectionTypesTest, GenerateFloatIntersectionType) {
     std::string code = generateCode(input);
     
     // Should erase to base float type
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::f32 process(ArgonLang::Runtime::f32 value)") != std::string::npos);
+    EXPECT_TRUE(code.find("F32 process(F32 value)") != std::string::npos);
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
 }
 
@@ -138,7 +138,7 @@ TEST_F(IntersectionTypesTest, GenerateStringIntersectionType) {
     std::string code = generateCode(input);
     
     // Should erase to base string type
-    EXPECT_TRUE(code.find("str process(str value)") != std::string::npos);
+    EXPECT_TRUE(code.find("STR process(STR value)") != std::string::npos);
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
 }
 
@@ -148,7 +148,7 @@ TEST_F(IntersectionTypesTest, GenerateIntersectionTypeInVariableDeclaration) {
     std::string code = generateCode(input);
     
     // Variable should have base type
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 value = 42") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 value = 42") != std::string::npos);
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
 }
 
@@ -157,7 +157,7 @@ TEST_F(IntersectionTypesTest, GenerateIntersectionTypeInClassMember) {
     std::string code = generateCode(input);
     
     // Class member should have base type
-    EXPECT_TRUE(code.find("public:ArgonLang::Runtime::i32 value;") != std::string::npos);
+    EXPECT_TRUE(code.find("public:I32 value;") != std::string::npos);
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
 }
 
@@ -177,7 +177,7 @@ TEST_F(IntersectionTypesTest, GenerateMixedParameterTypes) {
     std::string code = generateCode(input);
     
     // Should have correct parameter types
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 process(ArgonLang::Runtime::i32 a,ArgonLang::Runtime::i32 b,str c)") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 process(I32 a,I32 b,STR c)") != std::string::npos);
     EXPECT_TRUE(code.find("tuple") == std::string::npos);
 }
 
@@ -259,7 +259,7 @@ TEST_F(IntersectionTypesTest, GenerateComprehensiveIntersectionTypes) {
     
     // Should contain erased function signatures
     EXPECT_TRUE(code.find("T safeDivide(T a,T b)") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 processEven(ArgonLang::Runtime::i32 num)") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 processEven(I32 num)") != std::string::npos);
     
     // Should contain erased class member
     EXPECT_TRUE(code.find("public:T value;") != std::string::npos);

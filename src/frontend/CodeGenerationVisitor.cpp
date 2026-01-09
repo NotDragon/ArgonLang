@@ -9,6 +9,8 @@
 #include "Error/Result.h"
 
 #include <iostream>
+#include <algorithm>
+#include <cctype>
 
 using namespace ArgonLang;
 
@@ -185,7 +187,42 @@ Result<std::string> CodeGenerationVisitor::visit(const ProgramNode& node) {
 
 Result<std::string> CodeGenerationVisitor::visit(const IntegralLiteralNode& node) {
 	// Return the original string representation to preserve exact value
-	return Ok(node.value);
+	std::string type;
+	switch (node.type) {
+		case INT8:
+			type = "I8";
+			break;
+		case INT16:
+			type = "I16";
+			break;
+		case INT32:
+			type = "I32";
+			break;
+		case INT64:
+			type = "I64";
+			break;
+		case INT128:
+			type = "I128";
+			break;
+		case UINT8:
+			type = "U8";
+			break;
+		case UINT16:
+			type = "U16";
+			break;
+		case UINT32:
+			type = "U32";
+			break;
+		case UINT64:
+			type = "U64";
+			break;
+		case UINT128:
+			type = "U128";
+			break;
+		default:
+			type = "";
+	}
+	return Ok(type.empty()? "" : ("(" + type + ")") + node.value);
 }
 
 Result<std::string> CodeGenerationVisitor::visit(const FloatLiteralNode& node) {
@@ -290,7 +327,7 @@ Result<std::string> CodeGenerationVisitor::visit(const BinaryExpressionNode& nod
 		return Ok(left.value() + "|" + right.value());
 	} else {
 		// Regular binary operators
-		return Ok(left.value() + " " + node.op.value + " " + right.value());
+		return Ok("(" + left.value() + " " + node.op.value + " " + right.value() + ")");
 	}
 }
 
@@ -1425,12 +1462,15 @@ Result<std::string> CodeGenerationVisitor::visit(const IdentifierTypeNode& node)
 	    node.typeName == "u8" || node.typeName == "u16" || node.typeName == "u32" || 
 	    node.typeName == "u64" || node.typeName == "u128" ||
 	    node.typeName == "f16" || node.typeName == "f32" || 
-	    node.typeName == "f64" || node.typeName == "f128")
-		code += "ArgonLang::Runtime::" + node.typeName;
+	    node.typeName == "f64" || node.typeName == "f128") {
+		std::string upper = node.typeName;
+		std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+		code += upper;
+	}
 	else if (node.typeName == "bool")
 		code += "bool";
 	else if (node.typeName == "str")
-		code += "std::string";
+		code += "STR";
 	else if (node.typeName == "chr")
 		code += "char";
 	else

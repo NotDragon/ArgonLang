@@ -120,6 +120,8 @@ namespace ArgonLang
 	std::string ast_node_type_to_string(ASTNodeType type);
 	PrimitiveType determine_integer_type(const std::string& value);
 	PrimitiveType determine_float_type(const std::string& value);
+	std::string strip_integer_suffix(const std::string& value);
+	std::string strip_float_suffix(const std::string& value);
 
     class ASTNode {
     public:

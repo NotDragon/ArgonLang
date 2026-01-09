@@ -102,7 +102,7 @@ TEST_F(ConstraintsTest, GenerateConstraintWithConcreteTypes) {
     
     EXPECT_TRUE(code.find("// Constraint ValidRange") != std::string::npos);
     EXPECT_TRUE(code.find("template<typename T, typename Min, typename Max>") != std::string::npos);
-    EXPECT_TRUE(code.find("requires Number<T> && std::same_as<Min, ArgonLang::Runtime::i32> && std::same_as<Max, ArgonLang::Runtime::i32>") != std::string::npos);
+    EXPECT_TRUE(code.find("requires Number<T> && std::same_as<Min, I32> && std::same_as<Max, I32>") != std::string::npos);
     EXPECT_TRUE(code.find("concept ValidRange = T >= Min && T <= Max;") != std::string::npos);
 }
 
@@ -111,7 +111,7 @@ TEST_F(ConstraintsTest, GenerateConstraintWithStringType) {
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("// Constraint NonEmptyString") != std::string::npos);
-    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, str>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, STR>") != std::string::npos);
     EXPECT_TRUE(code.find("concept NonEmptyString = T.length > 0;") != std::string::npos);
 }
 
@@ -279,7 +279,7 @@ TEST_F(ConstraintsTest, GenerateIntersectionTypeWithMultipleConstraints) {
     std::string code = generateCode(input);
     
     // Intersection types should be erased to base type
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 process(ArgonLang::Runtime::i32 value)") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 process(I32 value)") != std::string::npos);
     EXPECT_TRUE(code.find("concept Positive = T > 0;") != std::string::npos);
     EXPECT_TRUE(code.find("concept Even = T % 2 == 0;") != std::string::npos);
 }

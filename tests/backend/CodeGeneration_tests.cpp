@@ -40,7 +40,7 @@ TEST_F(CodeGenerationTest, GenerateSimpleFunction) {
     std::string input = "func add(a: i32, b: i32) i32 { return a + b; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 add(ArgonLang::Runtime::i32 a,ArgonLang::Runtime::i32 b)") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 add(I32 a,I32 b)") != std::string::npos);
     EXPECT_TRUE(code.find("return a + b;") != std::string::npos);
     EXPECT_TRUE(code.find("ARGON_SCOPE_BEGIN()") != std::string::npos);
 }
@@ -49,8 +49,25 @@ TEST_F(CodeGenerationTest, GenerateVariableDeclaration) {
     std::string input = "func main() i32 { def x: i32 = 42; return x; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 x = 42;") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 x = 42;") != std::string::npos);
     EXPECT_TRUE(code.find("return x;") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GenerateNumberWithTypeSuffix) {
+    std::string input = "func main() i64 { def x: i64 = 90i64; return x; }";
+    std::string code = generateCode(input);
+    
+    EXPECT_TRUE(code.find("(I64)90") != std::string::npos);
+    EXPECT_TRUE(code.find("I64 x = (I64)90;") != std::string::npos || code.find("I64 x=(I64)90;") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GenerateNumberWithVariousTypeSuffixes) {
+    std::string input = "func main() i32 { def a: i8 = 42i8; def b: i16 = 100i16; def c: i64 = 200i64; return 0; }";
+    std::string code = generateCode(input);
+    
+    EXPECT_TRUE(code.find("(I8)42") != std::string::npos);
+    EXPECT_TRUE(code.find("(I16)100") != std::string::npos);
+    EXPECT_TRUE(code.find("(I64)200") != std::string::npos);
 }
 
 TEST_F(CodeGenerationTest, GenerateClass) {
@@ -58,8 +75,8 @@ TEST_F(CodeGenerationTest, GenerateClass) {
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("class Point{") != std::string::npos);
-    EXPECT_TRUE(code.find("public:ArgonLang::Runtime::i32 x;") != std::string::npos);
-    EXPECT_TRUE(code.find("public:ArgonLang::Runtime::i32 y;") != std::string::npos);
+    EXPECT_TRUE(code.find("public:I32 x;") != std::string::npos);
+    EXPECT_TRUE(code.find("public:I32 y;") != std::string::npos);
     EXPECT_TRUE(code.find("};") != std::string::npos);
 }
 
@@ -103,7 +120,7 @@ TEST_F(CodeGenerationTest, GenerateGenericFunctionCall) {
     std::string input = "func main() i32 { def result = identity<i32>(42); return result; }";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("identity<ArgonLang::Runtime::i32>(42)") != std::string::npos);
+    EXPECT_TRUE(code.find("identity<I32>(42)") != std::string::npos);
 }
 
 TEST_F(CodeGenerationTest, GenerateNestedFunctionCalls) {
@@ -120,13 +137,13 @@ TEST_F(CodeGenerationTest, GenerateBasicTypes) {
     )";
     std::string code = generateCode(input);
     
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i8 a") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i16 b") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 c") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i64 d") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::f32 e") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::f64 f") != std::string::npos);
-    EXPECT_TRUE(code.find("str g") != std::string::npos);
+    EXPECT_TRUE(code.find("I8 a") != std::string::npos);
+    EXPECT_TRUE(code.find("I16 b") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 c") != std::string::npos);
+    EXPECT_TRUE(code.find("I64 d") != std::string::npos);
+    EXPECT_TRUE(code.find("F32 e") != std::string::npos);
+    EXPECT_TRUE(code.find("F64 f") != std::string::npos);
+    EXPECT_TRUE(code.find("STR g") != std::string::npos);
     EXPECT_TRUE(code.find("bool h") != std::string::npos);
 }
 
@@ -287,7 +304,7 @@ TEST_F(CodeGenerationTest, GenerateComprehensiveProgram) {
     EXPECT_TRUE(code.find("class Vec{") != std::string::npos);
     EXPECT_TRUE(code.find("template<typename T> requires Number<T>") != std::string::npos);
     EXPECT_TRUE(code.find("T safeDivide(T a,T b)") != std::string::npos);
-    EXPECT_TRUE(code.find("safeDivide<ArgonLang::Runtime::i32>(10, 2)") != std::string::npos);
+    EXPECT_TRUE(code.find("safeDivide<I32>(10, 2)") != std::string::npos);
     EXPECT_TRUE(code.find("safeDivide(20, 4)") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 main()") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 main()") != std::string::npos);
 }

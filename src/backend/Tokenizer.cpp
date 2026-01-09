@@ -237,6 +237,52 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 				}
 			}
 
+			// Check for type suffixes
+			size_t numEnd = i;
+			std::string suffix;
+			if (!isDecimal) {
+				// Integer type suffixes: i128, u128, i64, u64, i32, u32, i16, u16, i8, u8
+				if (i + 4 <= length) {
+					std::string possibleSuffix = input.substr(i, 4);
+					if (possibleSuffix == "i128" || possibleSuffix == "u128") {
+						suffix = possibleSuffix;
+						i += 4;
+					}
+				}
+				if (suffix.empty() && i + 3 <= length) {
+					std::string possibleSuffix = input.substr(i, 3);
+					if (possibleSuffix == "i64" || possibleSuffix == "u64" || 
+					    possibleSuffix == "i32" || possibleSuffix == "u32" ||
+					    possibleSuffix == "i16" || possibleSuffix == "u16") {
+						suffix = possibleSuffix;
+						i += 3;
+					}
+				}
+				if (suffix.empty() && i + 2 <= length) {
+					std::string possibleSuffix = input.substr(i, 2);
+					if (possibleSuffix == "i8" || possibleSuffix == "u8") {
+						suffix = possibleSuffix;
+						i += 2;
+					}
+				}
+			} else {
+				// Float type suffixes: f128, f64, f32, f16
+				if (i + 4 <= length) {
+					std::string possibleSuffix = input.substr(i, 4);
+					if (possibleSuffix == "f128") {
+						suffix = possibleSuffix;
+						i += 4;
+					}
+				}
+				if (suffix.empty() && i + 3 <= length) {
+					std::string possibleSuffix = input.substr(i, 3);
+					if (possibleSuffix == "f64" || possibleSuffix == "f32" || possibleSuffix == "f16") {
+						suffix = possibleSuffix;
+						i += 3;
+					}
+				}
+			}
+
 			std::string numLiteral = input.substr(start, i - start);
 
 			std::erase(numLiteral, '`');
@@ -247,8 +293,10 @@ ArgonLang::TokenizeResult ArgonLang::tokenize(const std::string& input) {
 				tokens.emplace_back(Token::IntegralLiteral, numLiteral, currentLine, currentColumn);
 			}
 
+			currentColumn += (i - start);
 			continue;
-		} else if (std::isalpha(c) || c == '_') {
+		}
+		if (std::isalpha(c) || c == '_') {
 			size_t start = i;
 			while (i < length && (std::isalnum(input[i]) || input[i] == '_')) {
 				i++;

@@ -10,10 +10,12 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_primary() {
 	Token token = token_error.value();
 
 	if (token.type == Token::IntegralLiteral) {
+		std::string strippedValue = strip_integer_suffix(token.value);
 		return Ok(std::make_unique<IntegralLiteralNode>(
-		    token.position, token.value, determine_integer_type(token.value)));
+		    token.position, strippedValue, determine_integer_type(token.value)));
 	} else if (token.type == Token::FloatLiteral) {
-		return Ok(std::make_unique<FloatLiteralNode>(token.position, token.value,
+		std::string strippedValue = strip_float_suffix(token.value);
+		return Ok(std::make_unique<FloatLiteralNode>(token.position, strippedValue,
 		                                             determine_float_type(token.value)));
 	} else if (token.type == Token::StringLiteral) {
 		return Ok(std::make_unique<StringLiteralNode>(token.position, token.value));
@@ -1395,39 +1397,39 @@ Result<std::unique_ptr<PatternNode>> Parser::parse_pattern() {
 	Token::Position pos = peek().position;
 
 	switch (peek().type) {
-		case Token::Identifier:
-			// Could be identifier pattern, constructor pattern, or type pattern
-			if (peek(1).type == Token::LeftParen) {
-				// Constructor pattern: Point(x, y)
-				return parse_constructor_pattern();
+	case Token::Identifier:
+		// Could be identifier pattern, constructor pattern, or type pattern
+		if (peek(1).type == Token::LeftParen) {
+			// Constructor pattern: Point(x, y)
+			return parse_constructor_pattern();
 			}
 			if (peek(1).type == Token::DoubleColon) {
-				// Enum constructor: Shape::Circle(r)
-				return parse_constructor_pattern();
+			// Enum constructor: Shape::Circle(r)
+			return parse_constructor_pattern();
 			}
 			if (peek().value == "_") {
-				// Wildcard pattern
-				return parse_wildcard_pattern();
+			// Wildcard pattern
+			return parse_wildcard_pattern();
 			}
 
 			// Identifier pattern or type pattern
 			return parse_identifier_pattern();
 		case Token::Minus:
-		case Token::IntegralLiteral:
-		case Token::FloatLiteral:
-		case Token::StringLiteral:
-		case Token::BooleanLiteral:
-		case Token::CharLiteral:
-			return parse_literal_pattern();
-		case Token::LeftBracket:
-			return parse_array_pattern();
-		case Token::LeftBrace:
-			return parse_struct_pattern();
-		case Token::PrimitiveType:
-			return parse_type_pattern();
-		default:
+	case Token::IntegralLiteral:
+	case Token::FloatLiteral:
+	case Token::StringLiteral:
+	case Token::BooleanLiteral:
+	case Token::CharLiteral:
+		return parse_literal_pattern();
+	case Token::LeftBracket:
+		return parse_array_pattern();
+	case Token::LeftBrace:
+		return parse_struct_pattern();
+	case Token::PrimitiveType:
+		return parse_type_pattern();
+	default:
 			// fallback
-			return parse_literal_pattern();
+		return parse_literal_pattern();
 	}
 }
 

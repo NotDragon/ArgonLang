@@ -47,8 +47,8 @@ TEST_F(OOPTest, GenerateBasicClassDeclaration) {
     
     EXPECT_TRUE(code.find("class Point") != std::string::npos);
     EXPECT_TRUE(code.find("public:") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 x") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 y") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 x") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 y") != std::string::npos);
     EXPECT_FALSE(code.find("ERROR") != std::string::npos);
 }
 
@@ -63,7 +63,7 @@ TEST_F(OOPTest, GenerateClassWithPrivateMembers) {
     
     EXPECT_TRUE(code.find("class BankAccount") != std::string::npos);
     EXPECT_TRUE(code.find("public:") != std::string::npos);
-    EXPECT_TRUE(code.find("private:") != std::string::npos || code.find("ArgonLang::Runtime::f64 balance") != std::string::npos);
+    EXPECT_TRUE(code.find("private:") != std::string::npos || code.find("F64 balance") != std::string::npos);
 }
 
 TEST_F(OOPTest, GenerateClassWithMethods) {
@@ -84,7 +84,7 @@ TEST_F(OOPTest, GenerateClassWithMethods) {
     
     EXPECT_TRUE(code.find("class Counter") != std::string::npos);
     EXPECT_TRUE(code.find("void increment()") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 getValue()") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 getValue()") != std::string::npos);
     EXPECT_TRUE(code.find("value = value + 1") != std::string::npos);
 }
 
@@ -148,7 +148,7 @@ TEST_F(OOPTest, GenerateImplWithMultipleMethods) {
     std::string input = R"(
         class Calculator {
             pub result: f64;
-            
+        
             pub func add(x: f64) void {
                 result = result + x;
             }
@@ -435,7 +435,7 @@ TEST_F(OOPTest, GenerateCompleteClassExample) {
     std::string code = generateCode(input);
     
     EXPECT_TRUE(code.find("class Vector2D") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::f64 length()") != std::string::npos);
+    EXPECT_TRUE(code.find("F64 length()") != std::string::npos);
     EXPECT_TRUE(code.find("normalize") != std::string::npos);
     EXPECT_TRUE(code.find("v.length()") != std::string::npos);
     EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
@@ -479,7 +479,7 @@ TEST_F(OOPTest, GenerateSingleInheritance) {
     
     EXPECT_TRUE(code.find("class Shape{") != std::string::npos);
     EXPECT_TRUE(code.find("class Circle : public Shape{") != std::string::npos);
-    EXPECT_TRUE(code.find("public:ArgonLang::Runtime::i32 radius") != std::string::npos);
+    EXPECT_TRUE(code.find("public:I32 radius") != std::string::npos);
     EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
     EXPECT_FALSE(code.find("CODEGEN_ERROR") != std::string::npos);
 }
@@ -532,7 +532,7 @@ TEST_F(OOPTest, GenerateMultipleInheritance) {
     EXPECT_TRUE(code.find("class Drawable{") != std::string::npos);
     EXPECT_TRUE(code.find("class Movable{") != std::string::npos);
     EXPECT_TRUE(code.find("class Sprite : public Drawable, public Movable{") != std::string::npos);
-    EXPECT_TRUE(code.find("public:ArgonLang::Runtime::i32 x") != std::string::npos);
+    EXPECT_TRUE(code.find("public:I32 x") != std::string::npos);
     EXPECT_FALSE(code.find("PARSE_ERROR") != std::string::npos);
     EXPECT_FALSE(code.find("CODEGEN_ERROR") != std::string::npos);
 }

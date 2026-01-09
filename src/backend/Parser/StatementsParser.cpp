@@ -1228,7 +1228,7 @@ Result<std::unique_ptr<ASTNode>> Parser::parse_union_declaration() {
 		Result<Token> fieldName = expect(Token::Identifier, "Expected field name");
 		if (!fieldName.has_value()) {
 			return Err<std::unique_ptr<ASTNode>>(fieldName.error());
-		}
+	}
 
 		Result<Token> colon = expect(Token::Colon, "Expected ':' after field name");
 		if (!colon.has_value()) {

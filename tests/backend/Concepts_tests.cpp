@@ -163,7 +163,7 @@ TEST_F(ConceptsTest, GenerateConcreteTypeConstraint) {
     std::string code = generateCode(input);
     
     // Should use std::same_as for concrete type constraints
-    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, ArgonLang::Runtime::i32>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, I32>") != std::string::npos);
     EXPECT_TRUE(code.find("T processInt(T x)") != std::string::npos);
 }
 
@@ -172,7 +172,7 @@ TEST_F(ConceptsTest, GenerateMixedConceptAndConcreteConstraints) {
     std::string code = generateCode(input);
     
     // Should use both concept and concrete type constraints
-    EXPECT_TRUE(code.find("template<typename T, typename U> requires Number<T> && std::same_as<U, ArgonLang::Runtime::i32>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T, typename U> requires Number<T> && std::same_as<U, I32>") != std::string::npos);
     EXPECT_TRUE(code.find("T process(T a,U b)") != std::string::npos);
 }
 
@@ -181,7 +181,7 @@ TEST_F(ConceptsTest, GenerateMultipleConcreteTypeConstraints) {
     std::string code = generateCode(input);
     
     // Should use std::same_as for all concrete types
-    EXPECT_TRUE(code.find("template<typename T, typename U, typename V> requires std::same_as<T, ArgonLang::Runtime::i32> && std::same_as<U, ArgonLang::Runtime::f32> && std::same_as<V, str>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T, typename U, typename V> requires std::same_as<T, I32> && std::same_as<U, F32> && std::same_as<V, STR>") != std::string::npos);
     EXPECT_TRUE(code.find("T process(T a,U b,V c)") != std::string::npos);
 }
 
@@ -200,7 +200,7 @@ TEST_F(ConceptsTest, GenerateConceptWithMultipleParameters) {
     std::string code = generateCode(input);
     
     // Should generate concept with multiple template parameters
-    EXPECT_TRUE(code.find("template<typename T, typename Min, typename Max> requires Number<T> && std::same_as<Min, ArgonLang::Runtime::i32> && std::same_as<Max, ArgonLang::Runtime::i32>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T, typename Min, typename Max> requires Number<T> && std::same_as<Min, I32> && std::same_as<Max, I32>") != std::string::npos);
     EXPECT_TRUE(code.find("concept InRange = T >= Min && T <= Max;") != std::string::npos);
 }
 
@@ -234,7 +234,7 @@ TEST_F(ConceptsTest, GenerateComprehensiveConceptUsage) {
     
     // Should use concepts in function templates
     EXPECT_TRUE(code.find("template<typename T> requires Number<T>") != std::string::npos);
-    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, ArgonLang::Runtime::i32>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, I32>") != std::string::npos);
     
     // Should use concepts in class templates
     EXPECT_TRUE(code.find("template<typename T, typename U> requires Type<T> && Number<U>") != std::string::npos);
@@ -251,7 +251,7 @@ TEST_F(ConceptsTest, HandleProgramWithoutGenerics) {
     std::string code = generateCode(input);
     
     // Function should be non-generic
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 add(ArgonLang::Runtime::i32 a,ArgonLang::Runtime::i32 b)") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 add(I32 a,I32 b)") != std::string::npos);
     EXPECT_TRUE(code.find("template") == std::string::npos || 
                 code.find("ArgonLang::Runtime::i32 add") > code.find("template")); // Template should come before if present
 }

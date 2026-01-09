@@ -103,9 +103,9 @@ TEST_F(IntegrationTest, CompleteGenericSystemIntegration) {
     EXPECT_TRUE(code.find("concept ValidIndex = T >= 0 && T < 1000;") != std::string::npos);
     
     // Verify generic class generation
-    EXPECT_TRUE(code.find("template<typename T, typename Size> requires Type<T> && std::same_as<Size, ArgonLang::Runtime::i32>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T, typename Size> requires Type<T> && std::same_as<Size, I32>") != std::string::npos);
     EXPECT_TRUE(code.find("class Container{") != std::string::npos);
-    EXPECT_TRUE(code.find("public:ArgonLang::Runtime::i32 getSize()") != std::string::npos);
+    EXPECT_TRUE(code.find("public:I32 getSize()") != std::string::npos);
     
     // Verify generic function templates
     EXPECT_TRUE(code.find("template<typename T> requires Number<T>") != std::string::npos);
@@ -116,9 +116,9 @@ TEST_F(IntegrationTest, CompleteGenericSystemIntegration) {
     EXPECT_TRUE(code.find("T combine(T first,U second,V third)") != std::string::npos);
     
     // Verify explicit generic function calls
-    EXPECT_TRUE(code.find("square<ArgonLang::Runtime::i32>(5)") != std::string::npos);
-    EXPECT_TRUE(code.find("safeDivide<ArgonLang::Runtime::i32, ArgonLang::Runtime::f32>(10, 2.0)") != std::string::npos);
-    EXPECT_TRUE(code.find("combine<ArgonLang::Runtime::i32, str, bool>(42, \"hello\", true)") != std::string::npos);
+    EXPECT_TRUE(code.find("square<I32>(5)") != std::string::npos);
+    EXPECT_TRUE(code.find("safeDivide<I32, F32>(10, 2.0)") != std::string::npos);
+    EXPECT_TRUE(code.find("combine<I32, STR, bool>(42, \"hello\", true)") != std::string::npos);
     
     // Verify type inference calls (no explicit types)
     EXPECT_TRUE(code.find("square(7)") != std::string::npos);
@@ -173,25 +173,25 @@ TEST_F(IntegrationTest, ComplexConstraintSystemIntegration) {
     std::string code = generateCode(input);
     
     // Verify multi-parameter constraint generation
-    EXPECT_TRUE(code.find("template<typename T, typename Min, typename Max> requires Number<T> && std::same_as<Min, ArgonLang::Runtime::i32> && std::same_as<Max, ArgonLang::Runtime::i32>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T, typename Min, typename Max> requires Number<T> && std::same_as<Min, I32> && std::same_as<Max, I32>") != std::string::npos);
     EXPECT_TRUE(code.find("concept InRange = T >= Min && T <= Max;") != std::string::npos);
     
     // Verify string constraint generation
-    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, str>") != std::string::npos);
+    EXPECT_TRUE(code.find("template<typename T> requires std::same_as<T, STR>") != std::string::npos);
     EXPECT_TRUE(code.find("concept ValidEmail = T.length > 5;") != std::string::npos);
     
     // Verify complex expression constraint
     EXPECT_TRUE(code.find("concept PowerOfTwo = T > 0 && (T & T - 1) == 0;") != std::string::npos);
     
     // Verify function templates use constraints correctly
-    EXPECT_TRUE(code.find("T processRange(T value,ArgonLang::Runtime::i32 min,ArgonLang::Runtime::i32 max)") != std::string::npos);
+    EXPECT_TRUE(code.find("T processRange(T value,I32 min,I32 max)") != std::string::npos);
     EXPECT_TRUE(code.find("bool validateEmail(Email email)") != std::string::npos);
     EXPECT_TRUE(code.find("T optimizeForPowerOfTwo(T size)") != std::string::npos);
     
     // Verify explicit generic calls
-    EXPECT_TRUE(code.find("processRange<ArgonLang::Runtime::i32>(50, 0, 100)") != std::string::npos);
-    EXPECT_TRUE(code.find("validateEmail<str>(\"test@example.com\")") != std::string::npos);
-    EXPECT_TRUE(code.find("optimizeForPowerOfTwo<ArgonLang::Runtime::i32>(8)") != std::string::npos);
+    EXPECT_TRUE(code.find("processRange<I32>(50, 0, 100)") != std::string::npos);
+    EXPECT_TRUE(code.find("validateEmail<STR>(\"test@example.com\")") != std::string::npos);
+    EXPECT_TRUE(code.find("optimizeForPowerOfTwo<I32>(8)") != std::string::npos);
 }
 
 // Mixed Generic and Non-Generic Code Integration Test
@@ -257,8 +257,8 @@ TEST_F(IntegrationTest, MixedGenericNonGenericIntegration) {
     std::string code = generateCode(input);
     
     // Verify non-generic functions are generated correctly
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::i32 addInts(ArgonLang::Runtime::i32 a,ArgonLang::Runtime::i32 b)") != std::string::npos);
-    EXPECT_TRUE(code.find("ArgonLang::Runtime::f32 multiplyFloats(ArgonLang::Runtime::f32 a,ArgonLang::Runtime::f32 b)") != std::string::npos);
+    EXPECT_TRUE(code.find("I32 addInts(I32 a,I32 b)") != std::string::npos);
+    EXPECT_TRUE(code.find("F32 multiplyFloats(F32 a,F32 b)") != std::string::npos);
     
     // Verify generic functions have templates
     EXPECT_TRUE(code.find("template<typename T> requires Number<T>") != std::string::npos);
@@ -267,8 +267,8 @@ TEST_F(IntegrationTest, MixedGenericNonGenericIntegration) {
     
     // Verify non-generic class
     EXPECT_TRUE(code.find("class Point{") != std::string::npos);
-    EXPECT_TRUE(code.find("public:ArgonLang::Runtime::i32 x;") != std::string::npos);
-    EXPECT_TRUE(code.find("public:ArgonLang::Runtime::f32 distance()") != std::string::npos);
+    EXPECT_TRUE(code.find("public:I32 x;") != std::string::npos);
+    EXPECT_TRUE(code.find("public:F32 distance()") != std::string::npos);
     
     // Verify generic class
     EXPECT_TRUE(code.find("template<typename T, typename U> requires Type<T> && Type<U>") != std::string::npos);
@@ -278,8 +278,8 @@ TEST_F(IntegrationTest, MixedGenericNonGenericIntegration) {
     // Verify function calls
     EXPECT_TRUE(code.find("addInts(5, 10)") != std::string::npos);
     EXPECT_TRUE(code.find("multiplyFloats(2.5, 4.0)") != std::string::npos);
-    EXPECT_TRUE(code.find("genericAdd<ArgonLang::Runtime::i32>(7, 8)") != std::string::npos);
-    EXPECT_TRUE(code.find("processPositive<ArgonLang::Runtime::f32>(3.14)") != std::string::npos);
+    EXPECT_TRUE(code.find("genericAdd<I32>(7, 8)") != std::string::npos);
+    EXPECT_TRUE(code.find("processPositive<F32>(3.14)") != std::string::npos);
     EXPECT_TRUE(code.find("genericAdd(15, 20)") != std::string::npos);
     EXPECT_TRUE(code.find("processPositive(42)") != std::string::npos);
 }
@@ -322,7 +322,7 @@ TEST_F(IntegrationTest, ErrorRecoveryAndEdgeCases) {
     EXPECT_TRUE(code.find("template<typename T> requires Type<T>") != std::string::npos);
     EXPECT_TRUE(code.find("T store(T value)") != std::string::npos);
     EXPECT_TRUE(code.find("class Box{") != std::string::npos);
-    EXPECT_TRUE(code.find("store<ArgonLang::Runtime::i32>(42)") != std::string::npos);
+    EXPECT_TRUE(code.find("store<I32>(42)") != std::string::npos);
     
     // Should not contain any error indicators
     EXPECT_TRUE(code.find("PARSE_ERROR") == std::string::npos);
@@ -382,11 +382,11 @@ TEST_F(IntegrationTest, PerformanceAndScalabilityIntegration) {
     EXPECT_TRUE(code.find("class G3{") != std::string::npos);
     
     // Should generate all function calls correctly
-    EXPECT_TRUE(code.find("f1<ArgonLang::Runtime::i32>(5)") != std::string::npos);
-    EXPECT_TRUE(code.find("f2<ArgonLang::Runtime::i32>(10)") != std::string::npos);
-    EXPECT_TRUE(code.find("f3<ArgonLang::Runtime::i32>(20)") != std::string::npos);
-    EXPECT_TRUE(code.find("f4<ArgonLang::Runtime::i32>(30)") != std::string::npos);
-    EXPECT_TRUE(code.find("f5<str>(\"test\")") != std::string::npos);
+    EXPECT_TRUE(code.find("f1<I32>(5)") != std::string::npos);
+    EXPECT_TRUE(code.find("f2<I32>(10)") != std::string::npos);
+    EXPECT_TRUE(code.find("f3<I32>(20)") != std::string::npos);
+    EXPECT_TRUE(code.find("f4<I32>(30)") != std::string::npos);
+    EXPECT_TRUE(code.find("f5<STR>(\"test\")") != std::string::npos);
     
     // Should not have any errors or performance issues
     EXPECT_TRUE(code.find("PARSE_ERROR") == std::string::npos);

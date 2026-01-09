@@ -69,6 +69,43 @@ def tasks: list<Task> = list<Task>();
 def fibonacci_range: range<i32> = fibonacci_sequence();
 ```
 
+### Integer Literal Type Determination
+
+ArgonLang determines the type of integer literals using two rules:
+
+1. **Smallest possible type**: By default, the compiler assigns the smallest possible type that can hold the value
+2. **Explicit type suffix**: If a literal has a trailing type suffix (e.g., `10i64`), that type is used
+
+```argonlang
+// Smallest possible type inference
+def small = 42;        // i8 (fits in 8 bits)
+def medium = 300;      // i16 (fits in 16 bits)
+def large = 100000;    // i32 (fits in 32 bits)
+def huge = 5000000000; // i64 (requires 64 bits)
+
+// Explicit type suffixes override inference
+def explicit_i8 = 42i8;   // i8 (even though could be smaller)
+def explicit_i64 = 10i64; // i64 (even though could be i8)
+def explicit_i128 = 100i128; // i128
+
+// Unsigned types
+def unsigned = 42u32;  // u32
+def large_unsigned = 100u128; // u128
+
+// Type inference in expressions
+def result = 10 + 20;  // i8 (both operands are i8, result is i8)
+def mixed = 10i64 + 20; // i64 (promoted to match larger type)
+```
+
+**Type Selection Order:**
+1. Check for explicit suffix (`10i64`) → use that type
+2. If no suffix, find smallest type that can hold the value:
+   - `i8` if value fits in [-128, 127]
+   - `i16` if value fits in [-32768, 32767]
+   - `i32` if value fits in [-2147483648, 2147483647]
+   - `i64` if value fits in 64-bit signed range
+   - `i128` for larger values
+
 ### Type Inference Power
 
 ArgonLang's type inference is sophisticated enough to handle complex scenarios:
