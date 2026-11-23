@@ -7,3 +7,4 @@ syntax.txt
 cmake-build-debug
 examples
 .idea
+cli/target
